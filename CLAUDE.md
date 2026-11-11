@@ -77,3 +77,21 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
 - Finance (`Core/Sim.Finance.cs`, EMPIRE): fee policy (`SetFees`, five levels from 3 stars), one bank loan at a time repaid from a fifth of every payment (`TakeLoan`, `RepayLoan`), income by source (`State.incomeBy`).
 - People are Quaternius characters (CC0; `Tools/art/people.py` downloads, `Tools/art/models.py` poses and slims them to `person_N_*`, `worker_*`); `Portraits` renders the team's faces from them.
 - If the Editor stops answering the pipeline after a restart, look for a modal dialog (`wmctrl -l`), e.g. "URP Material upgrade"; keep `ProjectSettings/URPProjectSettings.asset` committed as the Editor writes it.
+- Ground operations (`Core/Sim.cs`, `GroundTests`): after boarding (`FlightState.boarded`) a flight still needs, in
+  order, de-icing (only in snow, only with a `deice` pad; that time is not counted against it) and a pushback tug
+  (`Service.Pushback` is in the `Needs` of every class C+ route, so the `pushback` department must exist to sign
+  one). Then it keeps its gate up to `HoldLimit` seconds (`FlightState.held`, also not counted as late) while a
+  stand is spare, so the apron stays full without costing throughput. `Content.Departments` lists the six crewed
+  departments (managers, depots, `IdleRate` crew loads). View: `PlaneView.Trucks` (tug on the nose, also through
+  the push back; `Spray` for de-icing), bubbles and board statuses in `Hud.cs` / `Hud.Board.cs`.
+- The country round each airfield is `World/Scenery.cs` (farmland, alpine forest and peaks, a city grid, palms and
+  islets, dunes and mesas, drifts and ice), filled into the rectangles `AirportView` passes it; town buildings
+  are `Scenery.Building` / `House` (window ribbons, some lit at night via `mb.Glow`). Keep ground layers at least
+  5 cm apart (they flicker at distance otherwise) and check `UnityEditor.UnityStats.triangles` per map (about
+  1.0-1.5M including shadow passes). `MeshBuilder.Sphere` gives squashed balls correct normals.
+- Menu rows (`Hud.Sheets.cs`): `Ico("name", tint).Bar(0..1).Entry(...)` adds an icon tile and a progress bar.
+  Glyphs are cut from Font Awesome Free (CC BY 4.0, credited) by `Tools/art/icons.py` into `Resources/UI/Ic`.
+  In-game credits are rows under EMPIRE; anything CC BY must be listed there and in `CREDITS.md`.
+- Music is synthesized by `Tools/art/music.py` (numpy; nothing licensed) into `Resources/Audio/Music/day|night.ogg`
+  (streamed, see `ArtImport`); `Sfx.TickMusic` cross-fades them with `Sim.Night`; Settings has a Music switch.
+- Road cars are Quaternius (CC0, `Tools/art/cars.py`); service trucks, vans and depots are still Kenney.

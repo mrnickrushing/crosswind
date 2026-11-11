@@ -68,6 +68,7 @@ namespace Crosswind.Core
             if (l == null || LoanBlocked(l) != null) return false;
             double amount = LoanAmount(l);
             State.money += amount;                    // borrowed, not earned: no rating, no lifetime income
+            State.today.borrowed += amount;
             State.loanOwed = Math.Floor(amount * l.Interest);
             State.loanTotal = State.loanOwed;
             Changed?.Invoke();
@@ -80,6 +81,7 @@ namespace Crosswind.Core
             if (!InDebt || State.money < 1) return false;
             double pay = Math.Min(State.loanOwed, State.money);
             State.money -= pay; State.loanOwed -= pay;
+            State.today.repaid += pay;
             if (State.loanOwed < 0.5) { State.loanOwed = 0; Toast?.Invoke("Loan repaid in full"); }
             Changed?.Invoke();
             return true;
@@ -91,6 +93,7 @@ namespace Crosswind.Core
             if (!InDebt || income <= 0) return income;
             double take = Math.Min(State.loanOwed, income * LoanShare);
             State.loanOwed -= take;
+            State.today.loanPaid += take;
             if (State.loanOwed < 0.5) { State.loanOwed = 0; Toast?.Invoke("Loan repaid in full"); }
             return income - take;
         }

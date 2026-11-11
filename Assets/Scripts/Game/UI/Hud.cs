@@ -31,9 +31,11 @@ namespace Crosswind.Game
         sealed class ServiceButton { public RectTransform Rt; public Image Bg, Tail, Icon; public Text Label; public int Flight; public Service Service; }
         sealed class Pop { public RectTransform Rt; public CanvasGroup Group; public Vector3 World; public Vector2 At, Drift; public bool Screen; public float Age, Life = 1.7f; }
 
-        static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE", "FRIENDS" };
-        static readonly string[] TabIcons = { "wrench", "plane", "gear", "zoom", "trophy", "multiplayer" };
-        Text _gems, _weather, _chips, _oppText;
+        static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE", "FRIENDS", "OPS" };
+        static readonly string[] TabIcons = { "wrench", "plane", "gear", "zoom", "trophy", "multiplayer", null };
+        /// <summary>Where each tab sits on the rail, top to bottom (OPS, the newest, is second).</summary>
+        static readonly int[] TabPlace = { 0, 2, 3, 4, 5, 6, 1 };
+        Text _gems, _weather, _chips, _oppText, _vitals;
         RectTransform _opp, _empireDot, _staffDot;
 
         public static Hud Create()
@@ -48,6 +50,7 @@ namespace Crosswind.Game
             h._sim.FlightPaid += h.OnPaid;
             h._sim.StarGained += h.OnStar;
             h._sim.RouteLost += r => { h._dirty = true; Sfx.Play("error"); };
+            h._sim.ContractDone += r => { h._dirty = true; if (GameRoot.Speed <= 3) Sfx.Play(r.dropped ? "close" : "claim", 0.7f); };
             h._sim.BuildDone += f => { h._dirty = true; if (GameRoot.Speed <= 3) Sfx.Play("build"); };
             h._sim.FuelLow += () => { h.Toast(h._sim.State.managers.Contains("fuel") ? "Fuel is low and the price is high: your manager is waiting" : "Fuel is running low: fill the tanks in BUILD"); h._dirty = true; };
             h._sim.RunwayWorn += () => { h.Toast("The runway is worn: it clears slower until it is resurfaced (BUILD)"); h._dirty = true; };
@@ -94,17 +97,20 @@ namespace Crosswind.Game
                 int k = i;
                 var b = Ui.Button(TabNames[i], rail, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 22);
                 var lab = b.GetComponentInChildren<Text>().rectTransform; lab.anchorMin = new Vector2(0, 0); lab.anchorMax = new Vector2(1, 0.36f); lab.offsetMin = new Vector2(2, 8); lab.offsetMax = new Vector2(-2, 0);
-                Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 50);
-                ((RectTransform)b.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12 - i * 118), new Vector2(112, 112));      // six tabs and the terminal button fit a 940-high phone canvas
+                if (TabIcons[i] != null) Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 44);
+                else { var g = Ui.Img("Glyph", b.transform, Color.white); g.sprite = Ui.Ic("calendar"); g.preserveAspect = true; g.rectTransform.Place(new Vector2(0.5f, 0.62f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(40, 40)); }
+                ((RectTransform)b.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -10 - TabPlace[i] * 104), new Vector2(112, 100));      // seven tabs and the terminal button fit a 940-high phone canvas
                 _tabs.Add(b);
             }
+            var dot3 = Ui.Img("Dot", _tabs[OpsTab].transform, Ui.Red); dot3.sprite = Ui.Circle;
+            _opsDot = dot3.rectTransform; _opsDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-4, -4), new Vector2(26, 26));
             var dot = Ui.Img("Dot", _tabs[4].transform, Ui.Red); dot.sprite = Ui.Circle;
             _empireDot = dot.rectTransform; _empireDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-4, -4), new Vector2(26, 26));
             var dot2 = Ui.Img("Dot", _tabs[2].transform, Ui.Red); dot2.sprite = Ui.Circle;
             _staffDot = dot2.rectTransform; _staffDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-4, -4), new Vector2(26, 26));
             // INSIDE / OUTSIDE at the foot of the rail: look into the terminal, or back over the airfield.
             var inside = Ui.Button("Inside", rail, "TERMINAL", Ui.Blue, null, 22);
-            ((RectTransform)inside.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(112, 118));
+            ((RectTransform)inside.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(112, 104));
             var insideText = inside.GetComponentInChildren<Text>();
             var il = insideText.rectTransform; il.anchorMin = new Vector2(0, 0); il.anchorMax = new Vector2(1, 0.36f); il.offsetMin = new Vector2(2, 8); il.offsetMax = new Vector2(-2, 0);
             Ui.IconImg("home", inside.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 50);
@@ -155,11 +161,18 @@ namespace Crosswind.Game
 
             // Top centre: the clock and the weather; under it what is running (a boost, a rush).
             var clock = Ui.ArtImg("Clock", _safe, "panel", Color.white).rectTransform;
-            clock.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(824, -12), new Vector2(380, 58));      // beside the status block, whatever the width
+            clock.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(824, -12), new Vector2(520, 100));      // beside the status block, whatever the width
             _weather = Ui.Label("Weather", clock, "", 30, Color.white);
-            _weather.rectTransform.Fill(4);
+            _weather.rectTransform.anchorMin = new Vector2(0, 0.46f); _weather.rectTransform.anchorMax = new Vector2(1, 1); _weather.rectTransform.offsetMin = new Vector2(10, 0); _weather.rectTransform.offsetMax = new Vector2(-10, -6);
+            _weather.resizeTextForBestFit = true; _weather.resizeTextMinSize = 18; _weather.resizeTextMaxSize = 30;
+            // Under the clock: how the airport is doing, always in view (tap for the books).
+            var vitals = Ui.Button("Vitals", clock, null, new Color(0, 0, 0, 0), () => OpenOps(4), 20);
+            ((RectTransform)vitals.transform).Fill();
+            _vitals = Ui.Label("Vitals", clock, "", 24, Ui.Dim, TextAnchor.MiddleCenter, false);
+            _vitals.rectTransform.anchorMin = new Vector2(0, 0); _vitals.rectTransform.anchorMax = new Vector2(1, 0.46f); _vitals.rectTransform.offsetMin = new Vector2(10, 8); _vitals.rectTransform.offsetMax = new Vector2(-10, 0);
+            _vitals.resizeTextForBestFit = true; _vitals.resizeTextMinSize = 16; _vitals.resizeTextMaxSize = 24;
             _chips = Ui.Label("Chips", _safe, "", 30, Ui.Gold);
-            _chips.rectTransform.Place(new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(1014, -76), new Vector2(620, 44));
+            _chips.rectTransform.Place(new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(1084, -118), new Vector2(620, 44));
             Outline(_chips);
 
             BuildBoard();
@@ -193,6 +206,7 @@ namespace Crosswind.Game
             _sheet.gameObject.SetActive(false);
 
             BuildTerminalUi();
+            BuildOps();
             BuildGuide();
             // Toast and the star banner.
             BuildFeedback();
@@ -231,7 +245,10 @@ namespace Crosswind.Game
             _gems.text = _sim.State.gems.ToString();
             var w = _sim.Weather;
             int hh = (int)_sim.Hour, mm = (int)((_sim.Hour - hh) * 60) / 10 * 10;
-            string clock = hh.ToString("00") + ":" + mm.ToString("00") + (w == Weather.Clear ? "   CLEAR" : "   ");
+            string clock = Sim.Weekdays[_sim.Weekday].Substring(0, 3) + "  " + hh.ToString("00") + ":" + mm.ToString("00") + (w == Weather.Clear ? "   CLEAR" : "   ");
+            float otp = _sim.OnTimeToday, sat = _sim.Satisfaction;
+            _vitals.text = "ON TIME <color=" + (otp >= 0.9f ? "#7CE08A" : otp >= 0.75f ? "#FFC83D" : "#FF8070") + ">" + Mathf.RoundToInt(otp * 100) + "%</color>   PASSENGERS <color=" + (sat >= 0.8f ? "#7CE08A" : sat >= 0.6f ? "#FFC83D" : "#FF8070") + ">" + Mathf.RoundToInt(sat * 100) + "%</color>"
+                + (_sim.ContractsOpen ? "   REPUTATION <color=#FFFFFF>" + _sim.RepTotal + "</color>" : "");
             _weather.text = clock + (w == Weather.Clear ? "" : (w == Weather.Rain ? "RAIN" : w == Weather.Fog ? "FOG" : w == Weather.Storm ? "STORM" : "SNOW") + "  <size=24>runway " + Mathf.RoundToInt(_sim.WeatherFactor * 100) + "%</size>");
             _chips.text = (_sim.Rush ? "RUSH x2  " + Format.Time(_sim.State.rushUntil - _sim.State.time) + "   " : "") + (_sim.Boosted ? "BOOST x2  " + Format.Time(_sim.BoostLeft) : "");
             var o = _sim.State.opportunity;
@@ -244,6 +261,7 @@ namespace Crosswind.Game
                 _opp.anchoredPosition = new Vector2(-20, CameraRig.Inside ? 124 : 20);      // clear of the ratings strip indoors
             }
             _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
+            _opsDot.gameObject.SetActive(_tab != OpsTab && OpsWaiting);
             _empireDot.gameObject.SetActive(_sim.ReportWaiting || _sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateBoard();
             UpdateTerminalUi();

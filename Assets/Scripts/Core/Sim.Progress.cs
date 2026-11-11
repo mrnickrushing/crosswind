@@ -43,6 +43,7 @@ namespace Crosswind.Core
         {
             if (amount <= 0) return;
             State.money += amount;
+            State.today.earned += amount;
             State.lifetimeEarned += amount;
             State.sessionEarned += amount;
             Count("earn", amount);

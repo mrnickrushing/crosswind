@@ -176,7 +176,7 @@ namespace Crosswind.Tests
         [Test]
         public void EveryRouteCanBeFlownAndEveryResearchReached()
         {
-            foreach (var r in Content.Routes.Values)
+            foreach (var r in Content.Routes.Values.Where(r => !Content.IsContractRoute(r.Id)))
             {
                 Assert.IsTrue(Content.Airlines.ContainsKey(r.Airline), r.Id);
                 if (r.Airline != "own") Assert.LessOrEqual(r.Stars, Content.MaxStars, r.Id);

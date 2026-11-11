@@ -12,10 +12,12 @@ namespace Crosswind.Game
         void OpenTab(int tab)
         {
             _tab = tab;
-            _sheet.gameObject.SetActive(tab >= 0);
+            _sheet.gameObject.SetActive(tab >= 0 && tab != OpsTab);
+            _ops.gameObject.SetActive(tab == OpsTab);
+            if (tab != OpsTab) _opsPick = 0;
             for (int i = 0; i < _tabs.Count; i++) _tabs[i].GetComponent<Image>().color = i == tab ? Ui.Blue : Ui.Card;
             Sfx.Play(tab >= 0 ? "open" : "close", 0.5f);
-            if (tab >= 0) { _sheetList.anchoredPosition = Vector2.zero; RefreshSheet(); }
+            if (tab >= 0) { if (tab != OpsTab) _sheetList.anchoredPosition = Vector2.zero; RefreshSheet(); }
         }
 
         static string Gems(int n) { return n + (n == 1 ? " gem" : " gems"); }
@@ -24,7 +26,7 @@ namespace Crosswind.Game
 
         RectTransform Row(float height)
         {
-            var row = Ui.ArtImg("Row", _sheetList, "card", Color.white).rectTransform;
+            var row = Ui.ArtImg("Row", _list ?? _sheetList, "card", Color.white).rectTransform;
             row.anchorMin = new Vector2(0, 1); row.anchorMax = new Vector2(1, 1); row.pivot = new Vector2(0.5f, 1);
             row.offsetMin = Vector2.zero; row.offsetMax = Vector2.zero; row.anchoredPosition = new Vector2(0, -_rowY); row.sizeDelta = new Vector2(0, height);
             _rowY += height + 12;
@@ -33,7 +35,8 @@ namespace Crosswind.Game
 
         void Header(string text)
         {
-            var t = Ui.Label("Header", _sheetList, text, 28, new Color(0.45f, 0.8f, 1f), TextAnchor.LowerLeft);
+            var t = Ui.Label("Header", _list ?? _sheetList, text, 28, new Color(0.45f, 0.8f, 1f), TextAnchor.LowerLeft);
+            t.resizeTextForBestFit = true; t.resizeTextMinSize = 16; t.resizeTextMaxSize = 28; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate;
             var rt = t.rectTransform;
             rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(1, 1); rt.pivot = new Vector2(0.5f, 1);
             rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero; rt.anchoredPosition = new Vector2(12, -_rowY); rt.sizeDelta = new Vector2(0, 50);
@@ -170,6 +173,7 @@ namespace Crosswind.Game
         void RefreshSheet()
         {
             if (_tab < 0) return;
+            if (_tab == OpsTab) { RefreshOps(); return; }
             Ui.Clear(_sheetList);
             _rowY = 0;
             if (_tab == ShopTab) { ShopSheet(); _sheetList.sizeDelta = new Vector2(0, _rowY); return; }

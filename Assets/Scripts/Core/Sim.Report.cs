@@ -15,6 +15,7 @@ namespace Crosswind.Core
         public double bonus;            // paid when collected
         public int streak;              // days in a row at B or better, this one included
         public bool claimed;
+        public double costs;            // wages and upkeep charged as the day closed
     }
 
     /// <summary>
@@ -59,6 +60,7 @@ namespace Crosswind.Core
         {
             int today = FuelDay;
             if (State.dayIndex == today) return;
+            if (State.dayIndex >= 0) CloseLedger(State.dayIndex + 1);
             if (State.dayIndex >= 0 && State.dayFlights > 0)
             {
                 float score = DayScore; int g = GradeIndex(score);
@@ -70,6 +72,7 @@ namespace Crosswind.Core
                     day = State.dayIndex + 1, flights = State.dayFlights, onTime = State.dayOnTime, dry = State.dayDry, income = State.dayIncome,
                     satisfaction = Satisfaction, runway = RunwayCondition, score = score, grade = Grades[g],
                     bonus = Math.Floor(State.dayIncome * GradeBonus[g]) + carried, streak = streak,
+                    costs = State.ledger.Count > 0 ? State.ledger[0].Costs : 0,
                 };
                 State.gradeStreak = streak;
                 State.report = r;
@@ -78,6 +81,7 @@ namespace Crosswind.Core
                 Changed?.Invoke();
             }
             State.dayIndex = today; State.dayFlights = State.dayOnTime = State.dayDry = 0; State.dayIncome = 0;
+            OpenLedger();
         }
 
         /// <summary>Gems this report's streak pays on collection (every fifth good day in a row).</summary>

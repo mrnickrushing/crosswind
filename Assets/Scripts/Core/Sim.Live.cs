@@ -33,11 +33,12 @@ namespace Crosswind.Core
         }
 
         /// <summary>How busy this time of day is: a morning and an evening peak, a quiet night (less quiet with runway lights).</summary>
-        public float DemandFactor
+        public float DemandFactor { get { return DemandAt(Hour); } }
+
+        /// <summary>The same at any hour of the clock.</summary>
+        public float DemandAt(float h)
         {
-            get
             {
-                float h = Hour;
                 float peak = Math.Max(0, 1 - Math.Abs(h - 8.5f) / 2.5f) + Math.Max(0, 1 - Math.Abs(h - 18f) / 2.5f);
                 bool lit = Level("runway") >= 5 || Researched("ops_night");
                 float night = h >= 23 || h < 5 ? (Researched("ops_night") ? 0.9f : lit ? 0.6f : 0.4f) : 1f;
@@ -69,6 +70,7 @@ namespace Crosswind.Core
             if (park > 0) Earn(park, true);
             RollTasks();
             TurnDay();
+            Market();
         }
 
         void NextWeather()

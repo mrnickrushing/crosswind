@@ -37,20 +37,40 @@ namespace Crosswind.Game
                 var rt = (RectTransform)row.transform;
                 rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(1, 1); rt.pivot = new Vector2(0.5f, 1);
                 rt.offsetMin = new Vector2(8, 0); rt.offsetMax = new Vector2(-8, 0); rt.anchoredPosition = new Vector2(0, -6 - i * 40); rt.sizeDelta = new Vector2(-16, 38);
-                var code = Ui.Label("Code", rt, "", 26, Amber, TextAnchor.MiddleLeft); code.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(110, 36));
-                var dest = Ui.Label("Dest", rt, "", 26, Color.white, TextAnchor.MiddleLeft, false); dest.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(118, 0), new Vector2(210, 36));
+                var code = Ui.Label("Code", rt, "", 26, Amber, TextAnchor.MiddleLeft); code.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(6, 0), new Vector2(126, 36));
+                var dest = Ui.Label("Dest", rt, "", 26, Color.white, TextAnchor.MiddleLeft, false); dest.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(134, 0), new Vector2(196, 36));
                 dest.horizontalOverflow = HorizontalWrapMode.Overflow; dest.resizeTextForBestFit = true; dest.resizeTextMinSize = 16; dest.resizeTextMaxSize = 26;
                 var status = Ui.Label("Status", rt, "", 24, Amber, TextAnchor.MiddleRight); status.rectTransform.Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-6, 0), new Vector2(150, 36));
                 _boardRows.Add(new[] { code, dest, status });
             }
         }
 
-        static string FlightCode(FlightState f)
+        /// <summary>What a flight is doing right now, in the board's words, and the colour it is shown in.</summary>
+        string StatusOf(FlightState f, out Color c)
         {
-            var r = Content.Routes[f.route];
-            string name = r.Airline == "own" ? "YA" : Content.Airlines[r.Airline].Name;
-            string two = r.Airline == "own" ? "YA" : (name.Substring(0, 1) + (name.IndexOf(' ') > 0 && name.IndexOf(' ') + 1 < name.Length ? name.Substring(name.IndexOf(' ') + 1, 1) : name.Substring(1, 1))).ToUpper();
-            return two + (100 + f.id * 7 % 900);
+            var s = _sim; var r = Content.Routes[f.route];
+            bool late = f.phase >= Phase.Deplane && f.phase <= Phase.Board && s.State.time - f.parkedAt - f.held > s.OnTimeTarget(r);
+            bool needs = NeedsCrew(f);
+            var leavingJob = f.phase == Phase.Board && f.boarded ? f.jobs.Find(j => !j.done) : null;
+            string st; c = Amber;
+            switch (f.phase)
+            {
+                case Phase.Approach: st = "HOLDING"; c = Ui.Dim; break;
+                case Phase.Landing: st = "LANDING"; break;
+                case Phase.TaxiIn: st = "TAXI IN"; break;
+                case Phase.Deplane: st = "ARRIVED"; break;
+                case Phase.Service: st = needs ? "NEEDS CREW" : "SERVICING"; if (needs) c = Ui.Red; break;
+                case Phase.Board:
+                    if (!f.boarded) { st = "BOARDING"; c = Ui.Green; }
+                    else if (leavingJob == null) { st = "GATE CLOSED"; c = Ui.Green; }
+                    else if (needs) { st = leavingJob.service == Service.Deice ? "NEEDS DE-ICE" : "NEEDS TUG"; c = Ui.Red; }
+                    else { st = leavingJob.service == Service.Deice ? "DE-ICING" : "PUSHBACK"; }
+                    break;
+                case Phase.TaxiOut: st = "TAXI OUT"; break;
+                default: st = "DEPARTING"; c = Ui.Green; break;
+            }
+            if (late && !needs) { st = "DELAYED"; c = Ui.Red; }
+            return st;
         }
 
         void UpdateBoard()
@@ -70,29 +90,9 @@ namespace Crosswind.Game
                 if (i >= flights.Count) { t[0].text = i == 0 ? "" : ""; t[1].text = i == 0 && flights.Count == 0 ? "No traffic" : ""; t[1].color = Ui.Dim; t[2].text = ""; _boardFlight[i] = -1; continue; }
                 var f = flights[i]; var r = Content.Routes[f.route];
                 _boardFlight[i] = f.id;
-                t[0].text = FlightCode(f);
-                t[1].text = r.Destination; t[1].color = Color.white;
-                bool late = f.phase >= Phase.Deplane && f.phase <= Phase.Board && s.State.time - f.parkedAt - f.held > s.OnTimeTarget(r);
-                bool needs = NeedsCrew(f);
-                var leavingJob = f.phase == Phase.Board && f.boarded ? f.jobs.Find(j => !j.done) : null;
-                string st; Color c = Amber;
-                switch (f.phase)
-                {
-                    case Phase.Approach: st = "HOLDING"; c = Ui.Dim; break;
-                    case Phase.Landing: st = "LANDING"; break;
-                    case Phase.TaxiIn: st = "TAXI IN"; break;
-                    case Phase.Deplane: st = "ARRIVED"; break;
-                    case Phase.Service: st = needs ? "NEEDS CREW" : "SERVICING"; if (needs) c = Ui.Red; break;
-                    case Phase.Board:
-                        if (!f.boarded) { st = "BOARDING"; c = Ui.Green; }
-                        else if (leavingJob == null) { st = "GATE CLOSED"; c = Ui.Green; }
-                        else if (needs) { st = leavingJob.service == Service.Deice ? "NEEDS DE-ICE" : "NEEDS TUG"; c = Ui.Red; }
-                        else { st = leavingJob.service == Service.Deice ? "DE-ICING" : "PUSHBACK"; }
-                        break;
-                    case Phase.TaxiOut: st = "TAXI OUT"; break;
-                    default: st = "DEPARTING"; c = Ui.Green; break;
-                }
-                if (late && !needs) { st = "DELAYED"; c = Ui.Red; }
+                t[0].text = s.FlightNo(f);
+                t[1].text = r.Destination; t[1].color = f.contract != 0 ? Ui.Gold : Color.white;
+                Color c; string st = StatusOf(f, out c);
                 t[2].text = st; t[2].color = c;
             }
         }

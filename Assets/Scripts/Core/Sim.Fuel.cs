@@ -61,6 +61,7 @@ namespace Crosswind.Core
             double units = Math.Min(want, State.money / price);
             if (units < 1) return false;
             State.money -= units * price;
+            State.today.fuelBought += units * price;
             State.fuelStock = FuelStock + units;
             State.fuelSaved += units * (1 - price);
             if (price <= 0.9f && units >= FuelCapacity * 0.25) State.cheapFills++;
@@ -77,7 +78,7 @@ namespace Crosswind.Core
             // A fuel manager keeps an eye on the gauge: orders half a farm when it runs low and the price is fair.
             if (State.managers.Contains("fuel") && FuelStock < Math.Max(draw, FuelCapacity * LowFuel) && FuelPrice <= 1.08f && FuelCost(0.6f) <= State.money * 0.5) BuyFuel(0.6f);
             bool had = FuelStock >= draw;
-            if (had) { State.fuelStock = FuelStock - draw; State.money += draw; }      // the pump price comes back; the margin is in the flight's pay
+            if (had) { State.fuelStock = FuelStock - draw; State.money += draw; State.today.fuelBack += draw; }      // the pump price comes back; the margin is in the flight's pay
             if (!State.fuelWarned && FuelFill < LowFuel) { State.fuelWarned = true; FuelLow?.Invoke(); }
             return had;
         }

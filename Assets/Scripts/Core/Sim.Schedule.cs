@@ -79,7 +79,8 @@ namespace Crosswind.Core
         double ListedRate(ContractState c)
         {
             var r = Content.Routes[c.route];
-            return r.FlightsPerHour * (1 + Fx(Effect.Demand)) * TermsFlights(c.terms) * FleetFlights(r) * (r.Airline == "own" ? 1 : FeeFlights);
+            if (!Active(r.Airline)) return 0;
+            return r.FlightsPerHour * (1 + Fx(Effect.Demand)) * TermsFlights(c.terms) * FleetFlights(r) * (r.Airline == "own" ? 1 : FeeFlights) * WeekFactor(r.Airline, Weekday);
         }
 
         /// <summary>Flights an hour planned for each hour of the day, 00 to 23.</summary>
@@ -91,6 +92,22 @@ namespace Crosswind.Core
                 double rate = ListedRate(c);
                 for (int h = 0; h < 24; h++) load[h] += (float)(rate * (c.slot <= 0 ? 1 : InSlot(c.slot, h) ? SlotRate : 0));
             }
+            return load;
+        }
+
+        /// <summary>
+        /// Flights an hour expected at each hour of the clock: the routes with the day's swell (a morning and an
+        /// evening peak, a quiet night) and every contract flight planned for that hour.
+        /// </summary>
+        public float[] HourlyTraffic()
+        {
+            var load = new float[24];
+            foreach (var c in State.contracts)
+            {
+                double rate = ListedRate(c);
+                for (int h = 0; h < 24; h++) load[h] += (float)(rate * (c.slot <= 0 ? DemandAt(h + 0.5f) : InSlot(c.slot, h) ? SlotRate : 0));
+            }
+            foreach (var b in State.bookings) if (b.hour >= 0 && b.hour < 24 && Active(b.airline)) load[b.hour] += 1;
             return load;
         }
 

@@ -14,7 +14,7 @@ namespace Crosswind.Tests
             var log = new List<string>();
             double clock = 1_800_000_000;
             s.RealNow = () => clock;
-            int stars = s.Stars, goal = s.State.goalIndex;
+            int stars = s.Stars, goal = s.State.goalIndex, day = 0;
             float sinceTap = 0;
             for (float t = 0; t < seconds; t += 0.25f)
             {
@@ -59,10 +59,24 @@ namespace Crosswind.Tests
                 if (pick != null) s.Upgrade(pick);
                 foreach (AircraftClass ac in System.Enum.GetValues(typeof(AircraftClass)))
                     if (s.BuyAircraftBlocked(ac) == null && s.State.money > s.AircraftCost(ac) * 3) s.BuyAircraft(ac);
+                if (s.State.ledger.Count > 0 && s.State.ledger[0].day != day)
+                {
+                    var l = s.State.ledger[0]; day = l.day;
+                    if (day <= 3 || day % 5 == 0) log.Add(Format.Time(t) + ": day " + day + " closed, income " + Format.Money(l.Income) + ", wages and upkeep " + Format.Money(l.Costs) + " (" + (l.Income > 0 ? (int)System.Math.Round(l.Costs / l.Income * 100) : 0) + "%)");
+                }
                 if (s.Stars != stars) { stars = s.Stars; log.Add(Format.Time(t) + ": " + stars + " stars, " + Format.Money(s.State.incomeRate * 60) + "/min, " + s.State.contracts.Count + " routes"); }
                 if (s.State.goalIndex != goal) { goal = s.State.goalIndex; log.Add(Format.Time(t) + ": goal " + goal + " done (" + Goals.All[goal - 1].Id + ")"); }
             }
             return log;
+        }
+
+        [Test, Explicit("the books over six hours of play: run after tuning costs (--filter Name~SixHoursOfBooks)")]
+        public void SixHoursOfBooks()
+        {
+            var s = new Sim(GameState.New());
+            foreach (var l in Greedy(s, 6 * 3600, 4f).Where(x => x.Contains("day ") || x.Contains("stars"))) TestContext.WriteLine(l);
+            var last = s.State.ledger[0];
+            Assert.Less(last.Costs, last.Income * 0.3, "running costs never eat the airport");
         }
 
         [Test, Explicit("over a minute: run after tuning (--filter Name~ThreeDays)")]

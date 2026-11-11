@@ -31,6 +31,8 @@ namespace Crosswind.Core
         public double parkedAt;         // game time it reached the stand
         public bool boarded;            // everyone is aboard: what is left is de-icing, the tug, and the wait for its slot
         public float held;              // seconds not counted against it: waiting at the gate by choice, and de-icing
+        public int contract;            // the contract this flight belongs to (0: a route's ordinary flight)
+        public int number;              // its flight number (after the airline's two letters)
         public List<ServiceJob> jobs = new List<ServiceJob>();
     }
 
@@ -149,6 +151,19 @@ namespace Crosswind.Core
         public int plansMade;                                        // times the day was planned (by AUTO PLAN or by hand)
         public double freeCrateAt;                                   // real time the next free crate is ready
 
+        // Contracts, reputation and the books (Sim.Contracts, Sim.Ledger).
+        public List<Booking> market = new List<Booking>();           // contracts on offer
+        public double marketAt;                                      // real time the offers change
+        public uint marketSeed = 8675309;                            // its own dice, so a new market never shifts the flights
+        public List<Booking> bookings = new List<Booking>();         // contracts signed and under way
+        public List<BookingRecord> record = new List<BookingRecord>();   // contracts finished, newest first
+        public int nextBookingId = 1;
+        public List<LevelEntry> rep = new List<LevelEntry>();        // reputation with each airline (points, kept at this airport)
+        public List<string> paused = new List<string>();             // airlines told to stay away for now
+        public List<DayLedger> ledger = new List<DayLedger>();       // the last days' books, newest first
+        public DayLedger today = new DayLedger();                    // the day being counted
+        public double dayOpenMoney = -1;                             // cash when the day opened (-1: not yet counted)
+
         public static GameState New()
         {
             var s = new GameState { money = Content.StartMoney, time = 60 };      // a new airport opens at eight in the morning
@@ -168,6 +183,7 @@ namespace Crosswind.Core
             if (managers == null) managers = new List<string>();
             if (goals == null) goals = new List<GoalProgress>();
             contracts.RemoveAll(c => c == null || !Content.Routes.ContainsKey(c.route));
+            foreach (var f in flights) if (f != null) Content.EnsureContractRoute(f.route);
             flights.RemoveAll(f => f == null || !Content.Routes.ContainsKey(f.route));
             foreach (var f in flights) if (f.jobs == null) f.jobs = new List<ServiceJob>();
             levels.RemoveAll(l => l == null || !Content.Facilities.ContainsKey(l.id));
@@ -211,6 +227,23 @@ namespace Crosswind.Core
             if (partner == null) partner = new List<LevelEntry>();
             partner.RemoveAll(d => d == null || d.id == null || !Content.Airlines.ContainsKey(d.id));
             if (seed == 0) seed = 12345;
+            if (marketSeed == 0) marketSeed = 8675309;
+            if (market == null) market = new List<Booking>();
+            if (bookings == null) bookings = new List<Booking>();
+            market.RemoveAll(b => b == null || b.airline == null || !Content.Airlines.ContainsKey(b.airline) || b.plane < 0 || b.plane > 4 || b.flights < 1);
+            bookings.RemoveAll(b => b == null || b.airline == null || !Content.Airlines.ContainsKey(b.airline) || b.plane < 0 || b.plane > 4 || b.flights < 1);
+            foreach (var b in bookings) b.airborne = flights.Exists(f => f.contract == b.id);
+            foreach (var f in flights) if (f.contract != 0 && !bookings.Exists(b => b.id == f.contract)) f.contract = 0;
+            if (record == null) record = new List<BookingRecord>();
+            record.RemoveAll(r => r == null || r.airline == null || !Content.Airlines.ContainsKey(r.airline));
+            if (nextBookingId < 1) nextBookingId = 1;
+            if (rep == null) rep = new List<LevelEntry>();
+            rep.RemoveAll(r => r == null || r.id == null || !Content.Airlines.ContainsKey(r.id));
+            if (paused == null) paused = new List<string>();
+            paused.RemoveAll(a => a == null || !Content.Airlines.ContainsKey(a));
+            if (ledger == null) ledger = new List<DayLedger>();
+            ledger.RemoveAll(l => l == null);
+            if (today == null) today = new DayLedger();
         }
     }
 }

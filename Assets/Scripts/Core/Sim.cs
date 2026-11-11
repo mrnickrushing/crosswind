@@ -274,10 +274,12 @@ namespace Crosswind.Core
 
         void Arrivals()
         {
+            ContractArrivals();
             foreach (var c in State.contracts)
             {
                 if (State.time < c.nextArrival) continue;
                 var r = Content.Routes[c.route];
+                if (!Active(r.Airline)) { c.nextArrival = State.time + 5; continue; }       // told to stay away for now
                 float pace = ScheduleRate(c);
                 if (pace <= 0) { c.nextArrival = State.time + UntilSlot(c.slot) + Rand() * 4; continue; }     // outside its slot: back when it opens
                 double gap = 3600.0 / (ListedRate(c) * pace);
@@ -285,6 +287,7 @@ namespace Crosswind.Core
                 if (State.flights.Count >= TowerSlots) { c.nextArrival = State.time + Math.Min(gap, 5); continue; }
                 c.nextArrival = State.time + gap * (0.85 + Rand() * 0.3);
                 var f = new FlightState { id = State.nextFlightId++, route = r.Id, phase = Phase.Approach, arrivedAt = State.time, slot = c.slot };
+                f.number = 100 + (Hash(r.Id) % 80 * 10 + f.id % 10) % 900;
                 State.flights.Add(f);
                 FlightChanged?.Invoke(f);
             }
@@ -298,7 +301,7 @@ namespace Crosswind.Core
             {
                 case Phase.Approach:
                     if (runwayBusy >= RunwayLanes || RunwayClosed) return;
-                    int stand = FreeStand(r.Class);
+                    int stand = f.contract != 0 ? BookedStand(f, r.Class) : FreeStand(r.Class);
                     if (stand < 0) return;
                     f.stand = stand;
                     runwayBusy++;
@@ -393,11 +396,15 @@ namespace Crosswind.Core
         int FreeStand(AircraftClass c)
         {
             int heavy = HeavyStands;
-            if (!Heavy(c))
-                for (int i = heavy; i < StandCount; i++)
-                    if (!State.flights.Exists(f => f.stand == i)) return i;
-            for (int i = 0; i < heavy; i++)
-                if (!State.flights.Exists(f => f.stand == i)) return i;
+            // A stand a contract flight is about to need is left alone while another will do.
+            for (int pass = State.bookings.Count > 0 ? 0 : 1; pass < 2; pass++)
+            {
+                if (!Heavy(c))
+                    for (int i = heavy; i < StandCount; i++)
+                        if (!State.flights.Exists(f => f.stand == i) && (pass == 1 || !Reserved(i))) return i;
+                for (int i = 0; i < heavy; i++)
+                    if (!State.flights.Exists(f => f.stand == i) && (pass == 1 || !Reserved(i))) return i;
+            }
             return -1;
         }
 

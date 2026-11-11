@@ -58,14 +58,16 @@ namespace Crosswind.Core
             // Dry tanks: an outside supplier fuels the aircraft and keeps most of the margin.
             bool dry = !DrawFuel(r);
             if (dry) { value -= parts[2] * (1 - DryMargin) * IncomeScale; parts[2] *= DryMargin; }
-            double paid = value * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay * MaintenancePay(r.Class) : RelationPay(r.Airline) * FeePay * PartnerPay(r.Airline));
+            double paid = value * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay * MaintenancePay(r.Class) : RelationPay(r.Airline) * FeePay * PartnerPay(r.Airline) * RepPay(r.Airline));
             if (r.Airline == "own") FleetFlew(r.Class);
             if (r.Airline != "own") Relate(r.Airline, (onTime ? 0.4f : -2.5f) + FeeMoodPerFlight);
             if (r.Airline != "own") CountDeal(r, onTime, paid);
             double sum = parts[0] + parts[1] + parts[2] + parts[3] + parts[4];
             if (sum > 0) for (int i = 0; i < 5; i++) State.incomeBy[i] += paid * parts[i] / sum;
+            if (sum > 0) { var t = State.today; t.landing += paid * parts[0] / sum; t.pax += paid * parts[1] / sum; t.fuel += paid * parts[2] / sum; t.retail += paid * parts[3] / sum; t.cargo += paid * parts[4] / sum; }
             Earn(AfterLoan(paid), true);
             CountDay(onTime, dry, paid);
+            if (f.contract != 0) ContractFlew(f, onTime, dry);
             State.flightsHandled++;
             Count("flights", 1);
             if (onTime) Count("ontime", 1);
@@ -122,7 +124,7 @@ namespace Crosswind.Core
             foreach (var c in State.contracts)
             {
                 var r = Content.Routes[c.route];
-                if (!r.Needs.All(Automated)) continue;
+                if (!r.Needs.All(Automated) || !Active(r.Airline)) continue;
                 var plane = Content.Aircraft[r.Class];
                 // A slotted route flies three quarters of the day's flights.
                 double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) * FleetFlights(r) / 3600.0 * (c.slot > 0 ? SlotRate * 6 / 24 : 1) * (r.Airline == "own" ? 1 : FeeFlights);

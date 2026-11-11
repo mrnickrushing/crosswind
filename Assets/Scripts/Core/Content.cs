@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -39,6 +40,10 @@ namespace Crosswind.Core
         public string Id, Name, Motto;
         public float FeeScale = 1f;      // how well it pays
         public float Patience = 1f;      // how much lateness it puts up with (scales the on-time target)
+        public string Code = "XX";       // the two letters before its flight numbers
+        public int Kind;                 // 0 regional, 1 leisure (busy at weekends), 2 business (busy on weekdays), 3 freight
+        public int[] Likes = { 1, 2, 3 };    // the day-parts it asks for in a contract, best first (planner slots: 1 morning .. 4 night)
+        public int Grade = 4;            // the lowest passenger grade it accepts on a contract (an index into Sim.Grades; 4: any)
     }
 
     /// <summary>A route an airline offers: so many flights an hour of one aircraft class, needing these services.</summary>
@@ -160,6 +165,16 @@ namespace Crosswind.Core
 
             // Your own airline: one route per aircraft class, flown by the aircraft you buy (never offered as a contract).
             Line("own", "Your Airline", "Your colours, your routes.", 1.0f, 1.2f);
+            void Is(string id, string code, int kind, int grade, params int[] likes) { var a = Airlines[id]; a.Code = code; a.Kind = kind; a.Grade = grade; a.Likes = likes; }
+            Is("puffin", "PF", 0, 4, 1, 2, 4);
+            Is("sunhop", "SH", 1, 2, 1, 2, 3);
+            Is("zip", "ZP", 2, 3, 1, 3, 2);
+            Is("meridian", "MD", 2, 1, 1, 3, 4);
+            Is("atlas", "AF", 3, 4, 4, 3, 1);
+            Is("fjord", "FJ", 0, 2, 1, 2, 3);
+            Is("solstice", "SL", 1, 1, 2, 1, 3);
+            Is("crown", "CE", 2, 0, 1, 3, 2);
+            Is("own", "CW", 0, 4, 1, 2, 3);
             Route("own_a", "own", "Island Hopper", AircraftClass.A, 14, 99, 0, Service.Fuel);
             Route("own_b", "own", "Regional Link", AircraftClass.B, 11, 99, 0, Service.Fuel, Service.Baggage);
             Route("own_c", "own", "City Express", AircraftClass.C, 9, 99, 0, Service.Fuel, Service.Baggage);
@@ -167,6 +182,42 @@ namespace Crosswind.Core
             Route("own_e", "own", "Flagship", AircraftClass.E, 5, 99, 0, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
 
             ExtendProgress();
+        }
+
+        /// <summary>Where contract flights go: places of our own.</summary>
+        public static readonly string[] Places = { "Saltmarsh", "Port Arlen", "Vesper Island", "Greywater", "Tamsin Bay", "High Carrow", "Lantern Rock", "Marrow Sands",
+            "Elder Point", "Corran Lake", "Whitcombe", "Sable Quay", "Thornmere", "Dellmoor", "Kestle Head", "Brightwater" };
+
+        public static int NeedsMask(IEnumerable<Service> needs) { int m = 0; foreach (var n in needs) m |= 1 << (int)n; return m; }
+        public static Service[] NeedsOf(int mask) { return Enum.GetValues(typeof(Service)).Cast<Service>().Where(v => (mask & (1 << (int)v)) != 0).ToArray(); }
+
+        /// <summary>
+        /// The route a contract's flights fly: one aircraft class of one airline with the services the contract asks
+        /// for, to one of the <see cref="Places"/>. Made the first time it is asked for and never offered as a route.
+        /// </summary>
+        public static RouteDef ContractRoute(string airline, AircraftClass c, int needs, int place)
+        {
+            if (c >= AircraftClass.C) needs |= 1 << (int)Service.Pushback;
+            needs |= 1 << (int)Service.Fuel;
+            place = ((place % Places.Length) + Places.Length) % Places.Length;
+            string id = "bk_" + airline + "_" + (int)c + "_" + needs + "_" + place;
+            RouteDef r;
+            if (!Routes.TryGetValue(id, out r))
+                Routes[id] = r = new RouteDef { Id = id, Airline = airline, Destination = Places[place], Class = c, FlightsPerHour = 0, Stars = 99, Needs = NeedsOf(needs) };
+            return r;
+        }
+
+        public static bool IsContractRoute(string id) { return id != null && id.StartsWith("bk_"); }
+
+        /// <summary>Makes sure a contract route named in a save exists (false: the name is not one).</summary>
+        public static bool EnsureContractRoute(string id)
+        {
+            if (!IsContractRoute(id)) return false;
+            if (Routes.ContainsKey(id)) return true;
+            var p = id.Split('_');
+            int c, needs, place;
+            if (p.Length != 5 || !Airlines.ContainsKey(p[1]) || !int.TryParse(p[2], out c) || !int.TryParse(p[3], out needs) || !int.TryParse(p[4], out place) || c < 0 || c > 4) return false;
+            return ContractRoute(p[1], (AircraftClass)c, needs, place).Id == id;
         }
 
         public static string ServiceFacility(Service s)

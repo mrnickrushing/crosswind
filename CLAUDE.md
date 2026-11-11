@@ -124,3 +124,27 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
 - Music is synthesized by `Tools/art/music.py` (numpy; nothing licensed) into `Resources/Audio/Music/day|night.ogg`
   (streamed, see `ArtImport`); `Sfx.TickMusic` cross-fades them with `Sim.Night`; Settings has a Music switch.
 - Road cars are Quaternius (CC0, `Tools/art/cars.py`); the bus, lorries and cones are code (`Gse.Bus`, `Lorry`, `Cone`). No Kenney models are left in the build.
+- Contracts (`Core/Sim.Contracts.cs`, `ContractTests`; open at 2 stars): beside the routes, airlines put charters and
+  series on a market (`State.market`, a new set every `MarketSeconds` of real time or for gems, from its own dice
+  `marketSeed` so it never shifts the flights). Signed ones go in the book (`State.bookings`, `BookingCap` = 2 + tower
+  level), are planned onto a stand and an hour of their day-part (`Plan`, `PlanBlocked`, `AutoPlace` picks the quietest
+  hour by `HourlyTraffic`; a visit keeps the stand `BlockHours`), and fly one flight a day (`ContractArrivals`; the
+  flight carries `FlightState.contract` and flies a `Content.ContractRoute`, a `bk_...` route made on demand that is
+  never offered: skip those with `Content.IsContractRoute` when listing routes). Other traffic leaves a stand a
+  contract is about to need (`Reserved`). The last flight closes it with three marks (punctual, serviced, standards:
+  `Marks`, `Finish`), which scale the reward (in minutes of the airport's income) and the reputation; finished ones
+  are kept in `State.record`. Reputation per airline (`Rep`, `RepTier`, `RepPay`) raises what all its flights pay.
+  Airlines can be paused (`SetActive`). Flights have numbers (`FlightNo`, two-letter `AirlineDef.Code`); the week has
+  days (`Weekday`, `WeekFactor`: holiday airlines busy at weekends, business airlines in the week, evening out).
+- The books (`Core/Sim.Ledger.cs`): every day closes into `State.ledger` (the last seven; `State.today` is running):
+  income by source, wages (`Wages`: departments, managers, terminal staff) and upkeep (`Upkeep`: airside) charged at
+  the day's close as a share of what each was last built up for (`WageRate`, `UpkeepRate`; never below zero cash),
+  fuel bought and sold, loans, and what went on building (the residual). `PacingTests.SixHoursOfBooks` prints the
+  share of income they take (2-14%).
+- The operations centre (`UI/Hud.Ops.cs`, OPS on the rail = tab `OpsTab`, full screen beside the rail): CONTRACTS
+  (market and book), PLANNER (stands by the day's 24 hours from 06:00; pick a contract up, set it down on a green
+  hour; the day's traffic under it), RECORD (marks), AIRLINES (reputation, mood, the grade it asks for, the day-parts
+  it likes, pause), FLIGHTS (the pattern and what is still due), FINANCES (today, the last week, income and costs).
+  Tables are rows with cells by share of the width (`Span`, `CellText`, `Plate`, `PartChip`, `NeedTiles`, `GradeBox`,
+  `Mark`, `Meter`); `Row`/`Header`/`Entry` write into `_list` when it is set. Day-part colours: `Hud.PartColor`.
+  The clock panel shows the weekday and, under it, today's on-time share, passenger satisfaction and total reputation.

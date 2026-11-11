@@ -44,6 +44,65 @@ namespace Crosswind.Game
             }
         }
 
+        // ------------------------------------------------------------------ buildings
+
+        static readonly Color[] Walls = { Palette.Hex(0xC9C3B6), Palette.Hex(0xB4B9BF), Palette.Hex(0xD6CBB4), Palette.Hex(0xA9A39A), Palette.Hex(0xBFA990), Palette.Hex(0x9AA7B4), Palette.Hex(0xB5876A) };
+        static readonly Color[] Roofs = { Palette.Hex(0x8C9096), Palette.Hex(0x7A7F86), Palette.Hex(0x9A948A), Palette.Hex(0x6E747C) };
+
+        /// <summary>
+        /// A town building seen from the air: walls in concrete, brick or glass with a band of windows on every floor,
+        /// a parapet round a flat roof and the plant that sits on it. Tall ones are glass towers with a crown.
+        /// </summary>
+        public static void Building(MeshBuilder mb, Vector3 at, float w, float l, float h, System.Random rng)
+        {
+            var wall = Walls[rng.Next(Walls.Length)]; var roof = Roofs[rng.Next(Roofs.Length)];
+            Color glass = rng.Next(2) == 0 ? Palette.Hex(0x35526E) : Palette.Hex(0x2E4A52);
+            bool tower = h > 34;
+            if (tower) { wall = Color.Lerp(Palette.Hex(0x4C7FA8), Palette.Hex(0x7FA9BF), (float)rng.NextDouble()); glass = Palette.Hex(0xDCE3E8); }
+            // A podium under the taller ones.
+            if (h > 20) { mb.Smoothness = 0.2f; mb.Box(at + Vector3.up * 2.5f, new Vector3(w + 3, 5, l + 3), Palette.Hex(0x9A9C9E), roof); }
+            mb.Smoothness = tower ? 0.86f : 0.16f;
+            mb.Box(at + Vector3.up * h * 0.5f, new Vector3(w, h, l), wall, roof);
+            // Floors: a ribbon of windows on each (on a glass tower, the pale floor edges instead).
+            float floor = tower ? 4.2f : 3.4f;
+            mb.Smoothness = tower ? 0.3f : 0.85f;
+            for (float y = (h > 20 ? 6.6f : 1.9f); y < h - 1.2f; y += floor)
+                mb.Box(at + Vector3.up * y, new Vector3(w + 0.12f, tower ? 0.35f : 1.5f, l + 0.12f), glass);
+            // Piers up the corners of the masonry ones, so the ribbons read as windows between walls.
+            if (!tower)
+            {
+                mb.Smoothness = 0.16f;
+                foreach (float sx in new[] { -1f, 1f }) foreach (float sz in new[] { -1f, 1f })
+                    mb.Box(at + new Vector3(sx * (w * 0.5f - 0.5f), h * 0.5f, sz * (l * 0.5f - 0.5f)), new Vector3(1.2f, h, 1.2f), wall, roof);
+            }
+            // The roof: a parapet, a plant room, a couple of units.
+            mb.Smoothness = 0.2f;
+            foreach (float sz in new[] { -1f, 1f }) mb.Box(at + new Vector3(0, h + 0.35f, sz * (l * 0.5f - 0.15f)), new Vector3(w, 0.7f, 0.3f), MeshBuilder.Darken(wall, 0.9f));
+            foreach (float sx in new[] { -1f, 1f }) mb.Box(at + new Vector3(sx * (w * 0.5f - 0.15f), h + 0.35f, 0), new Vector3(0.3f, 0.7f, l), MeshBuilder.Darken(wall, 0.9f));
+            mb.Box(at + new Vector3(w * R(rng, -0.2f, 0.2f), h + 1.3f, l * R(rng, -0.2f, 0.2f)), new Vector3(w * 0.3f, 2.6f, l * 0.3f), Palette.Hex(0x8A8E94), roof);
+            mb.Box(at + new Vector3(-w * 0.28f, h + 0.5f, l * 0.3f), new Vector3(1.8f, 1f, 1.4f), Palette.Hex(0xA5A9AE));
+            if (tower)
+            {
+                mb.Box(at + Vector3.up * (h + 2.4f), new Vector3(w * 0.72f, 4.8f, l * 0.72f), MeshBuilder.Darken(wall, 0.85f), roof);
+                mb.Cylinder(at + new Vector3(w * 0.2f, h + 4.8f, 0), at + new Vector3(w * 0.2f, h + 13f, 0), 0.12f, 0.05f, 4, Palette.Steel, false);
+            }
+        }
+
+        /// <summary>A house or a small shop: rendered walls under a pitched tiled roof.</summary>
+        public static void House(MeshBuilder mb, Vector3 at, float w, float l, System.Random rng)
+        {
+            Color[] renders = { Palette.Hex(0xE4DCCB), Palette.Hex(0xD9C7A8), Palette.Hex(0xC9D0D4), Palette.Hex(0xB98A6E), Palette.Hex(0xE8E2D6) };
+            Color[] tiles = { Palette.Hex(0x8A4B3A), Palette.Hex(0x5E5A58), Palette.Hex(0x74504A), Palette.Hex(0x4E5560) };
+            var wall = renders[rng.Next(renders.Length)]; var tile = tiles[rng.Next(tiles.Length)];
+            float h = R(rng, 5.5f, 8.5f);
+            mb.Smoothness = 0.12f;
+            mb.Box(at + Vector3.up * h * 0.5f, new Vector3(w, h, l), wall);
+            mb.Smoothness = 0.8f;
+            for (float y = 1.8f; y < h - 0.8f; y += 3f) mb.Box(at + Vector3.up * y, new Vector3(w + 0.1f, 1.2f, l * 0.72f), Palette.Hex(0x33485C));
+            mb.Smoothness = 0.12f;
+            mb.GableRoof(at + Vector3.up * h, new Vector3(w, R(rng, 2.2f, 3.4f), l), tile, wall, 0.5f);
+        }
+
         // ------------------------------------------------------------------ trees
 
         public static void Broadleaf(MeshBuilder mb, float x, float z, float h, int i, Color tree)
@@ -173,8 +232,6 @@ namespace Crosswind.Game
         static void Metro(MeshBuilder mb, Ground g, List<Rect> country, System.Random rng, Color tree)
         {
             // A city on every side: blocks of buildings between streets, a park here and there.
-            Color[] walls = { Palette.Hex(0xB9B4A8), Palette.Hex(0x9FA6AE), Palette.Hex(0xC9BFA9), Palette.Hex(0x8C8F96), Palette.Hex(0xA6988A), Palette.Hex(0x7F8FA3) };
-            Color[] roofs = { Palette.Hex(0x8C9096), Palette.Hex(0x7A7F86), Palette.Hex(0x9A948A), Palette.Hex(0x6E747C) };
             int n = 0;
             foreach (var blk in country)
             {
@@ -201,11 +258,8 @@ namespace Crosswind.Game
                             float w = bw / nx - 3, l = bl / nz - 3;
                             float px = fx + street * 0.5f + (ix + 0.5f) * bw / nx, pz = fz + street * 0.5f + (iz + 0.5f) * bl / nz;
                             float h = R(rng, 7, 16) + tall * R(rng, 0, 70) * (rng.Next(4) == 0 ? 1 : 0.35f);
-                            var wall = walls[rng.Next(walls.Length)];
-                            mb.Smoothness = h > 30 ? 0.7f : 0.15f;
-                            mb.Box(new Vector3(px, h * 0.5f, pz), new Vector3(w, h, l), h > 30 ? Color.Lerp(wall, Palette.Hex(0x4F7FA6), 0.55f) : wall, roofs[rng.Next(roofs.Length)]);
-                            mb.Smoothness = 0.15f;
-                            if (h > 12) mb.Box(new Vector3(px + w * 0.18f, h + 0.9f, pz - l * 0.15f), new Vector3(w * 0.3f, 1.8f, l * 0.3f), Palette.Hex(0x7C8088));      // plant room
+                            if (h < 9 && rng.Next(2) == 0) House(mb, new Vector3(px, 0, pz), Mathf.Min(w, 12), Mathf.Min(l, 14), rng);
+                            else Building(mb, new Vector3(px, 0, pz), w, l, h, rng);
                         }
                 });
             }

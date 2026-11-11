@@ -399,15 +399,18 @@ namespace Crosswind.Game
                     placed++;
                 }
             // The town.
-            string[] town = { "shop_a", "shop_b", "shop_c", "shop_d", "shop_e", "shop_f", "shop_g", "shop_h", "shop_i", "shop_j", "shop_k", "shop_l", "shop_m", "shop_n" };
-            string[] high = { "tower_a", "tower_b", "tower_c", "tower_d", "tower_e" };
+            // The town beside the airport grows with its rating: houses and shops first, offices, then glass towers
+            // (kept back from the road, never under the approach). Each plot has its pavement.
             int blocks = 6 + s.Stars * 5;
             for (int i = 0; i < blocks; i++)
             {
                 float bx = roadX + lotW + 22 + (i % 5) * 17 + (float)rng.NextDouble() * 4, bz = -150 + (i / 5) * 24 + (float)rng.NextDouble() * 6;
                 bool tall = s.Stars >= 4 && rng.NextDouble() < 0.12 + s.Stars * 0.03;
-                if (tall) Models.Kit(high[rng.Next(high.Length)], kit, new Vector3(bx, 0, bz), rng.Next(4) * 90, 26 + rng.Next(22));
-                else Models.Kit(town[rng.Next(town.Length)], kit, new Vector3(bx, 0, bz), rng.Next(4) * 90, 11 + rng.Next(5));
+                var at = new Vector3(bx, 0, bz);
+                g.Rect("Concrete", bx, bz, 15, 20, 0.02f, 0, new Color(0.82f, 0.82f, 0.82f));
+                if (tall) Scenery.Building(mb, at, 10 + rng.Next(3), 11 + rng.Next(4), 36 + rng.Next(40), rng);
+                else if (rng.Next(5) < 2 || s.Stars < 3) Scenery.House(mb, at, 8 + rng.Next(3), 10 + rng.Next(4), rng);
+                else Scenery.Building(mb, at, 10 + rng.Next(3), 12 + rng.Next(5), 9 + rng.Next(4 + s.Stars * 2), rng);
             }
 
             // Service depots south of the apron: a works building each, tanks for the fuel farm.

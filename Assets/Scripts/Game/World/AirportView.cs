@@ -125,6 +125,28 @@ namespace Crosswind.Game
             _built = key;
         }
 
+        readonly List<(string text, Vector3 at, float size, Color color)> _paint = new List<(string, Vector3, float, Color)>();
+        static Material _paintMat;
+
+        /// <summary>Lettering painted flat on the ground, reading the right way up from the camera's side (the airfield).</summary>
+        void Painted(string text, Vector3 at, float size, Color color)
+        {
+            var go = new GameObject("Paint " + text);
+            go.transform.SetParent(_static.transform, false);
+            go.transform.localPosition = at;
+            go.transform.localRotation = Quaternion.Euler(90, 90, 0);
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = Ui.Bold; tm.text = text; tm.fontSize = 96; tm.characterSize = size * 10f / 96f; tm.anchor = TextAnchor.MiddleCenter; tm.alignment = TextAlignment.Center; tm.color = color;
+            if (_paintMat == null)
+            {
+                var sh = Resources.Load<Shader>("Shaders/Text3D");
+                _paintMat = sh != null ? new Material(sh) : new Material(Ui.Bold.material);
+            }
+            _paintMat.mainTexture = Ui.Bold.material.mainTexture;
+            var mr = go.GetComponent<MeshRenderer>();
+            mr.sharedMaterial = _paintMat; mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
         void Rebuild()
         {
             _bridged.Clear();
@@ -194,6 +216,10 @@ namespace Crosswind.Game
                 mb.Glow = true;
                 for (float z = lineUp; z <= Mathf.Max(exit, 46); z += 8)
                     foreach (float sx in new[] { -1f, 1f }) mb.Box(new Vector3(Layout.TaxiX + sx * (tw * 0.5f + 0.4f), 0.15f, z), new Vector3(0.32f, 0.3f, 0.32f), Palette.Hex(0x4A9BFF));
+                // Green centre-line lights down the taxiway and across both links to the runway.
+                for (float z = lineUp + 2; z <= Mathf.Max(exit, 46) - 2; z += 4) mb.Box(new Vector3(Layout.TaxiX, 0.09f, z), new Vector3(0.26f, 0.06f, 0.26f), Palette.Hex(0x4CFF7A));
+                foreach (float z in new[] { lineUp, exit })
+                    for (float x = Layout.RunwayX + 6; x < Layout.TaxiX - 1; x += 4) mb.Box(new Vector3(x, 0.09f, z), new Vector3(0.26f, 0.06f, 0.26f), Palette.Hex(0x4CFF7A));
                 mb.Glow = false;
             }
 
@@ -241,9 +267,19 @@ namespace Crosswind.Game
                     mb.Box(new Vector3(p.x - 9.6f, y + 0.005f, p.z - 1.2f), new Vector3(1.1f, 0.02f, 0.22f), Palette.Paint);
                     foreach (float hz in new[] { -0.45f, 0.45f }) mb.Box(new Vector3(p.x - 9.6f, y + 0.005f, p.z - 1.2f + hz), new Vector3(0.22f, 0.02f, 0.22f), Palette.Paint);
                 }
-                // The stand's number board: yellow on black at the lane.
-                mb.Box(new Vector3(p.x - 9.6f, y, p.z + 1.6f), new Vector3(1.8f, 0.02f, 1.4f), Palette.Black);
-                mb.Box(new Vector3(p.x - 9.6f, y + 0.005f, p.z + 1.6f), new Vector3(1.2f, 0.02f, 0.8f), Palette.PaintYellow);
+                // The stand's number, painted black on a yellow plate where its lead-in leaves the lane, and again
+                // small by the stop bar: the planner and the board call the stands by these numbers.
+                mb.Box(new Vector3(p.x - 10.4f, y, p.z + 2.6f), new Vector3(3.4f, 0.02f, 3.0f), Palette.Black);
+                mb.Box(new Vector3(p.x - 10.4f, y + 0.005f, p.z + 2.6f), new Vector3(3.0f, 0.02f, 2.6f), Palette.PaintYellow);
+                _paint.Add(((i + 1).ToString(), new Vector3(p.x - 10.4f, y + 0.03f, p.z + 2.6f), 2.5f, Palette.Black));
+                _paint.Add(((i + 1).ToString(), new Vector3(p.x + 5.6f, y + 0.03f, p.z + 2.4f), 1.3f, Palette.PaintYellow));
+                // Green centre-line lights along the lead-in, once the taxiways are lit.
+                if (tl >= 2)
+                {
+                    mb.Glow = true;
+                    for (float x = p.x - 8f; x <= p.x + 2.5f; x += 3.5f) mb.Box(new Vector3(x, y + 0.03f, p.z), new Vector3(0.26f, 0.06f, 0.26f), Palette.Hex(0x4CFF7A));
+                    mb.Glow = false;
+                }
             }
             // Ground equipment parked at each stand: a baggage-cart train, steps, a power unit, cones round the wingtips.
             var kitEarly = new GameObject("Kit").transform;
@@ -603,6 +639,8 @@ namespace Crosswind.Game
             }
 
             _static = mb.ToObject("Static", transform);
+            foreach (var l in _paint) Painted(l.text, l.at, l.size, l.color);
+            _paint.Clear();
             // The resurfacing gang, shown only while the runway is shut: closed crosses at both ends, a paver and
             // rollers on a fresh black strip, lorries, cones across the turn-offs.
             var cb = new MeshBuilder { Smoothness = 0.3f };

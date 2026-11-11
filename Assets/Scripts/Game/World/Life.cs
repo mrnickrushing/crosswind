@@ -108,6 +108,7 @@ namespace Crosswind.Game
             foreach (var f in _sim.State.flights)
             {
                 if (f.phase != Phase.Deplane && f.phase != Phase.Board) continue;
+                if (view.HasBridge(f.stand)) continue;      // through the bridge, out of sight
                 float next;
                 _nextFor.TryGetValue(f.id, out next);
                 if (Time.time < next || _walkers.Count >= MaxWalkers) continue;

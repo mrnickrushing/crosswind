@@ -60,6 +60,59 @@ namespace Crosswind.Game
             if (f.phase == Phase.Gone) { _planes.Remove(f.id); Destroy(p.gameObject, 0.1f); }
         }
 
+        readonly HashSet<int> _bridged = new HashSet<int>();
+        /// <summary>Whether this stand has a boarding bridge (nobody walks across the apron to it).</summary>
+        public bool HasBridge(int stand) { return _bridged.Contains(stand); }
+
+        /// <summary>
+        /// A passenger boarding bridge from a rotunda at the terminal wall (x1, z1) to its cab at (x0, z0): a glazed
+        /// tunnel in two telescoping sections, the cab with its bellows toward the aircraft (-z), and the wheeled
+        /// drive column under the outer end.
+        /// </summary>
+        static void Bridge(MeshBuilder mb, float x1, float z1, float x0, float z0, float cab)
+        {
+            Color skin = Palette.Hex(0xE3E6E9), trim = Palette.Hex(0x9AA3AB), glass = Palette.Hex(0x7FB6CF), dark = Palette.Hex(0x2B3138);
+            float y = 2.75f;
+            float sm = mb.Smoothness;
+            var from = new Vector3(x1 - 1.0f, 0, z1); var to = new Vector3(x0, 0, z0);
+            float len = Vector3.Distance(from, to), yaw = Mathf.Atan2(-(to.z - from.z), to.x - from.x) * Mathf.Rad2Deg;
+            // Rotunda at the terminal, with the link into the wall.
+            mb.Box(new Vector3(x1 - 0.3f, y, z1), new Vector3(1.0f, 1.7f, 1.5f), skin);
+            mb.Cylinder(from + Vector3.up * (y - 0.9f), from + Vector3.up * (y + 0.9f), 1.25f, 1.25f, 14, skin);
+            mb.Cylinder(from + Vector3.up * (y + 0.9f), from + Vector3.up * (y + 1.0f), 1.35f, 1.35f, 14, trim);
+            mb.Cylinder(from, from + Vector3.up * (y - 0.9f), 0.28f, 0.28f, 8, trim);
+            // Two tunnel sections along the line to the cab, the outer one slimmer so it slides inside.
+            mb.Push().Translate(from).RotateY(yaw);
+            void Tunnel(float a, float b, float h, float w)
+            {
+                mb.Box(new Vector3((a + b) * 0.5f, y, 0), new Vector3(b - a, h, w), skin);
+                mb.Box(new Vector3((a + b) * 0.5f, y + h * 0.5f + 0.04f, 0), new Vector3(b - a, 0.08f, w + 0.1f), trim);
+                mb.Box(new Vector3((a + b) * 0.5f, y - h * 0.5f - 0.04f, 0), new Vector3(b - a, 0.08f, w + 0.1f), trim);
+                mb.Mat(0.92f);
+                foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3((a + b) * 0.5f, y + 0.12f, e * (w * 0.5f + 0.005f)), new Vector3(b - a - 0.5f, h * 0.42f, 0.03f), glass);
+                mb.Mat(sm);
+                for (float x = a + 0.25f; x < b; x += 1.4f) foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(x, y + 0.12f, e * (w * 0.5f + 0.02f)), new Vector3(0.07f, h * 0.44f, 0.03f), trim);
+            }
+            Tunnel(1.0f, len * 0.5f, 1.7f, 1.5f);
+            Tunnel(len * 0.5f - 0.4f, len - cab * 0.7f, 1.5f, 1.3f);
+            // Drive column and bogie under the outer section.
+            float dx = len - cab - 0.6f;
+            mb.Box(new Vector3(dx, (y - 0.75f) * 0.5f, 0), new Vector3(0.34f, y - 0.75f, 0.34f), trim);
+            mb.Box(new Vector3(dx, 0.42f, 0), new Vector3(0.5f, 0.24f, 1.7f), dark);
+            mb.Mat(0.1f);
+            foreach (float e in new[] { -1f, 1f }) mb.Cylinder(new Vector3(dx - 0.14f, 0.3f, e * 0.7f), new Vector3(dx + 0.14f, 0.3f, e * 0.7f), 0.3f, 10, Palette.Tyre);
+            mb.Mat(sm);
+            mb.Pop();
+            // The cab: a drum, a dark bellows canopy toward the aircraft, a yellow bumper under it.
+            mb.Cylinder(to + Vector3.up * (y - 0.85f), to + Vector3.up * (y + 0.85f), cab, cab, 12, skin);
+            mb.Cylinder(to + Vector3.up * (y + 0.85f), to + Vector3.up * (y + 0.95f), cab + 0.08f, cab + 0.08f, 12, trim);
+            mb.Box(new Vector3(x0, y, z0 - cab - 0.3f), new Vector3(1.3f, 1.6f, 0.75f), dark);
+            mb.Box(new Vector3(x0, y - 0.86f, z0 - cab - 0.42f), new Vector3(1.4f, 0.12f, 0.6f), Palette.PaintYellow);
+            // Gate plate over the rotunda.
+            mb.Box(new Vector3(x1 - 2.3f, y + 1.35f, z1), new Vector3(0.1f, 0.6f, 1.0f), dark);
+            mb.Glow = true; mb.Box(new Vector3(x1 - 2.36f, y + 1.35f, z1), new Vector3(0.02f, 0.4f, 0.7f), Palette.PaintYellow); mb.Glow = false;
+        }
+
         void Update()
         {
             // The levels that shape the airport, as one key: rebuild only when it changes.
@@ -72,6 +125,7 @@ namespace Crosswind.Game
 
         void Rebuild()
         {
+            _bridged.Clear();
             if (_static != null) Destroy(_static);
             var s = _sim;
             var mb = new MeshBuilder { Smoothness = 0.08f };
@@ -374,16 +428,10 @@ namespace Crosswind.Game
                     if (p.z > c.z + tLen * 0.5f || p.z < c.z - tLen * 0.5f) continue;
                     if (s.Level("gates") >= 3)
                     {
-                        mb.Box(new Vector3((termX + p.x + 5) * 0.5f, 2.6f, p.z + 3.4f), new Vector3(termX - p.x - 5, 1.5f, 1.4f), Palette.Hex(0xDADDE0), Palette.Steel);
-                        mb.Cylinder(new Vector3(p.x + 5.4f, 0, p.z + 3.4f), new Vector3(p.x + 5.4f, 1.9f, p.z + 3.4f), 0.3f, 8, Palette.SteelDark);
-                        mb.Cylinder(new Vector3(p.x + 5.2f, 1.8f, p.z + 3.4f), new Vector3(p.x + 5.2f, 3.5f, p.z + 3.4f), 1.1f, 1.1f, 10, Palette.Hex(0xDADDE0));
-                        if (s.HeavyStand(i))
-                        {
-                            // The second bridge, to the door behind the wing.
-                            mb.Box(new Vector3((termX + p.x + 1.5f) * 0.5f, 2.6f, p.z + 6.2f), new Vector3(termX - p.x - 1.5f, 1.5f, 1.3f), Palette.Hex(0xDADDE0), Palette.Steel);
-                            mb.Cylinder(new Vector3(p.x + 2f, 0, p.z + 6.2f), new Vector3(p.x + 2f, 1.9f, p.z + 6.2f), 0.3f, 8, Palette.SteelDark);
-                            mb.Cylinder(new Vector3(p.x + 1.7f, 1.8f, p.z + 6.2f), new Vector3(p.x + 1.7f, 3.5f, p.z + 6.2f), 1.0f, 1.0f, 10, Palette.Hex(0xDADDE0));
-                        }
+                        _bridged.Add(i);
+                        Bridge(mb, termX, p.z + 3.6f, p.x + 5.2f, p.z + 2.7f, 1.05f);
+                        // The second bridge, to the door just ahead of the wing.
+                        if (s.HeavyStand(i)) Bridge(mb, termX, p.z + 7.4f, p.x + 1.2f, p.z + 2.7f, 1.0f);
                     }
                 }
             }

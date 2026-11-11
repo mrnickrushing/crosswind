@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Crosswind.Core;
 using UnityEngine;
 
@@ -781,11 +782,215 @@ namespace Crosswind.Game
                     foreach (float e in new[] { -1f, 1f }) { mb.Box(new Vector3(e * 0.11f, 3.23f, 0), new Vector3(0.01f, 0.3f, 0.09f), Color.white); mb.Box(new Vector3(e * 0.11f, 3.48f, 0), new Vector3(0.01f, 0.09f, 0.09f), Color.white); }
                     mb.Glow = false;
                     break;
+                case "sculpture":
+                    // Two polished wings rising from a stone plinth, a small globe between them.
+                    mb.Box(new Vector3(0, 0.25f, 0), new Vector3(1.1f, 0.5f, 1.1f), Palette.Hex(0xC9C4B8));
+                    mb.Box(new Vector3(0, 0.53f, 0), new Vector3(0.9f, 0.06f, 0.9f), Palette.Hex(0x8E8A82));
+                    mb.Mat(0.85f, 0.8f);
+                    foreach (float e in new[] { -1f, 1f })
+                    {
+                        mb.Push().Translate(0, 0.56f, e * 0.12f).Rotate(Quaternion.Euler(e * 14, e * 20, e * 22));
+                        mb.Box(new Vector3(0, 1.0f, 0), new Vector3(0.5f, 2.0f, 0.07f), steel);
+                        mb.Box(new Vector3(0.12f, 2.25f, 0), new Vector3(0.3f, 0.6f, 0.06f), steel);
+                        mb.Pop();
+                    }
+                    mb.Sphere(new Vector3(0, 0.86f, 0), Vector3.one * 0.26f, 10, Palette.Hex(0xD9A92A));
+                    mb.Mat(0.3f);
+                    break;
+                case "clock":
+                    // A cast-iron post on a round step, four white faces under a little roof.
+                    mb.Cylinder(Vector3.zero, Vector3.up * 0.22f, 0.5f, 0.45f, 14, Palette.Hex(0x8E8A82));
+                    mb.Mat(0.6f, 0.4f);
+                    mb.Cylinder(Vector3.up * 0.22f, Vector3.up * 2.7f, 0.1f, 0.08f, 8, Palette.Hex(0x1F3A2E));
+                    mb.Cylinder(Vector3.up * 0.22f, Vector3.up * 0.6f, 0.17f, 0.11f, 8, Palette.Hex(0x1F3A2E));
+                    mb.Box(new Vector3(0, 3.1f, 0), new Vector3(0.84f, 0.84f, 0.84f), Palette.Hex(0x1F3A2E));
+                    mb.Mat(0.3f);
+                    for (int k = 0; k < 4; k++)
+                    {
+                        mb.Push().Translate(0, 3.1f, 0).RotateY(k * 90);
+                        mb.Glow = true; mb.Cylinder(new Vector3(0.42f, 0, 0), new Vector3(0.44f, 0, 0), 0.34f, 0.34f, 16, Palette.Hex(0xFFF8E6)); mb.Glow = false;
+                        mb.Box(new Vector3(0.45f, 0.1f, 0), new Vector3(0.01f, 0.22f, 0.035f), dark);
+                        mb.Box(new Vector3(0.45f, 0.02f, 0.09f), new Vector3(0.01f, 0.03f, 0.2f), dark);
+                        mb.Pop();
+                    }
+                    mb.Cylinder(Vector3.up * 3.52f, Vector3.up * 3.8f, 0.62f, 0.05f, 4, Palette.Hex(0x16291F));
+                    mb.Sphere(Vector3.up * 3.86f, Vector3.one * 0.08f, 6, Palette.Hex(0xD9A92A));
+                    break;
+                case "flags":
+                    // A row of masts on a low kerb, a flag on each.
+                    mb.Box(new Vector3(0, 0.08f, 0), new Vector3(0.7f, 0.16f, d - 0.3f), Palette.Hex(0xC9C4B8));
+                    for (int k = 0; k < 4; k++)
+                    {
+                        float z = -hz + 0.5f + k * (d - 1.0f) / 3f;
+                        mb.Mat(0.7f, 0.6f); mb.Cylinder(new Vector3(0, 0.16f, z), new Vector3(0, 3.6f, z), 0.035f, 6, steel); mb.Mat(0.3f);
+                        mb.Sphere(new Vector3(0, 3.64f, z), Vector3.one * 0.06f, 6, Palette.Hex(0xD9A92A));
+                        var fc = Brand[(k + seed) % Brand.Length];
+                        mb.Box(new Vector3(-0.42f, 3.2f, z), new Vector3(0.8f, 0.52f, 0.02f), fc);
+                        mb.Box(new Vector3(-0.42f, 3.2f, z), new Vector3(0.81f, 0.16f, 0.025f), k % 2 == 0 ? Color.white : Palette.Hex(0xF2C230));
+                    }
+                    break;
+                case "piano":
+                    // A black grand with its lid up, the keys toward the passengers, and a stool.
+                    mb.Mat(0.9f);
+                    mb.Box(new Vector3(0.1f, 0.78f, 0), new Vector3(1.25f, 0.3f, 1.4f), Palette.Hex(0x15171A));
+                    mb.Box(new Vector3(0.62f, 0.78f, 0.2f), new Vector3(0.5f, 0.3f, 0.9f), Palette.Hex(0x15171A));
+                    foreach (var leg in new[] { new Vector3(-0.4f, 0, -0.6f), new Vector3(-0.4f, 0, 0.6f), new Vector3(0.75f, 0, 0.2f) }) mb.Cylinder(leg, leg + Vector3.up * 0.64f, 0.05f, 6, Palette.Hex(0x15171A));
+                    mb.Push().Translate(0.1f, 0.94f, 0.68f).Rotate(Quaternion.Euler(-38, 0, 0)); mb.Box(new Vector3(0, 0, -0.68f), new Vector3(1.22f, 0.04f, 1.36f), Palette.Hex(0x1B1E22)); mb.Pop();
+                    mb.Cylinder(new Vector3(0.3f, 0.93f, -0.2f), new Vector3(0.3f, 1.45f, -0.05f), 0.015f, 4, steel);
+                    mb.Mat(0.5f);
+                    mb.Box(new Vector3(-0.56f, 0.8f, 0), new Vector3(0.16f, 0.04f, 1.2f), Color.white);
+                    for (int k = 0; k < 9; k++) mb.Box(new Vector3(-0.52f, 0.83f, -0.5f + k * 0.125f), new Vector3(0.09f, 0.03f, 0.05f), Palette.Hex(0x15171A));
+                    mb.Mat(0.3f);
+                    mb.Cylinder(new Vector3(-0.95f, 0, 0), new Vector3(-0.95f, 0.46f, 0), 0.04f, 6, dark);
+                    mb.Box(new Vector3(-0.95f, 0.5f, 0), new Vector3(0.36f, 0.09f, 0.6f), Palette.Hex(0x7A2A2A));
+                    break;
+                case "palms":
+                    // A raised bed of ferns with three palms of different heights, and a timber rim to sit on.
+                    mb.Box(new Vector3(0, 0.22f, 0), new Vector3(w - 0.4f, 0.44f, d - 0.4f), Palette.Hex(0xD6D9DC));
+                    mb.Box(new Vector3(0, 0.47f, 0), new Vector3(w - 0.3f, 0.06f, d - 0.3f), wood);
+                    mb.Box(new Vector3(0, 0.5f, 0), new Vector3(w - 1.0f, 0.04f, d - 1.0f), Palette.Hex(0x4A3A2A));
+                    {
+                        var prng = new System.Random(seed + 11);
+                        var at = new[] { new Vector3(-0.5f, 0.5f, -0.6f), new Vector3(0.6f, 0.5f, 0.1f), new Vector3(-0.3f, 0.5f, 0.8f) };
+                        for (int t = 0; t < at.Length; t++)
+                        {
+                            float tall = 2.6f + t * 0.55f; var top = at[t] + new Vector3(0.15f * (t - 1), tall, 0.1f);
+                            mb.Cylinder(at[t], top, 0.13f, 0.08f, 7, Palette.Hex(0x8A6E4E));
+                            for (int k = 0; k < 9; k++)
+                            {
+                                mb.Push().Translate(top).Rotate(Quaternion.Euler(0, k * 40 + t * 17, -28 - (k % 3) * 9));
+                                mb.Box(new Vector3(0.65f, 0, 0), new Vector3(1.3f, 0.03f, 0.26f), k % 2 == 0 ? Palette.Hex(0x3E8E4A) : Palette.Hex(0x2F7A3E));
+                                mb.Push().Translate(1.3f, 0, 0).Rotate(Quaternion.Euler(0, 0, -38)); mb.Box(new Vector3(0.3f, 0, 0), new Vector3(0.6f, 0.03f, 0.2f), Palette.Hex(0x4FA35A)); mb.Pop();
+                                mb.Pop();
+                            }
+                        }
+                        for (int k = 0; k < 14; k++)
+                        {
+                            var p = new Vector3(((float)prng.NextDouble() - 0.5f) * (w - 1.4f), 0.52f, ((float)prng.NextDouble() - 0.5f) * (d - 1.4f));
+                            for (int j = 0; j < 5; j++) { mb.Push().Translate(p).Rotate(Quaternion.Euler(0, j * 72 + k * 13, 42)); mb.Box(new Vector3(0.22f, 0, 0), new Vector3(0.44f, 0.02f, 0.1f), Palette.Hex(0x4FA35A)); mb.Pop(); }
+                        }
+                    }
+                    break;
+                case "pool":
+                    // A square basin with a stone rim, a bowl on a column in the middle, water rising from it and falling in arcs.
+                    mb.Box(new Vector3(0, 0.24f, 0), new Vector3(w - 0.3f, 0.48f, d - 0.3f), Palette.Hex(0xC9C4B8));
+                    mb.Box(new Vector3(0, 0.5f, 0), new Vector3(w - 0.2f, 0.06f, d - 0.2f), Palette.Hex(0xE4E0D6));
+                    mb.Mat(0.95f); mb.Box(new Vector3(0, 0.54f, 0), new Vector3(w - 0.9f, 0.02f, d - 0.9f), Palette.Hex(0x3FA7D6)); mb.Mat(0.3f);
+                    mb.Cylinder(Vector3.up * 0.5f, Vector3.up * 1.25f, 0.2f, 0.14f, 10, Palette.Hex(0xE4E0D6));
+                    mb.Cylinder(Vector3.up * 1.25f, Vector3.up * 1.4f, 0.3f, 0.75f, 14, Palette.Hex(0xE4E0D6));
+                    mb.Mat(0.95f); mb.Cylinder(Vector3.up * 1.4f, Vector3.up * 1.42f, 0.7f, 0.7f, 14, Palette.Hex(0x58B8E0)); mb.Mat(0.3f);
+                    mb.Glow = true;
+                    mb.Cylinder(Vector3.up * 1.4f, Vector3.up * 2.5f, 0.05f, 0.03f, 6, Palette.Hex(0xCFF0FF));
+                    mb.Sphere(Vector3.up * 2.55f, Vector3.one * 0.1f, 6, Palette.Hex(0xE8F8FF));
+                    // A ring of short jets round the basin, each with a crown of spray.
+                    for (int k = 0; k < 8; k++)
+                    {
+                        float a = (k * 45f + 22.5f) * Mathf.Deg2Rad; var foot = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)) * 1.05f + Vector3.up * 0.55f;
+                        mb.Cylinder(foot, foot + Vector3.up * 0.55f, 0.045f, 0.02f, 6, Palette.Hex(0xDFF6FF));
+                        mb.Sphere(foot + Vector3.up * 0.6f, Vector3.one * 0.07f, 6, Palette.Hex(0xF2FBFF));
+                    }
+                    mb.Glow = false;
+                    break;
+                case "aquarium":
+                    // A long tank on a dark cabinet, lit from above: a reef and a shoal against the blue.
+                    mb.Box(new Vector3(0, 0.4f, 0), new Vector3(w - 0.5f, 0.8f, d - 0.3f), dark);
+                    mb.Box(new Vector3(0, 2.52f, 0), new Vector3(w - 0.5f, 0.16f, d - 0.3f), dark);
+                    mb.Glow = true;
+                    mb.Box(new Vector3(0, 1.62f, 0), new Vector3(w - 0.6f, 1.64f, d - 0.4f), Palette.Hex(0x2C9BD0));
+                    foreach (float e in new[] { -1f, 1f })
+                    {
+                        float x = e * (hx - 0.29f);
+                        for (int k = 0; k < 5; k++) mb.Box(new Vector3(x, 0.95f + (k * 37 % 4) * 0.08f, -hz + 0.6f + k * (d - 1.2f) / 4f), new Vector3(0.02f, 0.3f + (k % 3) * 0.14f, 0.26f), k % 2 == 0 ? Palette.Hex(0xE86A5A) : Palette.Hex(0x8ED06A));
+                        for (int k = 0; k < 9; k++)
+                        {
+                            float z = -hz + 0.5f + (k * 53 % 17) / 17f * (d - 1.0f), y = 1.35f + (k * 29 % 11) / 11f * 0.95f;
+                            mb.Box(new Vector3(x, y, z), new Vector3(0.02f, 0.09f, 0.2f), k % 3 == 0 ? Palette.Hex(0xF2C230) : k % 3 == 1 ? Palette.Hex(0xF28A30) : Color.white);
+                            mb.Box(new Vector3(x, y, z + 0.13f), new Vector3(0.02f, 0.12f, 0.06f), k % 3 == 0 ? Palette.Hex(0xF2C230) : k % 3 == 1 ? Palette.Hex(0xF28A30) : Color.white);
+                        }
+                    }
+                    mb.Box(new Vector3(0, 2.42f, 0), new Vector3(w - 0.62f, 0.05f, d - 0.42f), Palette.Hex(0xDFF6FF));
+                    mb.Glow = false;
+                    break;
                 default:
                     mb.Box(new Vector3(0, 0.6f, 0), new Vector3(w - 0.3f, 1.2f, d - 0.3f), brand);
                     break;
             }
             mb.Smoothness = 0.25f;
+        }
+
+        static readonly Dictionary<string, Sprite> _pictures = new Dictionary<string, Sprite>();
+        static Camera _picCam; static Light _picKey, _picFill;
+        const int PicLayer = 31, PicSize = 320;
+
+        /// <summary>
+        /// A picture of a terminal item for the catalogue: its own model, built at level 2 and photographed once from
+        /// the passengers' side under studio light, on a clear background.
+        /// </summary>
+        public static Sprite Picture(AmenityDef def)
+        {
+            Sprite made;
+            if (_pictures.TryGetValue(def.Id, out made) && made != null) return made;
+            var mb = new MeshBuilder();
+            Amenity(mb, def, def.W * Sim.Cell, def.D * Sim.Cell, 2, 3);
+            var go = mb.ToObject("Picture", null, false);
+            go.layer = PicLayer;
+            var at = new Vector3(0, -900, 0);
+            go.transform.position = at;
+            var b = go.GetComponent<MeshFilter>().sharedMesh.bounds;
+            if (_picCam == null)
+            {
+                var c = new GameObject("Picture camera");
+                DontDestroyOnLoad(c);
+                _picCam = c.AddComponent<Camera>();
+                _picCam.enabled = false;
+                _picCam.clearFlags = CameraClearFlags.SolidColor; _picCam.backgroundColor = new Color(0, 0, 0, 0);
+                _picCam.cullingMask = 1 << PicLayer; _picCam.orthographic = true; _picCam.nearClipPlane = 0.1f; _picCam.farClipPlane = 80;
+                _picKey = new GameObject("Picture key").AddComponent<Light>(); DontDestroyOnLoad(_picKey.gameObject);
+                _picKey.type = LightType.Directional; _picKey.cullingMask = 1 << PicLayer; _picKey.intensity = 1.5f; _picKey.color = new Color(1f, 0.97f, 0.92f); _picKey.shadows = LightShadows.None;
+                _picFill = new GameObject("Picture fill").AddComponent<Light>(); DontDestroyOnLoad(_picFill.gameObject);
+                _picFill.type = LightType.Directional; _picFill.cullingMask = 1 << PicLayer; _picFill.intensity = 0.55f; _picFill.color = new Color(0.75f, 0.85f, 1f); _picFill.shadows = LightShadows.None;
+            }
+            // From the front (the items face -x), a little to one side and above.
+            var rot = Quaternion.Euler(24, 62, 0);
+            _picCam.transform.rotation = rot;
+            _picCam.transform.position = at + b.center - rot * Vector3.forward * 30;
+            // Fit the box: its corners, seen from the camera.
+            float half = 0.1f;
+            for (int i = 0; i < 8; i++)
+            {
+                var corner = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)) - b.center;
+                var seen = Quaternion.Inverse(rot) * corner;
+                half = Mathf.Max(half, Mathf.Abs(seen.x), Mathf.Abs(seen.y));
+            }
+            _picCam.orthographicSize = half * 1.06f;
+            _picKey.transform.rotation = Quaternion.Euler(38, 28, 0);
+            _picFill.transform.rotation = Quaternion.Euler(20, 150, 0);
+            _picKey.enabled = _picFill.enabled = true;
+            // Only the studio lights fall on it: the scene's own (the sun at whatever hour, the lamps) are kept off this layer.
+            var others = FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l != _picKey && l != _picFill && (l.cullingMask & (1 << PicLayer)) != 0).ToList();
+            foreach (var l in others) l.cullingMask &= ~(1 << PicLayer);
+            var ambientMode = RenderSettings.ambientMode; var ambient = RenderSettings.ambientLight;
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat; RenderSettings.ambientLight = new Color(0.5f, 0.52f, 0.56f);
+            var rt = RenderTexture.GetTemporary(PicSize, PicSize, 24, RenderTextureFormat.ARGB32);
+            rt.antiAliasing = 4;
+            _picCam.targetTexture = rt;
+            _picCam.Render();
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(PicSize, PicSize, TextureFormat.RGBA32, false);
+            tex.ReadPixels(new Rect(0, 0, PicSize, PicSize), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prev;
+            _picCam.targetTexture = null;
+            RenderTexture.ReleaseTemporary(rt);
+            RenderSettings.ambientMode = ambientMode; RenderSettings.ambientLight = ambient;
+            foreach (var l in others) l.cullingMask |= 1 << PicLayer;
+            _picKey.enabled = _picFill.enabled = false;
+            // Out of the studio at once: the next picture may be taken in this same frame.
+            go.SetActive(false);
+            Destroy(go.GetComponent<MeshFilter>().sharedMesh);
+            Destroy(go);
+            return _pictures[def.Id] = Sprite.Create(tex, new Rect(0, 0, PicSize, PicSize), new Vector2(0.5f, 0.5f), 100);
         }
     }
 }

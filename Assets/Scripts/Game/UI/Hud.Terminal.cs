@@ -194,7 +194,7 @@ namespace Crosswind.Game
             if (_pax == null || !inside || !_paxCard.gameObject.activeSelf) PaxRing(false, Vector3.zero);
             if (!inside && (_placing != null || _picked != null || _pax != null)) { StopPlacing(); ClosePick(); _pax = null; _paxCard.gameObject.SetActive(false); }
             if (!inside && _tab == ShopTab) OpenTab(-1);
-            _termBar.gameObject.SetActive(inside && _placing == null);
+            _termBar.gameObject.SetActive(inside && _placing == null && _tab < 0);
             _placeBar.gameObject.SetActive(inside && _placing != null);
             if (!inside) return;
 
@@ -286,27 +286,119 @@ namespace Crosswind.Game
         void ShopSheet()
         {
             var s = _sim;
-            _sheetTitle.text = "TERMINAL SHOP";
-            // Groups across the top.
-            var groups = Sim.Amenities.Select(a => a.Group).Distinct().ToList();
-            var tabs = Row(84);
-            tabs.GetComponent<Image>().color = new Color(1, 1, 1, 0);
-            for (int i = 0; i < groups.Count; i++)
+            _sheetTitle.text = "TERMINAL CATALOGUE";
+            // Groups across the top, in two rows: what the terminal is built of first, then everything you can place.
+            var groups = new List<string> { "Services" };
+            groups.AddRange(Sim.Amenities.Select(a => a.Group).Distinct());
+            int perRow = (groups.Count + 1) / 2;
+            for (int r = 0; r < 2; r++)
             {
-                string gname = groups[i];
-                var b = Ui.Button("Group", tabs, gname.ToUpper(), gname == _shopGroup ? Ui.Blue : Ui.Card, () => { _shopGroup = gname; _sheetList.anchoredPosition = Vector2.zero; _dirty = true; }, 22);
-                var rt = (RectTransform)b.transform;
-                rt.anchorMin = new Vector2(i / (float)groups.Count, 0); rt.anchorMax = new Vector2((i + 1) / (float)groups.Count, 1); rt.offsetMin = new Vector2(3, 4); rt.offsetMax = new Vector2(-3, -4);
-                var l = b.GetComponentInChildren<Text>(); l.resizeTextForBestFit = true; l.resizeTextMinSize = 14; l.resizeTextMaxSize = 22;
+                var tabs = Row(70);
+                tabs.GetComponent<Image>().color = new Color(1, 1, 1, 0);
+                _rowY -= 8;
+                for (int i = 0; i < perRow && r * perRow + i < groups.Count; i++)
+                {
+                    string gname = groups[r * perRow + i];
+                    var b = Ui.Button("Group", tabs, gname.ToUpper(), gname == _shopGroup ? Ui.Blue : Ui.Card, () => { _shopGroup = gname; _sheetList.anchoredPosition = Vector2.zero; _dirty = true; Sfx.Play("click", 0.5f); }, 24);
+                    var rt = (RectTransform)b.transform;
+                    rt.anchorMin = new Vector2(i / (float)perRow, 0); rt.anchorMax = new Vector2((i + 1) / (float)perRow, 1); rt.offsetMin = new Vector2(3, 3); rt.offsetMax = new Vector2(-3, -3);
+                    var l = b.GetComponentInChildren<Text>(); l.resizeTextForBestFit = true; l.resizeTextMinSize = 14; l.resizeTextMaxSize = 24;
+                }
             }
+            _rowY += 8;
             var worst = s.WorstNeed;
-            Header("PASSENGERS WANT MOST: " + worst.Name.ToUpper() + " (" + Mathf.RoundToInt(worst.Value * 100) + "%)");
+            Header("PASSENGERS WANT MOST: " + worst.Name.ToUpper() + " (" + Mathf.RoundToInt(worst.Value * 100) + "%)  ·  " + s.State.terminal.Count + " THINGS PLACED");
+
+            RectTransform row = null; int col = 0;
+            System.Func<RectTransform> card = () =>
+            {
+                if (col == 0) { row = Row(376); row.GetComponent<Image>().color = new Color(1, 1, 1, 0); }
+                var c = Ui.ArtImg("Card", row, "card", Color.white).rectTransform;
+                c.anchorMin = new Vector2(col * 0.5f, 0); c.anchorMax = new Vector2(col * 0.5f + 0.5f, 1); c.offsetMin = new Vector2(col == 0 ? 0 : 6, 0); c.offsetMax = new Vector2(col == 0 ? -6 : 0, 0);
+                col = (col + 1) % 2;
+                return c;
+            };
+
+            if (_shopGroup == "Services")
+            {
+                // The terminal's own machinery, built by level: the desks, the lanes, the gates, the way in.
+                foreach (var id in Content.FacilityOrder)
+                {
+                    var d = Content.Facilities[id];
+                    if (d.Group != "Terminal") continue;
+                    string fid = id; int level = s.Level(id);
+                    var c = card();
+                    var well = Ui.ArtImg("Well", c, "well", Color.white).rectTransform;
+                    well.anchorMin = new Vector2(0, 1); well.anchorMax = new Vector2(1, 1); well.pivot = new Vector2(0.5f, 1); well.offsetMin = new Vector2(12, -182); well.offsetMax = new Vector2(-12, -12);
+                    var tile = Ui.ArtImg("Tile", well, "button", FacilityTint(id), 44, 1.6f).rectTransform;
+                    tile.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(128, 128));
+                    var sp = Ui.Ic(FacilityIcon(id));
+                    if (sp != null) { var g = Ui.Img("Glyph", tile, Color.white); g.sprite = sp; g.preserveAspect = true; g.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 4), new Vector2(78, 78)); }
+                    Chip(well, level > 0 ? "LEVEL " + level : "NOT BUILT", new Vector2(0, 1), level > 0 ? Ui.Blue : Ui.Off);
+                    var build = s.Building(id);
+                    if (build != null) Chip(well, Format.Time(build.doneAt - s.RealNow()).ToUpper() + " LEFT", new Vector2(1, 1), Ui.Gold);
+                    CardText(c, d.Name, d.Blurb);
+                    string blocked = build != null ? "Being built" : s.UpgradeBlocked(id);
+                    float secs = s.BuildSeconds(id);
+                    CardButton(c, level >= d.MaxLevel ? "MAX" : (level > 0 ? "UPGRADE\n" : "BUILD\n") + Format.Money(s.Cost(id)), level >= d.MaxLevel ? null : blocked, Ui.Green, level < d.MaxLevel, () =>
+                    {
+                        if (s.Upgrade(fid)) { if (secs > 60) Reminders.AskOnce(); Toast(secs > 0 ? d.Name + ": the crew has started" : d.Name + " upgraded to level " + s.Level(fid)); Sfx.Play("build", 0.7f); }
+                    });
+                }
+                return;
+            }
             foreach (var d in Sim.Amenities.Where(a => a.Group == _shopGroup))
             {
                 var def = d;
-                string blocked = s.Stars < d.Stars ? "Needs " + d.Stars + " stars" : s.State.money < s.AmenityCost(d.Id) ? "Need " + Format.Money(s.AmenityCost(d.Id) - s.State.money) + " more" : s.FindSpot(d.Id) == null ? "No room" : null;
-                Ico(WantIcon(d.Gives), TintTerm).Entry(d.Name, (s.Placed(d.Id) > 0 ? "OWN " + s.Placed(d.Id) + "  ·  " : "") + d.W + " x " + d.D, d.Blurb + "  " + Gives(d), "PLACE\n<size=28>" + Format.Money(s.AmenityCost(d.Id)) + "</size>", blocked, () => StartPlacing(def), Ui.Green);
+                string blocked = s.Stars < d.Stars ? "Needs " + d.Stars + " stars" : s.State.money < s.AmenityCost(d.Id) ? "Need " + Format.Money(s.AmenityCost(d.Id) - s.State.money) + " more" : s.FindSpot(d.Id) == null ? "No room on the floor" : null;
+                var c = card();
+                var well = Ui.ArtImg("Well", c, "well", Color.white).rectTransform;
+                well.anchorMin = new Vector2(0, 1); well.anchorMax = new Vector2(1, 1); well.pivot = new Vector2(0.5f, 1); well.offsetMin = new Vector2(12, -182); well.offsetMax = new Vector2(-12, -12);
+                var glow = Ui.ArtImg("Glow", well, "glow", new Color(0.5f, 0.82f, 1f, 0.45f), 0);
+                glow.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -6), new Vector2(300, 190));
+                glow.preserveAspect = false;
+                bool locked = s.Stars < d.Stars;
+                var pic = Ui.Img("Picture", well, locked ? new Color(0.25f, 0.3f, 0.38f, 0.9f) : Color.white); pic.sprite = Interior.Picture(d); pic.preserveAspect = true;
+                pic.rectTransform.Fill(8);
+                Chip(well, d.W + " x " + d.D, new Vector2(1, 1), new Color(0, 0, 0, 0.55f));
+                int own = s.Placed(d.Id);
+                if (own > 0) Chip(well, "OWN " + own, new Vector2(0, 1), Ui.Blue);
+                if (locked) Chip(well, d.Stars + " STARS", new Vector2(0, 0), Ui.Off);
+                else if (d.Earns) Chip(well, "EARNS", new Vector2(0, 0), TintGold);
+                CardText(c, d.Name, Gives(d).Replace(", earns from every passenger", "") + ".  " + d.Blurb);
+                CardButton(c, "PLACE\n" + Format.Money(s.AmenityCost(d.Id)), blocked, Ui.Green, true, () => StartPlacing(def));
             }
+        }
+
+        /// <summary>A small label in a corner of a catalogue picture.</summary>
+        static void Chip(RectTransform parent, string text, Vector2 corner, Color tint)
+        {
+            var chip = Ui.Img("Chip", parent, tint, true).rectTransform;
+            chip.Place(corner, corner, new Vector2(corner.x < 0.5f ? 8 : -8, corner.y < 0.5f ? 8 : -8), new Vector2(Mathf.Max(84, 30 + text.Length * 14), 38));
+            var l = Ui.Label("L", chip, text, 22, Color.white); l.rectTransform.Fill(4);
+            l.resizeTextForBestFit = true; l.resizeTextMinSize = 12; l.resizeTextMaxSize = 22;
+        }
+
+        /// <summary>A catalogue card's name and the two lines under it.</summary>
+        static void CardText(RectTransform card, string name, string body)
+        {
+            var t = Ui.Label("Name", card, name, 32, Color.white, TextAnchor.MiddleLeft);
+            t.rectTransform.anchorMin = new Vector2(0, 1); t.rectTransform.anchorMax = new Vector2(1, 1); t.rectTransform.pivot = new Vector2(0.5f, 1); t.rectTransform.offsetMin = new Vector2(18, -228); t.rectTransform.offsetMax = new Vector2(-14, -186);
+            t.resizeTextForBestFit = true; t.resizeTextMinSize = 18; t.resizeTextMaxSize = 32; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate;
+            var b = Ui.Label("Body", card, body, 22, Ui.Dim, TextAnchor.UpperLeft, false);
+            b.rectTransform.anchorMin = new Vector2(0, 0); b.rectTransform.anchorMax = new Vector2(1, 1); b.rectTransform.offsetMin = new Vector2(18, 92); b.rectTransform.offsetMax = new Vector2(-14, -228);
+            b.resizeTextForBestFit = true; b.resizeTextMinSize = 15; b.resizeTextMaxSize = 22; b.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
+        /// <summary>The button along a catalogue card's foot.</summary>
+        void CardButton(RectTransform card, string text, string blocked, Color tint, bool live, System.Action act)
+        {
+            bool ok = blocked == null && live;
+            var btn = Ui.Button("Do", card, null, ok ? tint : Locked, () => { if (ok) { act(); _dirty = true; } else if (blocked != null) { Toast(blocked); Sfx.Play("error", 0.5f); } }, 30);
+            var rt = (RectTransform)btn.transform;
+            rt.anchorMin = new Vector2(0, 0); rt.anchorMax = new Vector2(1, 0); rt.pivot = new Vector2(0.5f, 0); rt.offsetMin = new Vector2(12, 10); rt.offsetMax = new Vector2(-12, 88);
+            // One line on a wide button: the action and the price side by side, the reason on the strip.
+            ButtonFace(btn.transform, text.Replace("\n", "   "), live ? blocked : null);
         }
     }
 }

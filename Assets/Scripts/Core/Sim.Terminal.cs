@@ -61,6 +61,14 @@ namespace Crosswind.Core
             A("gallery", "Aviation Gallery", "Entertainment", "Model aircraft and the airport's story.", 3, 2, 2400, 4, Want.Fun, 20, Want.Info, 4),
             A("screens", "Flight Screens", "Information", "Departures at a glance.", 1, 1, 350, 2, Want.Info, 5),
             A("infodesk", "Information Desk", "Information", "A person who knows where gate 4 is.", 2, 1, 900, 3, Want.Info, 10),
+            // Decor: nobody needs it, everybody remembers it.
+            A("sculpture", "Flight Sculpture", "Decor", "Polished steel wings on a stone plinth. People meet under it.", 1, 1, 450, 2, Want.Fun, 3, Want.Info, 2),
+            A("clock", "Meeting Point Clock", "Decor", "Four faces, one time. \"See you under the clock.\"", 1, 1, 520, 2, Want.Info, 5),
+            A("flags", "Flag Row", "Decor", "The flags of everywhere you fly.", 1, 2, 380, 2, Want.Info, 3, Want.Fun, 2),
+            A("piano", "Concourse Piano", "Decor", "Anyone may play. Some of them can.", 1, 1, 700, 3, Want.Fun, 5),
+            A("palms", "Palm Court", "Decor", "Tall palms in a bed of ferns. The air feels cleaner.", 2, 2, 1100, 3, Want.Clean, 6, Want.Seating, 2),
+            A("pool", "Fountain Court", "Decor", "Water, light and somewhere to sit on the rim.", 2, 2, 1600, 3, Want.Fun, 6, Want.Seating, 3),
+            A("aquarium", "Aquarium Wall", "Decor", "A reef behind glass. Children press their noses to it.", 1, 2, 2200, 4, Want.Fun, 10),
         };
 
         static AmenityDef A(string id, string name, string group, string blurb, int w, int d, double cost, int stars, Want gives, int points, Want also = Want.Food, int alsoPoints = 0, bool earns = false)

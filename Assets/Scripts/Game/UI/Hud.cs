@@ -263,8 +263,9 @@ namespace Crosswind.Game
 
         // ------------------------------------------------------------------ service buttons over waiting aircraft
 
-        static Color ServiceColor(Service s) { return s == Service.Fuel ? Palette.Fuel : s == Service.Baggage ? Palette.Baggage : s == Service.Catering ? Palette.Catering : Palette.Cleaning; }
-        static string ServiceWord(Service s) { return s == Service.Fuel ? "FUEL" : s == Service.Baggage ? "BAGS" : s == Service.Catering ? "FOOD" : "CLEAN"; }
+        static Color ServiceColor(Service s) { return s == Service.Fuel ? Palette.Fuel : s == Service.Baggage ? Palette.Baggage : s == Service.Catering ? Palette.Catering : s == Service.Pushback ? Palette.Pushback : s == Service.Deice ? Palette.Deice : Palette.Cleaning; }
+        static string ServiceWord(Service s) { return s == Service.Fuel ? "FUEL" : s == Service.Baggage ? "BAGS" : s == Service.Catering ? "FOOD" : s == Service.Pushback ? "TUG" : s == Service.Deice ? "DE-ICE" : "CLEAN"; }
+        static string ServiceIcon(Service s) { return s == Service.Fuel ? "svc_fuel" : s == Service.Baggage ? "svc_bags" : s == Service.Catering ? "svc_food" : s == Service.Pushback ? "svc_tug" : s == Service.Deice ? "svc_deice" : "svc_clean"; }
 
         void UpdateServiceButtons()
         {
@@ -273,11 +274,14 @@ namespace Crosswind.Game
                 foreach (var plane in AirportView.Instance.Planes)
                 {
                     var f = plane.Flight;
-                    if (f.phase != Phase.Service) continue;
-                    int k = 0, waiting = f.jobs.Count(j => !j.dispatched && !j.done);
+                    bool leaving = f.phase == Phase.Board && f.boarded;
+                    if (f.phase != Phase.Service && !leaving) continue;
+                    // After boarding the jobs go one at a time (the spray, then the tug): only the next one is offered.
+                    var first = leaving ? f.jobs.Find(j => !j.done) : null;
+                    int k = 0, waiting = leaving ? 1 : f.jobs.Count(j => !j.dispatched && !j.done);
                     foreach (var j in f.jobs)
                     {
-                        if (j.dispatched || j.done) continue;
+                        if (j.dispatched || j.done || (leaving && j != first)) continue;
                         var c = ToCanvas(plane.Head);
                         if (c.z < 0) { k++; continue; }
                         var b = ButtonAt(used++);
@@ -285,7 +289,7 @@ namespace Crosswind.Game
                         b.Bg.color = _sim.CrewFree(j.service) ? ServiceColor(j.service) : Ui.Off;
                         b.Tail.color = b.Bg.color;
                         b.Label.text = ServiceWord(j.service);
-                        b.Icon.sprite = Ui.Art(j.service == Service.Fuel ? "svc_fuel" : j.service == Service.Baggage ? "svc_bags" : j.service == Service.Catering ? "svc_food" : "svc_clean");
+                        b.Icon.sprite = Ui.Art(ServiceIcon(j.service));
                         b.Rt.anchoredPosition = new Vector2(c.x + (k - (waiting - 1) / 2f) * 150, c.y + 20 + Mathf.Sin(Time.unscaledTime * 5 + f.id) * 6);
                         k++;
                     }

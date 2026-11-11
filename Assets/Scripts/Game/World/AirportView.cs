@@ -65,7 +65,7 @@ namespace Crosswind.Game
             // The levels that shape the airport, as one key: rebuild only when it changes.
             var s = _sim;
             string key = s.Level("runway") + "|" + s.Level("stands") + "|" + s.Level("taxiways") + "|" + s.Level("tower") + "|" + s.Level("fuel") + "|" + s.Level("baggage") + "|"
-                + s.Level("catering") + "|" + s.Level("cleaning") + "|" + s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.Level("shops") + "|" + s.Level("lounge") + "|" + s.Level("parking") + "|" + s.Level("hangar") + "|" + s.Level("cargo") + "|" + s.Level("ils") + "|" + s.Stars + "|" + s.State.map;
+                 + s.Level("catering") + "|" + s.Level("cleaning") + "|" + s.Level("pushback") + "|" + s.Level("deice") + "|" + s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.Level("shops") + "|" + s.Level("lounge") + "|" + s.Level("parking") + "|" + s.Level("hangar") + "|" + s.Level("cargo") + "|" + s.Level("ils") + "|" + s.Stars + "|" + s.State.map;
             if (key != _built) Rebuild();
             _built = key;
         }
@@ -407,7 +407,7 @@ namespace Crosswind.Game
 
             // Service depots south of the apron: a works building each, tanks for the fuel farm.
             float dx = Layout.TaxiX + 10;
-            foreach (var (id, model) in new[] { ("fuel", "works_a"), ("baggage", "works_d"), ("catering", "works_h"), ("cleaning", "works_m") })
+            foreach (var (id, model) in new[] { ("fuel", "works_a"), ("baggage", "works_d"), ("catering", "works_h"), ("cleaning", "works_m"), ("pushback", "works_f"), ("deice", "works_k") })
             {
                 int l = s.Level(id);
                 DepotAt[id] = new Vector3(dx, 0, -62);

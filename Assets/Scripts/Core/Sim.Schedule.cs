@@ -105,7 +105,7 @@ namespace Crosswind.Core
                 double w = ListedRate(c);
                 weight += w;
                 runway += w * 2 * plane.RunwaySeconds / RunwaySpeed;
-                ground += w * (BoardTime(plane) * 2 + plane.ServiceSeconds / Math.Max(0.1f, r.Needs.Length == 0 ? 1 : r.Needs.Min(n => CrewSpeed(n))) + plane.TaxiSeconds * 2 / TaxiSpeed);
+                ground += w * GroundSeconds(r);
             }
             if (weight <= 0) return 0;
             double byRunway = RunwayLanes * 3600.0 / (runway / weight), byStands = StandCount * 3600.0 / (ground / weight);

@@ -106,7 +106,8 @@ namespace Crosswind.Game
             Trucks();
         }
 
-        static string TruckModel(Service s) { return s == Service.Fuel ? "truck" : s == Service.Baggage ? "tractor" : s == Service.Catering ? "delivery" : "van"; }
+        static string TruckModel(Service s) { return s == Service.Fuel ? "truck" : s == Service.Baggage || s == Service.Pushback ? "tractor" : s == Service.Catering ? "delivery" : s == Service.Deice ? "firetruck" : "van"; }
+        ParticleSystem _spray;
         readonly Dictionary<Service, float> _truckT = new Dictionary<Service, float>();
 
         /// <summary>
@@ -119,20 +120,26 @@ namespace Crosswind.Game
             float L = Models.Length(Route.Class);
             foreach (var j in Flight.jobs)
             {
-                bool working = _phase == Phase.Service && j.dispatched && !j.done;
+                bool tug = j.service == Service.Pushback;
+                // The tug stays on the nose through the push back off the stand.
+                bool pushing = tug && j.done && _phase == Phase.TaxiOut && 1 - Mathf.Clamp01(Flight.timer / _duration) < 0.16f;
+                bool working = ((_phase == Phase.Service || _phase == Phase.Board) && j.dispatched && !j.done) || pushing;
                 GameObject t; float at;
                 _trucks.TryGetValue(j.service, out t);
                 _truckT.TryGetValue(j.service, out at);
                 if (t == null)
                 {
                     if (!working) { k++; continue; }
-                    t = Models.Kit(TruckModel(j.service), transform.parent, Vector3.zero, 0, j.service == Service.Baggage ? 3.2f : 5f) ?? Models.Truck(j.service).ToObject("Truck", transform.parent);
+                    t = Models.Kit(TruckModel(j.service), transform.parent, Vector3.zero, 0, j.service == Service.Baggage ? 3.2f : tug ? 4.2f : j.service == Service.Deice ? Mathf.Clamp(L * 0.3f, 3.6f, 6f) : 5f) ?? Models.Truck(j.service).ToObject("Truck", transform.parent);
                     _trucks[j.service] = t; at = 0;
                 }
                 // 0 at the depot, 1 beside the aircraft.
                 at = Mathf.MoveTowards(at, working ? 1 : 0, Time.deltaTime * Mathf.Max(1, GameRoot.Speed) * 0.55f);
                 _truckT[j.service] = at;
                 var side = Layout.Stand(StandOrLast()) + (k % 2 == 0 ? 1 : -1) * Vector3.forward * (L * 0.2f + 2.6f) + Vector3.left * (k / 2 * 3.4f - 1f);
+                // The tug couples to the nose gear (the aircraft is nose-in, facing +X); the de-icer works off the wing.
+                if (tug) side = (pushing ? transform.position : Layout.Stand(StandOrLast())) + Vector3.right * (L * 0.5f + 1.2f) + Vector3.forward * 0.01f;
+                else if (j.service == Service.Deice) side = Layout.Stand(StandOrLast()) + Vector3.forward * (L * 0.34f + 3f) + Vector3.left * (L * 0.05f);
                 Vector3 depot;
                 if (AirportView.Instance == null || !AirportView.Instance.DepotAt.TryGetValue(Content.ServiceFacility(j.service), out depot)) depot = side + Vector3.back * 30;
                 // Out along the apron's south edge, then up the stand's lane.
@@ -143,11 +150,41 @@ namespace Crosswind.Game
                 else if (e < 0.9f) { var mid = new Vector3(side.x - 6, 0, side.z); pos = Vector3.Lerp(corner, mid, (e - 0.5f) / 0.4f); dir = mid - corner; }
                 else { var mid = new Vector3(side.x - 6, 0, side.z); pos = Vector3.Lerp(mid, side, (e - 0.9f) / 0.1f); dir = side - mid; }
                 if (!working) dir = -dir;
+                if (pushing) { pos = side; dir = Vector3.right; }
+                if (j.service == Service.Deice) Spray(working && at > 0.97f, L);
                 t.SetActive(at > 0.001f || working);
                 t.transform.position = pos + Vector3.up * 0.05f;
                 if (dir.sqrMagnitude > 0.01f) t.transform.rotation = Quaternion.Slerp(t.transform.rotation, Quaternion.LookRotation(-dir.normalized), 1 - Mathf.Exp(-10 * Time.deltaTime));   // kit vehicles face -Z
                 k++;
             }
+        }
+
+        /// <summary>De-icing fluid: a pale mist drifting over the wings while the crew is at work.</summary>
+        void Spray(bool on, float length)
+        {
+            if (_spray == null)
+            {
+                if (!on) return;
+                var go = new GameObject("Spray");
+                go.transform.SetParent(transform, false);
+                go.transform.localPosition = new Vector3(0, length * 0.16f + 1.5f, 0);
+                _spray = go.AddComponent<ParticleSystem>();
+                _spray.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                var main = _spray.main;
+                main.startLifetime = 1.6f; main.startSpeed = 1.2f; main.startSize = new ParticleSystem.MinMaxCurve(1.6f, 3.2f);
+                main.startColor = new Color(0.86f, 0.95f, 1f, 0.34f); main.gravityModifier = 0.25f; main.maxParticles = 120;
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                var em = _spray.emission; em.rateOverTime = 34;
+                var sh = _spray.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(length * 0.25f, 0.4f, length * 0.8f);
+                var col = _spray.colorOverLifetime; col.enabled = true;
+                var gr = new Gradient();
+                gr.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) }, new[] { new GradientAlphaKey(0, 0), new GradientAlphaKey(1, 0.2f), new GradientAlphaKey(0, 1) });
+                col.color = gr;
+                var r = go.GetComponent<ParticleSystemRenderer>();
+                r.sharedMaterial = WeatherFx.Mist;
+            }
+            if (on && !_spray.isEmitting) _spray.Play();
+            else if (!on && _spray.isEmitting) _spray.Stop(true, ParticleSystemStopBehavior.StopEmitting);
         }
 
         void OnDestroy() { foreach (var t in _trucks.Values) if (t != null) Destroy(t); }

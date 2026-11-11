@@ -31,6 +31,10 @@ namespace Crosswind.Core
         {
             State = state;
             State.Repair();
+            // A save from before a service existed keeps flying the routes it signed.
+            foreach (var c in State.contracts)
+                foreach (var n in Content.Routes[c.route].Needs)
+                    if (Level(Content.ServiceFacility(n)) == 0) SetLevel(Content.ServiceFacility(n), 1);
         }
 
         // ------------------------------------------------------------------ levels and what they mean
@@ -120,6 +124,7 @@ namespace Crosswind.Core
             if (!Content.Facilities.TryGetValue(facility, out d)) return "Unknown";
             if (Level(facility) >= d.MaxLevel) return "Fully upgraded";
             if (facility == "runway" && Level(facility) >= Map.MaxRunway) return "No room for a longer runway at " + Map.Name;
+            if (facility == "deice" && Map.Snow <= 0) return "It never snows at " + Map.Name;
             if (Stars < d.Stars) return "Needs a " + d.Stars + "-star airport";
             if (Building(facility) != null) return "Being built";
             if (State.builds.Count >= Builders && BuildSeconds(facility) > 0) return "Every building crew is busy";
@@ -289,7 +294,7 @@ namespace Crosswind.Core
                 case Phase.Deplane:
                     if (!Count(f, dt)) return;
                     f.jobs.Clear();
-                    foreach (var n in r.Needs) f.jobs.Add(new ServiceJob { service = n, left = plane.ServiceSeconds });
+                    foreach (var n in r.Needs) if (!Content.OnDeparture(n)) f.jobs.Add(new ServiceJob { service = n, left = plane.ServiceSeconds });
                     Enter(f, Phase.Service, 0);
                     return;
                 case Phase.Service:
@@ -303,7 +308,29 @@ namespace Crosswind.Core
                     if (f.jobs.All(j => j.done)) Enter(f, Phase.Board, BoardTime(plane));
                     return;
                 case Phase.Board:
-                    if (!Count(f, dt)) return;
+                    if (!f.boarded)
+                    {
+                        if (!Count(f, dt)) return;
+                        f.boarded = true;
+                        // Doors closed. In snow it is sprayed first (with a pad to do it); a jet then needs its tug.
+                        if (Weather == Weather.Snow && Crews(Service.Deice) > 0) f.jobs.Add(new ServiceJob { service = Service.Deice, left = plane.ServiceSeconds * Content.ServiceShare(Service.Deice) });
+                        if (r.Needs.Contains(Service.Pushback)) f.jobs.Add(new ServiceJob { service = Service.Pushback, left = plane.ServiceSeconds * Content.ServiceShare(Service.Pushback) });
+                        FlightChanged?.Invoke(f);
+                        Changed?.Invoke();
+                    }
+                    // One at a time, in order: the spray, then the tug.
+                    var next = f.jobs.Find(j => !j.done);
+                    if (next != null)
+                    {
+                        if (next.service == Service.Deice) f.held += dt;      // the weather's delay, not the airport's
+                        if (!next.dispatched) { if (Automated(next.service) && CrewFree(next.service)) next.dispatched = true; else return; }
+                        next.left -= dt * CrewSpeed(next.service);
+                        if (next.left <= 0) { next.done = true; Changed?.Invoke(); }
+                        return;
+                    }
+                    // Ready. With stands to spare it keeps its gate a while (a full apron, not an empty one); the
+                    // moment the last free stand is taken, the one that has waited longest goes.
+                    if (f.held < HoldLimit && StandsFree > 0) { f.held += dt; return; }
                     Enter(f, Phase.TaxiOut, plane.TaxiSeconds / TaxiSpeed);
                     return;
                 case Phase.TaxiOut:
@@ -330,6 +357,11 @@ namespace Crosswind.Core
             FlightChanged?.Invoke(f);
         }
 
+        /// <summary>How long a finished flight may keep its gate: nothing with one stand, longer with more.</summary>
+        public float HoldLimit { get { return Content.GateHold * (StandCount - 1); } }
+        /// <summary>Stands empty or about to be (an aircraft taxiing out still holds its own until it takes off).</summary>
+        int StandsFree { get { return StandCount - State.flights.Count(f => f.stand >= 0 && f.phase != Phase.TaxiOut); } }
+
         int FreeStand()
         {
             for (int i = 0; i < StandCount; i++)
@@ -355,8 +387,8 @@ namespace Crosswind.Core
             get
             {
                 foreach (var f in State.flights)
-                    if (f.phase == Phase.Service)
-                        foreach (var j in f.jobs) if (!j.dispatched && !j.done) yield return (f, j);
+                    if (f.phase == Phase.Service) { foreach (var j in f.jobs) if (!j.dispatched && !j.done) yield return (f, j); }
+                    else if (f.phase == Phase.Board && f.boarded) { var j = f.jobs.Find(x => !x.done); if (j != null && !j.dispatched) yield return (f, j); }
             }
         }
 
@@ -364,9 +396,10 @@ namespace Crosswind.Core
         public bool Dispatch(int flightId, Service s)
         {
             var f = State.flights.Find(x => x.id == flightId);
-            if (f == null || f.phase != Phase.Service) return false;
+            if (f == null || (f.phase != Phase.Service && !(f.phase == Phase.Board && f.boarded))) return false;
             var j = f.jobs.Find(x => x.service == s && !x.dispatched && !x.done);
             if (j == null) return false;
+            if (f.phase == Phase.Board && f.jobs.Find(x => !x.done) != j) return false;      // the spray comes before the tug
             if (!CrewFree(s)) { Toast?.Invoke("Every " + Content.Facilities[Content.ServiceFacility(s)].Name.ToLower() + " crew is busy"); return false; }
             j.dispatched = true;
             Changed?.Invoke();

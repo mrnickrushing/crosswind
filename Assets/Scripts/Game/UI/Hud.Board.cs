@@ -62,7 +62,7 @@ namespace Crosswind.Game
             _boardIn = 0.4f;
             var s = _sim;
             // Those that need you first, then by how far along they are.
-            var flights = s.State.flights.OrderByDescending(f => f.phase == Phase.Service && f.jobs.Any(j => !j.dispatched && !j.done)).ThenByDescending(f => (int)f.phase).ThenBy(f => f.id).Take(BoardRows).ToList();
+            var flights = s.State.flights.OrderByDescending(f => NeedsCrew(f)).ThenByDescending(f => (int)f.phase).ThenBy(f => f.id).Take(BoardRows).ToList();
             _boardCount.text = s.State.flights.Count + " OF " + s.TowerSlots + " IN THE PATTERN";
             for (int i = 0; i < BoardRows; i++)
             {
@@ -72,8 +72,9 @@ namespace Crosswind.Game
                 _boardFlight[i] = f.id;
                 t[0].text = FlightCode(f);
                 t[1].text = r.Destination; t[1].color = Color.white;
-                bool late = f.phase >= Phase.Deplane && f.phase <= Phase.Board && s.State.time - f.parkedAt > s.OnTimeTarget(r);
-                bool needs = f.phase == Phase.Service && f.jobs.Any(j => !j.dispatched && !j.done);
+                bool late = f.phase >= Phase.Deplane && f.phase <= Phase.Board && s.State.time - f.parkedAt - f.held > s.OnTimeTarget(r);
+                bool needs = NeedsCrew(f);
+                var leavingJob = f.phase == Phase.Board && f.boarded ? f.jobs.Find(j => !j.done) : null;
                 string st; Color c = Amber;
                 switch (f.phase)
                 {
@@ -82,13 +83,27 @@ namespace Crosswind.Game
                     case Phase.TaxiIn: st = "TAXI IN"; break;
                     case Phase.Deplane: st = "ARRIVED"; break;
                     case Phase.Service: st = needs ? "NEEDS CREW" : "SERVICING"; if (needs) c = Ui.Red; break;
-                    case Phase.Board: st = "BOARDING"; c = Ui.Green; break;
+                    case Phase.Board:
+                        if (!f.boarded) { st = "BOARDING"; c = Ui.Green; }
+                        else if (leavingJob == null) { st = "GATE CLOSED"; c = Ui.Green; }
+                        else if (needs) { st = leavingJob.service == Service.Deice ? "NEEDS DE-ICE" : "NEEDS TUG"; c = Ui.Red; }
+                        else { st = leavingJob.service == Service.Deice ? "DE-ICING" : "PUSHBACK"; }
+                        break;
                     case Phase.TaxiOut: st = "TAXI OUT"; break;
                     default: st = "DEPARTING"; c = Ui.Green; break;
                 }
                 if (late && !needs) { st = "DELAYED"; c = Ui.Red; }
                 t[2].text = st; t[2].color = c;
             }
+        }
+
+        /// <summary>A crew is wanted and nobody has sent one: a service at the stand, or the spray or the tug after boarding.</summary>
+        static bool NeedsCrew(FlightState f)
+        {
+            if (f.phase == Phase.Service) return f.jobs.Any(j => !j.dispatched && !j.done);
+            if (f.phase != Phase.Board || !f.boarded) return false;
+            var j2 = f.jobs.Find(j => !j.done);
+            return j2 != null && !j2.dispatched;
         }
 
         /// <summary>Swings the camera to an aircraft (from the board).</summary>

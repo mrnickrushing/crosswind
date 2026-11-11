@@ -7,7 +7,7 @@ namespace Crosswind.Core
     public enum AircraftClass { A, B, C, D, E }
 
     /// <summary>What a turnaround can need. Each is a department with crews that have to reach the aircraft.</summary>
-    public enum Service { Fuel, Baggage, Catering, Cleaning }
+    public enum Service { Fuel, Baggage, Catering, Cleaning, Pushback, Deice }
 
     public sealed class AircraftDef
     {
@@ -68,7 +68,8 @@ namespace Crosswind.Core
         public const float LateShare = 0.6f;             // share of the landing fee when late
         public const float OfflineHours = 2f;            // how long the airport earns while the app is closed
         public const float OfflineEfficiency = 0.5f;     // of what it would have earned with you watching
-        public const float OnTimeSlack = 1.6f;           // an on-time turnaround takes at most this many times the ideal
+        public const float OnTimeSlack = 1.6f;
+        public const float GateHold = 10f;               // seconds a finished flight may wait at the gate, per stand beyond the first           // an on-time turnaround takes at most this many times the ideal
 
         /// <summary>Rating XP needed to reach each star level (index 1 = one star, held from the start).</summary>
         public static readonly double[] StarXp = { 0, 0, 60, 450, 2200, 10000, 50000, 200000, 800000, 3e6, 1e7 };
@@ -102,6 +103,8 @@ namespace Crosswind.Core
             Fac("baggage", "Baggage Handling", "Services", 180, "Tugs and belts. Faster crews, and another tug every three levels.", stars: 2);
             Fac("catering", "Flight Kitchen", "Services", 900, "Meals loaded on time. Needed by the bigger airlines.", stars: 3);
             Fac("cleaning", "Cabin Cleaning", "Services", 1400, "Crews that turn a cabin round between flights.", stars: 4);
+            Fac("pushback", "Pushback Tugs", "Services", 2600, "Jets can't reverse off a stand: a tug pushes each one back once it has boarded. Faster crews, and another tug every three levels.", stars: 3);
+            Fac("deice", "De-icing Pad", "Services", 9000, "In snow, crews spray every departure before it goes: the runway keeps most of its pace instead of crawling.", stars: 3, growth: 1.7f, max: 20);
             // Terminal.
             Fac("checkin", "Check-in Desks", "Terminal", 200, "More passengers processed a minute.", start: 1);
             Fac("security", "Security Lanes", "Terminal", 260, "Shorter queues: happier passengers who spend more.", start: 1);
@@ -124,6 +127,8 @@ namespace Crosswind.Core
 
             void Route(string id, string airline, string dest, AircraftClass c, float perHour, int stars, double bonus, params Service[] needs)
             {
+                // Anything from the Albatross up is pushed back by a tug.
+                if (c >= AircraftClass.C) needs = needs.Concat(new[] { Service.Pushback }).ToArray();
                 Routes[id] = new RouteDef { Id = id, Airline = airline, Destination = dest, Class = c, FlightsPerHour = perHour, Stars = stars, SigningBonus = bonus, Needs = needs };
             }
             Route("puffin_isles", "puffin", "The Out Isles", AircraftClass.A, 40, 1, 0, Service.Fuel);
@@ -165,8 +170,14 @@ namespace Crosswind.Core
 
         public static string ServiceFacility(Service s)
         {
-            switch (s) { case Service.Fuel: return "fuel"; case Service.Baggage: return "baggage"; case Service.Catering: return "catering"; default: return "cleaning"; }
+            switch (s) { case Service.Fuel: return "fuel"; case Service.Baggage: return "baggage"; case Service.Catering: return "catering"; case Service.Pushback: return "pushback"; case Service.Deice: return "deice"; default: return "cleaning"; }
         }
+
+        /// <summary>Services done after boarding, as the aircraft leaves (the rest are done while it is parked and empty).</summary>
+        public static bool OnDeparture(Service s) { return s == Service.Pushback || s == Service.Deice; }
+        /// <summary>How long a service takes on an aircraft, as a share of its service time.</summary>
+        public static float ServiceShare(Service s) { return s == Service.Pushback ? 0.35f : s == Service.Deice ? 0.5f : 1f; }
+        public static readonly string[] Departments = { "fuel", "baggage", "catering", "cleaning", "pushback", "deice" };
 
         public static IEnumerable<RouteDef> RoutesOf(string airline) { return Routes.Values.Where(r => r.Airline == airline); }
     }

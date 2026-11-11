@@ -119,8 +119,9 @@ namespace Crosswind.Tests
             {
                 var s = Fresh();
                 s.State.money = 1e12;
+                s.State.ratingXp = Content.StarXp[2];
                 s.Hire("fuel");
-                s.Sign("puffin_coast");
+                s.Sign("puffin_coast"); s.Sign("fjord_sound");       // more traffic than one stand can turn
                 if (grown) { for (int i = 0; i < 3; i++) s.Upgrade("stands"); for (int i = 0; i < 6; i++) s.Upgrade("fuel"); }
                 Play(s, 1800, tap: false);
                 return s.State.flightsHandled;

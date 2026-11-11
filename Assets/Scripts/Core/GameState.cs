@@ -29,6 +29,8 @@ namespace Crosswind.Core
         public int slot;                // the planner slot it was scheduled in (its pay follows it)
         public double arrivedAt;        // game time it joined the approach
         public double parkedAt;         // game time it reached the stand
+        public bool boarded;            // everyone is aboard: what is left is de-icing, the tug, and the wait for its slot
+        public float held;              // seconds not counted against it: waiting at the gate by choice, and de-icing
         public List<ServiceJob> jobs = new List<ServiceJob>();
     }
 

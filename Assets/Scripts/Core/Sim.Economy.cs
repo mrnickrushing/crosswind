@@ -18,7 +18,7 @@ namespace Crosswind.Core
         public float OnTimeTarget(RouteDef r)
         {
             var plane = Content.Aircraft[r.Class];
-            float ideal = plane.BoardSeconds * 2 + plane.ServiceSeconds + plane.TaxiSeconds + plane.RunwaySeconds;
+            float ideal = plane.BoardSeconds * 2 + plane.ServiceSeconds * (1 + r.Needs.Where(Content.OnDeparture).Sum(Content.ServiceShare)) + plane.TaxiSeconds + plane.RunwaySeconds;
             return ideal * Content.OnTimeSlack * Content.Airlines[r.Airline].Patience * (1 + Fx(Effect.OnTimeSlack));
         }
 
@@ -37,12 +37,22 @@ namespace Crosswind.Core
             return (landing + pax + fuel + retail + cargo) * IncomeScale;
         }
 
+        /// <summary>The least a flight on this route spends at its stand with every crew to hand: off, serviced, on, pushed back, taxiing.</summary>
+        public double GroundSeconds(RouteDef r)
+        {
+            var plane = Content.Aircraft[r.Class];
+            var parked = r.Needs.Where(n => !Content.OnDeparture(n)).ToList();
+            double service = parked.Count == 0 ? 0 : plane.ServiceSeconds / Math.Max(0.1f, parked.Min(n => CrewSpeed(n)));
+            foreach (var n in r.Needs.Where(Content.OnDeparture)) service += plane.ServiceSeconds * Content.ServiceShare(n) / Math.Max(0.1f, CrewSpeed(n));
+            return BoardTime(plane) * 2 + service + plane.TaxiSeconds * 2 / TaxiSpeed;
+        }
+
         void Pay(FlightState f)
         {
             var r = Content.Routes[f.route];
             var contract = State.contracts.Find(c => c.route == f.route);
             int terms = contract != null ? contract.terms : 0;
-            bool onTime = State.time - f.parkedAt <= OnTimeTarget(r) * TermsPatience(terms);
+            bool onTime = State.time - f.parkedAt - f.held <= OnTimeTarget(r) * TermsPatience(terms);
             var parts = new double[5];
             double value = FlightValue(r, onTime, parts);
             double paid = value * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay : RelationPay(r.Airline) * FeePay);
@@ -74,7 +84,7 @@ namespace Crosswind.Core
 
         public string HireBlocked(string facility)
         {
-            if (facility != "fuel" && facility != "baggage" && facility != "catering" && facility != "cleaning") return "No manager for this";
+            if (Array.IndexOf(Content.Departments, facility) < 0) return "No manager for this";
             if (State.managers.Contains(facility)) return "Already hired";
             if (Level(facility) <= 0) return "Build it first";
             if (State.money < ManagerCost(facility)) return "Need " + Format.Money(ManagerCost(facility) - State.money) + " more";
@@ -102,7 +112,7 @@ namespace Crosswind.Core
         {
             double perSecond = 0;
             double runwayLoad = 0, standLoad = 0;
-            var crewLoad = new double[4];
+            var crewLoad = new double[Content.Departments.Length];
             foreach (var c in State.contracts)
             {
                 var r = Content.Routes[c.route];
@@ -110,10 +120,10 @@ namespace Crosswind.Core
                 var plane = Content.Aircraft[r.Class];
                 // A slotted route flies three quarters of the day's flights.
                 double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) * FleetFlights(r) / 3600.0 * (c.slot > 0 ? SlotRate * 6 / 24 : 1) * (r.Airline == "own" ? 1 : FeeFlights);
-                double ground = BoardTime(plane) * 2 + plane.ServiceSeconds / Math.Max(0.1f, r.Needs.Min(n => CrewSpeed(n))) + plane.TaxiSeconds * 2 / TaxiSpeed;
+                double ground = GroundSeconds(r);
                 runwayLoad += perSec * 2 * plane.RunwaySeconds / RunwaySpeed;
                 standLoad += perSec * ground;
-                foreach (var n in r.Needs) crewLoad[(int)n] += perSec * plane.ServiceSeconds / Math.Max(0.1f, CrewSpeed(n));
+                foreach (var n in r.Needs) crewLoad[(int)n] += perSec * plane.ServiceSeconds * Content.ServiceShare(n) / Math.Max(0.1f, CrewSpeed(n));
                 perSecond += perSec * FlightValue(r, true) * SlotPay(r, c.slot) * (r.Airline == "own" ? 1 : FeePay);
             }
             if (perSecond <= 0) return ParkingRate;
@@ -121,7 +131,7 @@ namespace Crosswind.Core
             double cap = 1;
             if (runwayLoad > 0) cap = Math.Min(cap, RunwayLanes / runwayLoad);
             if (standLoad > 0) cap = Math.Min(cap, StandCount / standLoad);
-            for (int i = 0; i < 4; i++) if (crewLoad[i] > 0) cap = Math.Min(cap, Crews((Service)i) / crewLoad[i]);
+            for (int i = 0; i < crewLoad.Length; i++) if (crewLoad[i] > 0) cap = Math.Min(cap, Crews((Service)i) / crewLoad[i]);
             return perSecond * Math.Min(1, cap) + ParkingRate;
         }
 

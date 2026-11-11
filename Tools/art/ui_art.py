@@ -154,7 +154,28 @@ def clean(d, n):
     def spark(cx, cy, r):
         d.polygon([(cx, cy - r), (cx + r * 0.24, cy - r * 0.24), (cx + r, cy), (cx + r * 0.24, cy + r * 0.24), (cx, cy + r), (cx - r * 0.24, cy + r * 0.24), (cx - r, cy), (cx - r * 0.24, cy - r * 0.24)], fill=255)
     spark(0.42 * n, 0.56 * n, 0.34 * n); spark(0.76 * n, 0.26 * n, 0.17 * n); spark(0.8 * n, 0.78 * n, 0.11 * n)
-icon(fuel, "svc_fuel"); icon(bags, "svc_bags"); icon(food, "svc_food"); icon(clean, "svc_clean")
+def tug(d, n):
+    # A low tractor seen from the side, with a tow bar.
+    d.rounded_rectangle((0.2 * n, 0.44 * n, 0.86 * n, 0.68 * n), 0.05 * n, fill=255)
+    d.rounded_rectangle((0.5 * n, 0.26 * n, 0.8 * n, 0.5 * n), 0.05 * n, fill=255)
+    d.rectangle((0.56 * n, 0.32 * n, 0.74 * n, 0.43 * n), fill=0)
+    d.rectangle((0.04 * n, 0.54 * n, 0.22 * n, 0.6 * n), fill=255)
+    for x in (0.34, 0.72):
+        d.ellipse((x * n - 0.12 * n, 0.58 * n, x * n + 0.12 * n, 0.82 * n), fill=255)
+        d.ellipse((x * n - 0.05 * n, 0.65 * n, x * n + 0.05 * n, 0.75 * n), fill=0)
+def deice(d, n):
+    # A snowflake: three bars through the middle with barbs.
+    import math
+    w = int(0.07 * n)
+    for a in (90, 30, 150):
+        dx, dy = math.cos(math.radians(a)), math.sin(math.radians(a))
+        d.line((0.5 * n - dx * 0.4 * n, 0.5 * n - dy * 0.4 * n, 0.5 * n + dx * 0.4 * n, 0.5 * n + dy * 0.4 * n), fill=255, width=w)
+        for sgn in (-1, 1):
+            cx, cy = 0.5 * n + sgn * dx * 0.27 * n, 0.5 * n + sgn * dy * 0.27 * n
+            for b in (a + 50, a - 50):
+                bx, by = math.cos(math.radians(b)) * sgn, math.sin(math.radians(b)) * sgn
+                d.line((cx, cy, cx + bx * 0.13 * n, cy + by * 0.13 * n), fill=255, width=w)
+icon(fuel, "svc_fuel"); icon(bags, "svc_bags"); icon(food, "svc_food"); icon(clean, "svc_clean"); icon(tug, "svc_tug"); icon(deice, "svc_deice")
 
 # Sunburst rays (white, to tint and spin behind a reward) and a soft glow.
 R = 256 * S

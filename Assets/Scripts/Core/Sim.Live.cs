@@ -52,7 +52,7 @@ namespace Crosswind.Core
         {
             get
             {
-                float f = Weather == Weather.Clear ? 1f : Weather == Weather.Rain ? 0.9f : Weather == Weather.Fog ? 0.6f : Weather == Weather.Storm ? 0.5f : 0.55f;
+                float f = Weather == Weather.Clear ? 1f : Weather == Weather.Rain ? 0.9f : Weather == Weather.Fog ? 0.6f : Weather == Weather.Storm ? 0.5f : Level("deice") > 0 ? Math.Min(0.92f, 0.72f + 0.02f * Level("deice")) : 0.55f;
                 float shield = Math.Min(0.9f, Level("ils") * 0.08f + Fx(Effect.WeatherShield));
                 return 1 - (1 - f) * (1 - shield);
             }

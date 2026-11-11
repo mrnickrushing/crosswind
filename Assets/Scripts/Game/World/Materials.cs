@@ -132,6 +132,6 @@ namespace Crosswind.Game
         public static readonly Color Glass = Hex(0x7FB4CC), Steel = Hex(0x9AA2AA), SteelDark = Hex(0x5A6068);
         public static readonly Color Wood = Hex(0x9C6B3F), WoodPale = Hex(0xC8A27A), Roof = Hex(0xA84A3A), RoofBlue = Hex(0x3E6A8A);
         public static readonly Color White = Hex(0xF4F4F0), Black = Hex(0x22252A), Tyre = Hex(0x1E1E20);
-        public static readonly Color Fuel = Hex(0xD8442E), Baggage = Hex(0x3C7AC8), Catering = Hex(0xE89A2A), Cleaning = Hex(0x4AB07A);
+        public static readonly Color Fuel = Hex(0xD8442E), Baggage = Hex(0x3C7AC8), Catering = Hex(0xE89A2A), Cleaning = Hex(0x4AB07A), Pushback = Hex(0xE2B520), Deice = Hex(0x45B4D8);
     }
 }

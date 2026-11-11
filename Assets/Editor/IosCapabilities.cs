@@ -35,6 +35,7 @@ namespace Crosswind.EditorTools
             string bundle = PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.iOS);
 
             var ent = new PlistDocument();
+            ent.root.CreateArray("com.apple.developer.applesignin").AddString("Default");
             ent.root.SetString("com.apple.developer.ubiquity-kvstore-identifier", team + "." + bundle);
             ent.WriteToFile(Path.Combine(path, Entitlements));
 
@@ -43,6 +44,7 @@ namespace Crosswind.EditorTools
             proj.ReadFromFile(projPath);
             proj.AddFile(Entitlements, Entitlements);
             proj.SetBuildProperty(proj.GetUnityMainTargetGuid(), "CODE_SIGN_ENTITLEMENTS", Entitlements);
+            proj.AddFrameworkToProject(proj.GetUnityFrameworkTargetGuid(), "AuthenticationServices.framework", true);     // Sign in with Apple
             proj.WriteToFile(projPath);
         }
     }

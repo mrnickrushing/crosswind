@@ -142,6 +142,7 @@ namespace Crosswind.Game
             }
             else if (_tab == 3) ResearchSheet();
             else if (_tab == 4) EmpireSheet();
+            else if (_tab == FriendsTab) FriendsSheet();
             else
             {
                 Header("MANAGERS RUN A DEPARTMENT FOR YOU, EVEN WHILE YOU'RE AWAY");

@@ -32,6 +32,7 @@ namespace Crosswind.Game
             foreach (var cam in FindObjectsByType<Camera>(FindObjectsSortMode.None)) Destroy(cam.gameObject);
             foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) Destroy(l.gameObject);
 
+            AppleAccount.Start();
             Reminders.Clear();
             var state = SaveSystem.Load();
             // The save in the player's iCloud: a new phone continues from it; a newer one from another device is offered.
@@ -104,6 +105,7 @@ namespace Crosswind.Game
 
         void Update()
         {
+            AppleAccount.Update();
             if (!_ready) return;
             Sim.Tick(Time.deltaTime * Speed);
             if ((_saveIn -= Time.unscaledDeltaTime) <= 0) { _saveIn = 10f; Save(); }

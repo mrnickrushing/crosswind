@@ -7,7 +7,8 @@
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.InputSystem",
-        "Unity.Notifications.iOS"
+        "Unity.Notifications.iOS",
+        "AppleAuth"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

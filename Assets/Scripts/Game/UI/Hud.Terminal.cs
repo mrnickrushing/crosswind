@@ -13,7 +13,7 @@ namespace Crosswind.Game
     /// </summary>
     public sealed partial class Hud
     {
-        const int ShopTab = 5;
+        const int ShopTab = 9;
         RectTransform _termBar, _placeBar, _itemCard, _paxCard;
         readonly List<Image> _needFills = new List<Image>();
         readonly List<Text> _needLabels = new List<Text>();

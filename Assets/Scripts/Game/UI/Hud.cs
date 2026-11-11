@@ -31,8 +31,8 @@ namespace Crosswind.Game
         sealed class ServiceButton { public RectTransform Rt; public Image Bg, Tail, Icon; public Text Label; public int Flight; public Service Service; }
         sealed class Pop { public RectTransform Rt; public CanvasGroup Group; public Vector3 World; public Vector2 At, Drift; public bool Screen; public float Age, Life = 1.7f; }
 
-        static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE" };
-        static readonly string[] TabIcons = { "wrench", "plane", "multiplayer", "zoom", "trophy" };
+        static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE", "FRIENDS" };
+        static readonly string[] TabIcons = { "wrench", "plane", "gear", "zoom", "trophy", "multiplayer" };
         Text _gems, _weather, _chips, _oppText;
         RectTransform _opp, _empireDot, _staffDot;
 
@@ -90,7 +90,7 @@ namespace Crosswind.Game
                 var b = Ui.Button(TabNames[i], rail, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 22);
                 var lab = b.GetComponentInChildren<Text>().rectTransform; lab.anchorMin = new Vector2(0, 0); lab.anchorMax = new Vector2(1, 0.36f); lab.offsetMin = new Vector2(2, 8); lab.offsetMax = new Vector2(-2, 0);
                 Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 50);
-                ((RectTransform)b.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12 - i * 126), new Vector2(112, 118));
+                ((RectTransform)b.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12 - i * 124), new Vector2(112, 116));
                 _tabs.Add(b);
             }
             var dot = Ui.Img("Dot", _tabs[4].transform, Ui.Red); dot.sprite = Ui.Circle;

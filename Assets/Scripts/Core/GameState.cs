@@ -120,6 +120,8 @@ namespace Crosswind.Core
         public List<string> duty = new List<string>();               // who is on duty, in order
         public int crates = 1, cratesOpened, sinceEpic;               // unopened crates (one to start), and the count toward a sure Epic
         public List<PlacedAmenity> terminal = new List<PlacedAmenity>();   // what stands on the concourse floor
+        public string playerName = "";                             // what friends see (empty: "Airport Manager")
+        public List<ResearchJob> gifts = new List<ResearchJob>();    // friend code and when their gift was last collected (real time)
         public int plansMade;                                        // times the day was planned (by AUTO PLAN or by hand)
         public double freeCrateAt;                                   // real time the next free crate is ready
 
@@ -169,6 +171,9 @@ namespace Crosswind.Core
             if (terminal == null) terminal = new List<PlacedAmenity>();
             terminal.RemoveAll(t => t == null || Sim.AmenityById(t.id) == null);
             foreach (var t in terminal) if (t.level < 1) t.level = 1;
+            if (playerName == null) playerName = "";
+            if (gifts == null) gifts = new List<ResearchJob>();
+            gifts.RemoveAll(g => g == null || string.IsNullOrEmpty(g.id));
             if (crew == null) crew = new List<LevelEntry>();
             crew.RemoveAll(c => c == null || Sim.CrewById(c.id) == null);
             if (duty == null) duty = new List<string>();

@@ -79,7 +79,7 @@ namespace Crosswind.Core
         double ListedRate(ContractState c)
         {
             var r = Content.Routes[c.route];
-            return r.FlightsPerHour * (1 + Fx(Effect.Demand)) * TermsFlights(c.terms) * FleetFlights(r);
+            return r.FlightsPerHour * (1 + Fx(Effect.Demand)) * TermsFlights(c.terms) * FleetFlights(r) * (r.Airline == "own" ? 1 : FeeFlights);
         }
 
         /// <summary>Flights an hour planned for each hour of the day, 00 to 23.</summary>

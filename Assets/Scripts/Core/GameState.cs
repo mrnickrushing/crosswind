@@ -122,6 +122,9 @@ namespace Crosswind.Core
         public List<PlacedAmenity> terminal = new List<PlacedAmenity>();   // what stands on the concourse floor
         public string playerName = "";                             // what friends see (empty: "Airport Manager")
         public List<ResearchJob> gifts = new List<ResearchJob>();    // friend code and when their gift was last collected (real time)
+        public int feeLevel = 2;                                     // fee policy, 0 bargain .. 4 premium
+        public double loanOwed, loanTotal;                           // what the bank is still owed, and what was owed at the start
+        public double[] incomeBy = new double[5];                    // lifetime income here by source: landing, passengers, fuel, shops, cargo
         public int plansMade;                                        // times the day was planned (by AUTO PLAN or by hand)
         public double freeCrateAt;                                   // real time the next free crate is ready
 
@@ -174,6 +177,7 @@ namespace Crosswind.Core
             if (playerName == null) playerName = "";
             if (gifts == null) gifts = new List<ResearchJob>();
             gifts.RemoveAll(g => g == null || string.IsNullOrEmpty(g.id));
+            if (incomeBy == null || incomeBy.Length != 5) incomeBy = new double[5];
             if (crew == null) crew = new List<LevelEntry>();
             crew.RemoveAll(c => c == null || Sim.CrewById(c.id) == null);
             if (duty == null) duty = new List<string>();

@@ -201,6 +201,8 @@ namespace Crosswind.Core
         /// <summary>The shops' pull on every passenger's wallet (what "shop level" used to be).</summary>
         public float RetailLevel { get { return (Supply(Want.Food) + Supply(Want.Shopping)) / 10f; } }
         public float LoungeLevel { get { return Supply(Want.Lounge) / 10f; } }
+        /// <summary>How much the shops actually pull from a wallet: the first few count in full, more of the same less and less.</summary>
+        public float RetailPull { get { float l = RetailLevel; return l <= 6 ? l : 6 + (l - 6) * 0.25f; } }
 
         static readonly (Want want, string name, string advice, float free, float per, float weight)[] WantRules =
         {
@@ -234,7 +236,7 @@ namespace Crosswind.Core
                 var n = Needs;
                 float v = 0.4f + 0.3f * n[0].Value;
                 for (int i = 0; i < WantRules.Length; i++) v += WantRules[i].weight * n[i + 1].Value;
-                v += 0.02f * RetailLevel + 0.01f * LoungeLevel;
+                v += 0.02f * RetailPull + 0.01f * LoungeLevel;
                 return Math.Max(0.4f, Math.Min(1.5f, v));
             }
         }

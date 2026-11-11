@@ -23,7 +23,7 @@ namespace Crosswind.Core
         }
 
         /// <summary>What a flight on this route pays when it leaves on time, at today's satisfaction.</summary>
-        public double FlightValue(RouteDef r, bool onTime = true)
+        public double FlightValue(RouteDef r, bool onTime = true, double[] parts = null)
         {
             var plane = Content.Aircraft[r.Class];
             var line = Content.Airlines[r.Airline];
@@ -31,8 +31,9 @@ namespace Crosswind.Core
             double landing = plane.LandingFee * line.FeeScale * (onTime ? 1 + Content.OnTimeBonus : Content.LateShare) * (1 + Fx(Effect.LandingFee)) * (1 + 0.05 * Level("hangar"));
             double pax = plane.Seats * 2 * Content.PassengerFee * sat * (1 + Fx(Effect.PassengerFee)) * (1 + 0.06 * LoungeLevel);
             double fuel = r.Needs.Contains(Service.Fuel) ? plane.FuelMargin * (1 + 0.05 * (Level("fuel") - 1)) * (1 + Fx(Effect.FuelMargin)) : 0;
-            double retail = plane.Seats * 2 * Content.RetailSpend * RetailLevel * sat * (1 + Fx(Effect.Retail));
+            double retail = plane.Seats * 2 * Content.RetailSpend * RetailPull * sat * (1 + Fx(Effect.Retail));
             double cargo = plane.Seats * 0.8 * Level("cargo") * line.FeeScale;
+            if (parts != null) { parts[0] = landing; parts[1] = pax; parts[2] = fuel; parts[3] = retail; parts[4] = cargo; }
             return (landing + pax + fuel + retail + cargo) * IncomeScale;
         }
 
@@ -42,9 +43,13 @@ namespace Crosswind.Core
             var contract = State.contracts.Find(c => c.route == f.route);
             int terms = contract != null ? contract.terms : 0;
             bool onTime = State.time - f.parkedAt <= OnTimeTarget(r) * TermsPatience(terms);
-            double paid = FlightValue(r, onTime) * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay : RelationPay(r.Airline));
-            if (r.Airline != "own") Relate(r.Airline, onTime ? 0.4f : -2.5f);
-            Earn(paid, true);
+            var parts = new double[5];
+            double value = FlightValue(r, onTime, parts);
+            double paid = value * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay : RelationPay(r.Airline) * FeePay);
+            if (r.Airline != "own") Relate(r.Airline, (onTime ? 0.4f : -2.5f) + FeeMoodPerFlight);
+            double sum = parts[0] + parts[1] + parts[2] + parts[3] + parts[4];
+            if (sum > 0) for (int i = 0; i < 5; i++) State.incomeBy[i] += paid * parts[i] / sum;
+            Earn(AfterLoan(paid), true);
             State.flightsHandled++;
             Count("flights", 1);
             if (onTime) Count("ontime", 1);
@@ -104,12 +109,12 @@ namespace Crosswind.Core
                 if (!r.Needs.All(Automated)) continue;
                 var plane = Content.Aircraft[r.Class];
                 // A slotted route flies three quarters of the day's flights.
-                double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) * FleetFlights(r) / 3600.0 * (c.slot > 0 ? SlotRate * 6 / 24 : 1);
+                double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) * FleetFlights(r) / 3600.0 * (c.slot > 0 ? SlotRate * 6 / 24 : 1) * (r.Airline == "own" ? 1 : FeeFlights);
                 double ground = BoardTime(plane) * 2 + plane.ServiceSeconds / Math.Max(0.1f, r.Needs.Min(n => CrewSpeed(n))) + plane.TaxiSeconds * 2 / TaxiSpeed;
                 runwayLoad += perSec * 2 * plane.RunwaySeconds / RunwaySpeed;
                 standLoad += perSec * ground;
                 foreach (var n in r.Needs) crewLoad[(int)n] += perSec * plane.ServiceSeconds / Math.Max(0.1f, CrewSpeed(n));
-                perSecond += perSec * FlightValue(r, true) * SlotPay(r, c.slot);
+                perSecond += perSec * FlightValue(r, true) * SlotPay(r, c.slot) * (r.Airline == "own" ? 1 : FeePay);
             }
             if (perSecond <= 0) return ParkingRate;
             // The tightest bottleneck scales everything down.
@@ -132,7 +137,7 @@ namespace Crosswind.Core
         {
             double got = Math.Floor(OfflineEarnings(secondsAway) * Math.Max(1, multiplier));
             if (got <= 0) return 0;
-            Earn(got, false);
+            Earn(AfterLoan(got), false);
             Changed?.Invoke();
             return got;
         }

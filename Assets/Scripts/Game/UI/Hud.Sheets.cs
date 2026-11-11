@@ -194,6 +194,7 @@ namespace Crosswind.Game
         void EmpireSheet()
         {
             var s = _sim;
+            FinanceSection();
             Header("TODAY");
             for (int i = 0; i < s.State.tasks.Count; i++)
             {
@@ -346,6 +347,36 @@ namespace Crosswind.Game
                 Destroy(_away.gameObject); _away = null;
             }, 56);
             ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 50), new Vector2(520, 130));
+        }
+
+        // ------------------------------------------------------------------ finance
+
+        static readonly string[] IncomeName = { "Landing fees", "Passenger fees", "Fuel", "Shops and food", "Cargo" };
+
+        void FinanceSection()
+        {
+            var s = _sim;
+            Header("FINANCE");
+            int next = (s.FeeLevel + 1) % 5;
+            Entry("Fee policy: " + Sim.FeeName[s.FeeLevel], null, Sim.FeeBlurb(s.FeeLevel), "CHANGE\n<size=24>" + Sim.FeeName[next] + "</size>", s.FeeBlocked(next),
+                () => { if (s.SetFees(next)) Toast("Fees: " + Sim.FeeName[next].ToLower() + ". " + Sim.FeeBlurb(next)); }, Ui.Blue);
+            if (s.InDebt)
+                Entry("Loan", "OWED " + Format.Money(s.State.loanOwed), "The bank takes " + Mathf.RoundToInt((float)Sim.LoanShare * 100) + "% of every payment until it is repaid (" + Mathf.RoundToInt((float)(1 - s.State.loanOwed / System.Math.Max(1, s.State.loanTotal)) * 100) + "% done). Pay it off early from cash.",
+                    "REPAY", s.State.money >= 1 ? null : "No cash", () => { if (s.RepayLoan()) Sfx.Play("coin", 0.6f); }, Ui.Gold);
+            else
+                foreach (var l in Sim.Loans)
+                {
+                    var loan = l;
+                    Entry(l.Name, "+" + Format.Money(s.LoanAmount(l)), "Cash now; " + Format.Money(System.Math.Floor(s.LoanAmount(l) * l.Interest)) + " back, taken as a fifth of every payment.", "BORROW", s.LoanBlocked(l),
+                        () => { double a = s.LoanAmount(loan); if (s.TakeLoan(loan.Id)) { Reward(a, 0); Sfx.Play("coin", 0.7f); } }, Ui.Green);
+                }
+            double total = s.State.incomeBy.Sum();
+            if (total > 0)
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                for (int i = 0; i < 5; i++) if (s.State.incomeBy[i] > 0) parts.Add(IncomeName[i] + " " + Mathf.RoundToInt((float)(s.State.incomeBy[i] / total * 100)) + "%");
+                Entry("Where the money comes from", Format.Money(total), string.Join("  ·  ", parts), null, null, null);
+            }
         }
     }
 }

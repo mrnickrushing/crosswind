@@ -153,6 +153,7 @@ namespace Crosswind.Game
         public void Sphere(Vector3 c, Vector3 radius, int seg, Color col, bool smooth = true)
         {
             int rings = Mathf.Max(3, seg / 2);
+            var inv = new Vector3(1f / Mathf.Max(1e-4f, radius.x), 1f / Mathf.Max(1e-4f, radius.y), 1f / Mathf.Max(1e-4f, radius.z));
             for (int r = 0; r < rings; r++)
             {
                 float p0 = Mathf.PI * r / rings - Mathf.PI / 2, p1 = Mathf.PI * (r + 1) / rings - Mathf.PI / 2;
@@ -161,7 +162,8 @@ namespace Crosswind.Game
                     float t0 = Mathf.PI * 2 * s / seg, t1 = Mathf.PI * 2 * (s + 1) / seg;
                     Vector3 n00 = Sph(p0, t0), n01 = Sph(p0, t1), n10 = Sph(p1, t0), n11 = Sph(p1, t1);
                     Vector3 a = c + Vector3.Scale(n00, radius), b = c + Vector3.Scale(n10, radius), cc = c + Vector3.Scale(n11, radius), d = c + Vector3.Scale(n01, radius);
-                    if (smooth) QuadSmooth(a, b, cc, d, n00, n10, n11, n01, col, col, col, col);
+                    // A squashed ball's surface faces more nearly up than a round one's: the normal is the direction over the radius.
+                    if (smooth) QuadSmooth(a, b, cc, d, Vector3.Scale(n00, inv).normalized, Vector3.Scale(n10, inv).normalized, Vector3.Scale(n11, inv).normalized, Vector3.Scale(n01, inv).normalized, col, col, col, col);
                     else Quad(a, b, cc, d, col);
                 }
             }

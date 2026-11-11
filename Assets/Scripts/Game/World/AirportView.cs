@@ -83,10 +83,10 @@ namespace Crosswind.Game
             // The land this airport sits on: meadow, island sand, desert, alpine green, snow, or the city's edge.
             string map = s.State.map;
             Color ground = map == "coral" ? Palette.Hex(0xD9C58C) : map == "dune" ? Palette.Hex(0xCFA868) : map == "polar" ? Palette.Hex(0xE8EEF2) : map == "alpine" ? Palette.Hex(0x5E8F52) : map == "metro" ? Palette.Hex(0x7D9468) : Palette.Grass;
-            Color stripe = MeshBuilder.Darken(ground, 0.94f), tree = map == "dune" ? Palette.Hex(0x8A9A4A) : map == "polar" ? Palette.Hex(0x3E5A48) : Palette.Hex(0x4E7A3A);
+            Color stripe = MeshBuilder.Darken(ground, 0.94f), tree = map == "dune" ? Palette.Hex(0x8A9A4A) : map == "polar" ? Palette.Hex(0x3E5A48) : Palette.Hex(0x47683A);
             var g = new Ground();
             bool green = map == "meadow" || map == "alpine" || map == "metro";
-            if (green) g.Rect("Grass", 20, 0, 1400, 1400, -0.05f); else if (map != "coral") mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), ground);
+            if (green) g.Rect("Grass", 20, 0, 1400, 1400, -0.2f); else if (map != "coral") mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), ground);
             if (map == "coral")
             {
                 // An island: turquoise shallows round the sand on every side, deeper blue beyond.
@@ -97,8 +97,7 @@ namespace Crosswind.Game
                 mb.Box(new Vector3(40, -0.27f, 0), new Vector3(470, 0.5f, 470), ground);
             }
             if (green) g.Rect("Grass", Layout.RunwayX, 0, w + 16, half * 2 + 34, -0.03f, 0, new Color(0.82f, 0.86f, 0.78f)); else mb.Box(new Vector3(Layout.RunwayX, -0.04f, 0), new Vector3(w + 14, 0.04f, half * 2 + 30), MeshBuilder.Darken(ground, 0.86f));
-            for (int k = -14; k <= 14; k++)
-                if (green) g.Rect("Grass", 20, k * 44f, 1400, 22, -0.04f, 0, new Color(0.9f, 0.93f, 0.88f)); else if (map != "coral") mb.Box(new Vector3(20, -0.045f, k * 44f), new Vector3(1400, 0.02f, 22), stripe);        // mowing stripes
+            // (No mowing stripes across the whole country: only the runway strip is kept short.)
 
             // Runway: grass strip, gravel, asphalt, then concrete with full markings.
             Color surface = rl <= 1 ? Palette.GrassWorn : rl <= 2 ? Palette.Gravel : rl <= 9 ? Palette.Asphalt : Palette.AsphaltPale;
@@ -125,14 +124,15 @@ namespace Crosswind.Game
 
             // Taxiway and its links to the runway.
             int tl = s.Level("taxiways");
-            Color taxi = tl == 0 ? Palette.Dirt : tl < 4 ? Palette.Gravel : Palette.Asphalt;
+            bool taxiPaved = tl >= 4 || rl >= 6 || s.StandCount > 2;      // nobody taxis a jet over gravel
+            Color taxi = tl == 0 ? Palette.Dirt : Palette.Gravel;
             float tw = 4.5f + Mathf.Min(6, tl) * 0.35f;
             float lineUp = Layout.LineUpZ(s), exit = Layout.ExitZ(s);
-            if (tl >= 4) g.Rect("Tarmac", Layout.TaxiX, (lineUp + Mathf.Max(exit, 46)) * 0.5f, tw, Mathf.Max(exit, 46) - lineUp + tw, 0.035f);
+            if (taxiPaved) g.Rect("Tarmac", Layout.TaxiX, (lineUp + Mathf.Max(exit, 46)) * 0.5f, tw, Mathf.Max(exit, 46) - lineUp + tw, 0.035f);
             else mb.Box(new Vector3(Layout.TaxiX, 0.01f, (lineUp + Mathf.Max(exit, 46)) * 0.5f), new Vector3(tw, 0.06f, Mathf.Max(exit, 46) - lineUp + tw), taxi);
             foreach (float z in new[] { lineUp, exit })
-                if (tl >= 4) g.Rect("Tarmac", (Layout.RunwayX + Layout.TaxiX) * 0.5f, z, Layout.TaxiX - Layout.RunwayX, tw, 0.035f); else mb.Box(new Vector3((Layout.RunwayX + Layout.TaxiX) * 0.5f, 0.01f, z), new Vector3(Layout.TaxiX - Layout.RunwayX, 0.06f, tw), taxi);
-            if (tl >= 4) mb.Box(new Vector3(Layout.TaxiX, 0.05f, (lineUp + Mathf.Max(exit, 46)) * 0.5f), new Vector3(0.2f, 0.02f, Mathf.Max(exit, 46) - lineUp), Palette.PaintYellow);
+                if (taxiPaved) g.Rect("Tarmac", (Layout.RunwayX + Layout.TaxiX) * 0.5f, z, Layout.TaxiX - Layout.RunwayX, tw, 0.035f); else mb.Box(new Vector3((Layout.RunwayX + Layout.TaxiX) * 0.5f, 0.01f, z), new Vector3(Layout.TaxiX - Layout.RunwayX, 0.06f, tw), taxi);
+            if (taxiPaved) mb.Box(new Vector3(Layout.TaxiX, 0.05f, (lineUp + Mathf.Max(exit, 46)) * 0.5f), new Vector3(0.2f, 0.02f, Mathf.Max(exit, 46) - lineUp), Palette.PaintYellow);
             if (tl >= 2)
             {
                 mb.Glow = true;
@@ -321,7 +321,12 @@ namespace Crosswind.Game
                     for (float z = hc.z - hl * 0.5f; z <= hc.z + hl * 0.5f + 0.1f; z += hl / 8f)
                         mb.Box(new Vector3(hc.x + 3.3f, hh * 0.5f, z), new Vector3(0.2f, hh, 0.3f), Palette.White);
                     for (float y = 3; y < hh; y += 3) mb.Box(new Vector3(hc.x + 3.3f, y, hc.z), new Vector3(0.16f, 0.16f, hl), Palette.White);
-                    mb.Cylinder(new Vector3(hc.x, hh - 1.6f, hc.z - hl * 0.5f - 0.6f), new Vector3(hc.x, hh - 1.6f, hc.z + hl * 0.5f + 0.6f), 4.6f, 4.6f, 16, Palette.White);
+                    // A barrel vault of glass over the hall, on white steel ribs.
+                    mb.Smoothness = 0.94f;
+                    mb.Cylinder(new Vector3(hc.x, hh - 2.4f, hc.z - hl * 0.5f), new Vector3(hc.x, hh - 2.4f, hc.z + hl * 0.5f), 4.2f, 4.2f, 18, Palette.Hex(0x5C9FC4));
+                    mb.Smoothness = 0.3f;
+                    for (float z = hc.z - hl * 0.5f; z <= hc.z + hl * 0.5f + 0.1f; z += hl / 8f)
+                        mb.Cylinder(new Vector3(hc.x, hh - 2.4f, z - 0.14f), new Vector3(hc.x, hh - 2.4f, z + 0.14f), 4.32f, 4.32f, 18, Palette.White);
                     mb.Box(new Vector3(hc.x + 3.45f, hh * 0.86f, hc.z), new Vector3(0.14f, 1.3f, hl * 0.5f), Palette.Hex(0x1F5FA8));     // the airport's sign board
                 }
                 // Skylights along the roof; the shopping concourse is a glass atrium that lengthens with its level.
@@ -478,18 +483,33 @@ namespace Crosswind.Game
             mb.Cylinder(ws, ws + Vector3.up * 5, 0.1f, 0.08f, 6, Palette.Steel);
             mb.Cylinder(ws + Vector3.up * 4.8f, ws + new Vector3(0, 4.5f, 2.6f), 0.45f, 0.15f, 8, Palette.Fuel);
 
-            // Trees round the edge so the field sits in a landscape.
-            rng = new System.Random(7);
-            for (int i = 0; i < (map == "dune" || map == "polar" ? 120 : 520); i++)
+            // The country round the field, right up to the fence: four blocks (west, east, south, north) and, landside,
+            // the land past either end of the town. Each map fills them its own way (see Scenery).
+            float clearX0 = Layout.RunwayX - 26, clearX1 = roadX + 132, clearZ0 = Mathf.Min(-half - 90, -175), clearZ1 = half + 114;
+            float townZ1 = -150 + (blocks / 5 + 1) * 24 + 14;
+            var country = new List<Rect>
             {
-                float x = (float)rng.NextDouble() * 900 - 430, z = (float)rng.NextDouble() * 900 - 450;
-                bool clear = x > Layout.RunwayX - 22 && x < roadX + 150 && z > -half - 85 && z < half + 110;
-                if (clear || (map == "coral" && (Mathf.Abs(x - 40) > 225 || Mathf.Abs(z) > 225))) continue;
-                float h = 3 + (float)rng.NextDouble() * 4;
-                mb.Smoothness = 0.05f;
-                mb.Cylinder(new Vector3(x, 0, z), new Vector3(x, h * 0.4f, z), 0.3f, 0.25f, 5, Palette.Wood);
-                mb.Sphere(new Vector3(x + h * 0.12f, h * 1.02f, z - h * 0.08f), new Vector3(h * 0.27f, h * 0.3f, h * 0.27f), 6, MeshBuilder.Lighten(tree, 0.08f));
-                mb.Sphere(new Vector3(x, h * 0.75f, z), new Vector3(h * 0.38f, h * 0.45f, h * 0.38f), 6, i % 3 == 0 ? MeshBuilder.Darken(tree, 0.85f) : tree);
+                new Rect(-680, -700, clearX0 + 680, 1400), new Rect(clearX1, -700, 720 - clearX1, 1400),
+                new Rect(clearX0, -700, clearX1 - clearX0, clearZ0 + 700), new Rect(clearX0, clearZ1, clearX1 - clearX0, 700 - clearZ1),
+            };
+            if (-170 - clearZ0 > 40) country.Add(new Rect(roadX + 9, clearZ0, clearX1 - roadX - 9, -170 - clearZ0));
+            if (clearZ1 - townZ1 > 40) country.Add(new Rect(roadX + 9, townZ1, clearX1 - roadX - 9, clearZ1 - townZ1));
+            Scenery.Build(mb, g, map, country, ground, tree);
+            // The airside fence: posts and a top rail round the runway and the apron.
+            {
+                float fx0 = Layout.RunwayX - 24, fx1 = termX - 1, fz0 = -half - 88, fz1 = half + 112;
+                mb.Smoothness = 0.4f;
+                Color post = Palette.Hex(0x8C949C);
+                void Run(Vector3 a, Vector3 b)
+                {
+                    float len = Vector3.Distance(a, b); int posts = Mathf.Max(2, Mathf.RoundToInt(len / 6f));
+                    for (int i = 0; i <= posts; i++) { var q = Vector3.Lerp(a, b, i / (float)posts); mb.Box(q + Vector3.up * 1.1f, new Vector3(0.14f, 2.2f, 0.14f), post); }
+                    var mid = (a + b) * 0.5f; bool alongX = Mathf.Abs(b.x - a.x) > Mathf.Abs(b.z - a.z);
+                    foreach (float y in new[] { 2.15f, 1.2f }) mb.Box(mid + Vector3.up * y, alongX ? new Vector3(len, 0.06f, 0.06f) : new Vector3(0.06f, 0.06f, len), post);
+                }
+                Run(new Vector3(fx0, 0, fz0), new Vector3(fx0, 0, fz1));
+                Run(new Vector3(fx0, 0, fz0), new Vector3(fx1, 0, fz0));
+                Run(new Vector3(fx0, 0, fz1), new Vector3(fx1, 0, fz1));
             }
 
             _static = mb.ToObject("Static", transform);

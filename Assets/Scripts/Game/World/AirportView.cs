@@ -387,7 +387,7 @@ namespace Crosswind.Game
             g.Rect("Tarmac", lot.x, lot.z, lotW, lotL, 0.03f, 0, new Color(1.25f, 1.25f, 1.25f));
             var kit = kitEarly;
             var rng = new System.Random(11);
-            string[] cars = { "sedan", "suv", "hatchback", "taxi", "van", "sedan", "suv" };
+            string[] cars = { "sedan", "suv", "hatchback", "taxi", "pickup", "coupe", "sedan", "suv" };
             int rows = Mathf.Max(1, Mathf.FloorToInt(lotW / 6.5f)), perRow = Mathf.FloorToInt(lotL / 3.2f);
             int wantCars = Mathf.Min(rows * perRow, 3 + park * 5 + s.Stars * 2);
             for (int r = 0, placed = 0; r < rows && placed < wantCars; r++)

@@ -15,6 +15,9 @@ MODELS = {  # id: (source, "size" | "height")
     "solar": (IND + "solar-panel-landscape-group.glb", "size"),
     "luggage": (MINI + "item-luggage.glb", "height"), "luggage_up": (MINI + "item-luggage-upright.glb", "height"),
 }
+# Road cars: Quaternius's (CC0, poly.pizza; fetch with cars.py), properly proportioned, in place of the kit's toy ones.
+for mid, src in (("sedan", "sports_b"), ("hatchback", "car_b"), ("suv", "suv"), ("taxi", "taxi"), ("pickup", "pickup"), ("coupe", "sports_a")):
+    MODELS[mid] = ("cars/%s.glb" % src, "size", None, "--maxfaces", "1100")
 for k in "abcdefghijklmn": MODELS["shop_" + k] = (COM + "building-%s.glb" % k, "size")
 for k in "abcde": MODELS["tower_" + k] = (COM + "building-skyscraper-%s.glb" % k, "height")
 for k in "abcdefghijklmnopqrst": MODELS["works_" + k] = (IND + "building-%s.glb" % k, "size")
@@ -29,7 +32,7 @@ for tag, pose in (("w0", "walk:f0"), ("w1", "walk:f0.25"), ("w2", "walk:f0.5"), 
 out = os.path.join(ROOT, "Assets", "Resources", "Models")
 for mid in (sys.argv[1:] or list(MODELS)):
     src, mode = MODELS[mid][0], MODELS[mid][1]
-    extra = (["--pose", MODELS[mid][2]] + list(MODELS[mid][3:])) if len(MODELS[mid]) > 2 else []
+    extra = ((["--pose", MODELS[mid][2]] if MODELS[mid][2] else []) + list(MODELS[mid][3:])) if len(MODELS[mid]) > 2 else []
     r = subprocess.run(["blender", "-b", "--factory-startup", "-P", os.path.join(ROOT, "Tools", "blender", "model_import.py"), "--", os.path.join(F, src), os.path.join(out, mid + ".fbx"),
                         "--" + mode, "1"] + extra, capture_output=True, text=True)
     line = [l for l in r.stdout.splitlines() if "[free]" in l]

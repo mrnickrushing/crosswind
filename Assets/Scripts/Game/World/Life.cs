@@ -40,7 +40,7 @@ namespace Crosswind.Game
                     _idle[i] = Resources.Load<Mesh>("Models/person_" + i + "_idle");
                 }
             }
-            string[] models = { "sedan", "taxi", "suv", "van", "hatchback", "delivery", "truck", "sedan" };
+            string[] models = { "sedan", "taxi", "suv", "van", "hatchback", "delivery", "truck", "sedan", "pickup", "coupe" };
             for (int i = 0; i < models.Length; i++)
             {
                 var c = Models.Kit(models[i], go.transform, Vector3.zero, 0, models[i] == "truck" || models[i] == "delivery" ? 5.5f : 4.2f);

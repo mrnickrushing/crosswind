@@ -28,7 +28,7 @@ namespace Crosswind.Game
         float _refreshIn, _toastT, _bannerT;
         double _shownMoney;
 
-        sealed class ServiceButton { public RectTransform Rt; public Image Bg, Tail; public Text Label; public int Flight; public Service Service; }
+        sealed class ServiceButton { public RectTransform Rt; public Image Bg, Tail, Icon; public Text Label; public int Flight; public Service Service; }
         sealed class Pop { public RectTransform Rt; public CanvasGroup Group; public Vector3 World; public Vector2 At, Drift; public bool Screen; public float Age, Life = 1.7f; }
 
         static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE" };
@@ -81,13 +81,12 @@ namespace Crosswind.Game
             top.Band(true, -70, 190, 24);
             _money = Ui.Label("Money", top, "0", 84, Color.white, TextAnchor.MiddleLeft);
             _money.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(110, -14), new Vector2(560, 96));
-            var coin = Ui.Img("Coin", top, Ui.Gold); coin.sprite = Ui.Circle;
-            coin.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(28, -28), new Vector2(66, 66));
-            Ui.Label("C", coin.transform, "$", 46, Ui.Ink).rectTransform.Fill();
+            var coin = Ui.ArtImg("Coin", top, "coin", Color.white, 0);
+            coin.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(22, -22), new Vector2(80, 80));
             _rate = Ui.Label("Rate", top, "", 36, Ui.Green, TextAnchor.MiddleLeft, false);
             _rate.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(32, 18), new Vector2(360, 50));
-            var gem = Ui.Img("Gem", top, new Color(0.45f, 0.85f, 0.95f)); gem.sprite = Ui.Circle;
-            gem.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(400, 24), new Vector2(40, 40));
+            var gem = Ui.ArtImg("Gem", top, "gem", Color.white, 0);
+            gem.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(394, 16), new Vector2(52, 52));
             _gems = Ui.Label("Gems", top, "0", 36, Color.white, TextAnchor.MiddleLeft);
             _gems.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(450, 18), new Vector2(160, 50));
             _starText = Ui.Label("Stars", top, "", 52, Ui.Gold, TextAnchor.MiddleRight);
@@ -261,6 +260,7 @@ namespace Crosswind.Game
                         b.Bg.color = _sim.CrewFree(j.service) ? ServiceColor(j.service) : Ui.Off;
                         b.Tail.color = b.Bg.color;
                         b.Label.text = ServiceWord(j.service);
+                        b.Icon.sprite = Ui.Art(j.service == Service.Fuel ? "svc_fuel" : j.service == Service.Baggage ? "svc_bags" : j.service == Service.Catering ? "svc_food" : "svc_clean");
                         b.Rt.anchoredPosition = new Vector2(c.x + (k - (waiting - 1) / 2f) * 150, c.y + 20 + Mathf.Sin(Time.unscaledTime * 5 + f.id) * 6);
                         k++;
                     }
@@ -273,16 +273,19 @@ namespace Crosswind.Game
             while (_serviceButtons.Count <= i)
             {
                 var sb = new ServiceButton();
-                var b = Ui.Button("Service", _world, "", Color.white, null, 36);
-                sb.Rt = (RectTransform)b.transform; sb.Bg = b.GetComponent<Image>(); sb.Label = b.GetComponentInChildren<Text>();
-                sb.Rt.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0), Vector2.zero, new Vector2(156, 92));
-                // A speech bubble: a white rim, a tail pointing down at the aircraft, bold outlined word.
-                var rim = sb.Bg.gameObject.AddComponent<Outline>(); rim.effectColor = Color.white; rim.effectDistance = new Vector2(3, -3);
-                sb.Tail = Ui.Img("Tail", sb.Rt, Color.white);
-                sb.Tail.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 2), new Vector2(30, 30));
-                sb.Tail.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
-                sb.Tail.transform.SetAsFirstSibling();
-                sb.Label.fontSize = 40; Outline(sb.Label);
+                // A painted speech bubble in the service's colour: its icon large, its word small beneath, a tail to the aircraft.
+                var b = Ui.Button("Service", _world, "", new Color(0, 0, 0, 0), null, 36);
+                sb.Rt = (RectTransform)b.transform; sb.Label = b.GetComponentInChildren<Text>();
+                sb.Rt.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0), Vector2.zero, new Vector2(150, 164));
+                sb.Tail = Ui.ArtImg("Tail", sb.Rt, "tail", Color.white, 0);
+                sb.Tail.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(46, 46));
+                sb.Bg = Ui.ArtImg("Bubble", sb.Rt, "bubble", Color.white);
+                sb.Bg.rectTransform.Fill(); sb.Bg.rectTransform.offsetMin = new Vector2(0, 18);
+                sb.Icon = Ui.Img("Icon", sb.Bg.transform, Color.white); sb.Icon.preserveAspect = true;
+                sb.Icon.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 18), new Vector2(84, 84));
+                sb.Label.transform.SetParent(sb.Bg.transform, false); sb.Label.transform.SetAsLastSibling();
+                sb.Label.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 16), new Vector2(140, 34));
+                sb.Label.fontSize = 28; Outline(sb.Label);
                 b.onClick.AddListener(() => { if (_sim.Dispatch(sb.Flight, sb.Service)) { _dirty = true; Sfx.Play("dispatch", 0.7f); } else Sfx.Play("error", 0.5f); });
                 _serviceButtons.Add(sb);
             }

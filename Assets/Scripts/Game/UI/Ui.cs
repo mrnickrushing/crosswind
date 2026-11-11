@@ -95,12 +95,19 @@ namespace Crosswind.Game
         public static Button Button(string name, Transform parent, string label, Color color, Action onClick, int size = 40)
         {
             var img = Img(name, parent, color, true);
+            var glossy = color.a > 0.5f ? Art("button", 44) : null;      // see-through buttons stay plain hit areas
+            if (glossy != null) { img.sprite = glossy; img.type = Image.Type.Sliced; img.pixelsPerUnitMultiplier = 1.6f; }
             img.raycastTarget = true;
             var b = img.gameObject.AddComponent<Button>();
             b.targetGraphic = img;
             var colors = b.colors; colors.pressedColor = new Color(0.8f, 0.8f, 0.8f); colors.fadeDuration = 0.05f; b.colors = colors;
             if (onClick != null) b.onClick.AddListener(() => { Sfx.Play("click", 0.5f); onClick(); });
-            if (label != null) Label("Label", img.transform, label, size, Color.white).rectTransform.Fill(6);
+            if (label != null)
+            {
+                var l = Label("Label", img.transform, label, size, Color.white);
+                l.rectTransform.Fill(6);
+                if (glossy != null) { l.rectTransform.offsetMin = new Vector2(8, 10); var sh = l.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0, 0, 0, 0.45f); sh.effectDistance = new Vector2(0, -3); }
+            }
             return b;
         }
 
@@ -118,6 +125,27 @@ namespace Crosswind.Game
             var img = Img("Icon", parent, color);
             img.sprite = Icon(name); img.preserveAspect = true;
             img.rectTransform.Place(anchor, new Vector2(0.5f, 0.5f), pos, new Vector2(size, size));
+            return img;
+        }
+
+        static readonly Dictionary<string, Sprite> _art = new Dictionary<string, Sprite>();
+        /// <summary>A painted piece from Resources/UI/Fx (Tools/art/ui_art.py), nine-sliced when a border is given; null when missing.</summary>
+        public static Sprite Art(string name, int border = 0)
+        {
+            Sprite s; string key = name + border;
+            if (_art.TryGetValue(key, out s)) return s;
+            var tex = Resources.Load<Texture2D>("UI/Fx/" + name);
+            s = tex == null ? null : Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100, 0, SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+            return _art[key] = s;
+        }
+
+        /// <summary>An image of a painted piece, sliced so its corners keep their shape at any size.</summary>
+        public static Image ArtImg(string name, Transform parent, string art, Color color, int border = 44, float corner = 1f)
+        {
+            var img = Img(name, parent, color);
+            var sp = Art(art, border);
+            if (sp != null) { img.sprite = sp; if (border > 0) { img.type = Image.Type.Sliced; img.pixelsPerUnitMultiplier = corner; } else img.preserveAspect = true; }
+            else if (border > 0) { img.sprite = Round; img.type = Image.Type.Sliced; }
             return img;
         }
 

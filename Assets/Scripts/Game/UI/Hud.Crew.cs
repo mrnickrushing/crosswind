@@ -90,6 +90,9 @@ namespace Crosswind.Game
             var band = Ui.Img("Band", card, tint, true).rectTransform;
             band.Band(true, 0, 120);
             Ui.Label("Rarity", band, RarityName[(int)d.Rarity], 54, Ui.Ink).rectTransform.Fill();
+            var rays = Ui.ArtImg("Rays", card, "rays", new Color(tint.r, tint.g, tint.b, 0.4f), 0);
+            rays.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -300), new Vector2(760, 760));
+            rays.gameObject.AddComponent<Spin>();
             Face(card, d, new Vector2(0.5f, 1), new Vector2(0, -300), 300, true);
             Ui.Label("Name", card, d.Name, 62, Color.white).rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -480), new Vector2(780, 80));
             Ui.Label("Role", card, d.Role.ToUpper(), 36, tint).rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -556), new Vector2(780, 50));
@@ -113,5 +116,12 @@ namespace Crosswind.Game
             }
             Sfx.Play(d.Rarity >= Rarity.Epic ? "star" : "chime", 0.8f);
         }
+    }
+
+    /// <summary>Turns slowly, whatever the game's speed (the rays behind a reward).</summary>
+    public sealed class Spin : MonoBehaviour
+    {
+        public float Speed = 20;
+        void Update() { transform.Rotate(0, 0, Speed * Time.unscaledDeltaTime); }
     }
 }

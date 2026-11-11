@@ -17,31 +17,30 @@ namespace Crosswind.Game
         Image _toastRim;
         readonly List<RectTransform> _bannerStars = new List<RectTransform>();
         Text _bannerTitle, _bannerSub;
+        RectTransform _bannerRays;
         float _toastAge, _bannerAge, _ratingShown = -1, _ratingOwed, _ratingWait, _starPulse;
 
         /// <summary>A pill with a coloured rim; returns the inside to put things in.</summary>
         static RectTransform Pill(string name, Transform parent, Color rim, out RectTransform outer, float border = 4, bool shine = true)
         {
-            var o = Ui.Img(name, parent, rim, true);
+            // The painted plate (dark, glossy, with its own shadow) under a rim in the chip's colour.
+            var o = Ui.ArtImg(name, parent, "plate", Color.white);
             outer = o.rectTransform;
-            var inner = Ui.Img("Fill", outer, ChipFill, true).rectTransform;
-            inner.Fill(border);
-            if (!shine) return inner;
-            var gloss = Ui.Img("Shine", inner, new Color(1, 1, 1, 0.07f), true).rectTransform;     // a soft light along the top half
-            gloss.anchorMin = new Vector2(0, 0.5f); gloss.anchorMax = new Vector2(1, 1); gloss.offsetMin = new Vector2(4, 0); gloss.offsetMax = new Vector2(-4, -4);
+            var ring = Ui.ArtImg("Rim", outer, "rim", rim);
+            ring.rectTransform.Fill();
+            var inner = Ui.Rect("In", outer);
+            inner.Fill(border); inner.offsetMin = new Vector2(border, border + 5);
             return inner;
         }
 
         /// <summary>A chip: medallion on the left (a letter, or an icon from Resources/UI), bold text beside it. Sized to its text.</summary>
-        RectTransform Chip(Transform parent, string text, Color tint, string medal, string icon = null, int size = 44)
+        RectTransform Chip(Transform parent, string text, Color tint, string medal, int size = 44)
         {
             RectTransform outer;
             var inner = Pill("Chip", parent, tint, out outer);
-            float h = size + 34;
-            var disc = Ui.Img("Medal", inner, tint); disc.sprite = Ui.Circle;
-            disc.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(h - 20, h - 20));
-            if (icon != null && Ui.Icon(icon) != null) Ui.IconImg(icon, disc.transform, Ui.Ink, new Vector2(0.5f, 0.5f), Vector2.zero, (h - 20) * 0.62f);
-            else Ui.Label("M", disc.transform, medal, Mathf.RoundToInt(size * 0.86f), Ui.Ink).rectTransform.Fill();
+            float h = size + 44;
+            var disc = Ui.ArtImg("Medal", inner, medal, Color.white, 0);
+            disc.rectTransform.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(8, 0), new Vector2(h - 16, h - 16));
             var t = Ui.Label("Text", inner, text, size, Color.white, TextAnchor.MiddleLeft);
             Outline(t);
             t.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -68,7 +67,7 @@ namespace Crosswind.Game
         {
             if (GameRoot.Speed <= 3) Sfx.Play("coin", 0.35f);
             if (_pops.Count > 14) return;                                   // a rush of departures: the top bar still counts them
-            var chip = Chip(_world, "+" + Format.Money(paid) + (onTime ? "" : "  <size=28><color=#FF9080>LATE</color></size>"), onTime ? Ui.Gold : Ui.Red, "$");
+            var chip = Chip(_world, "+" + Format.Money(paid) + (onTime ? "" : "  <size=28><color=#FF9080>LATE</color></size>"), onTime ? Ui.Gold : Ui.Red, "coin");
             var p = Float(chip, 1.8f);
             p.World = new Vector3(Layout.RunwayX, 6, Layout.RunwayHalf(_sim) * 0.5f);
             p.Drift = new Vector2(Random.Range(-30f, 30f), 150);
@@ -78,8 +77,8 @@ namespace Crosswind.Game
         void Reward(double money, int gems)
         {
             float y = -520;
-            if (money >= 1) { var p = Float(Chip(_root, "+" + Format.Money(money), Ui.Gold, "$", null, 52), 2.2f); p.Screen = true; p.At = new Vector2(0, _root.rect.height * 0.5f + y); p.Drift = new Vector2(0, 90); y -= 100; }
-            if (gems > 0) { var p = Float(Chip(_root, "+" + gems + (gems == 1 ? " gem" : " gems"), GemBlue, "", null, 52), 2.2f); p.Screen = true; p.At = new Vector2(0, _root.rect.height * 0.5f + y); p.Drift = new Vector2(0, 90); p.Age = -0.15f; }
+            if (money >= 1) { var p = Float(Chip(_root, "+" + Format.Money(money), Ui.Gold, "coin", 52), 2.2f); p.Screen = true; p.At = new Vector2(0, _root.rect.height * 0.5f + y); p.Drift = new Vector2(0, 90); y -= 100; }
+            if (gems > 0) { var p = Float(Chip(_root, "+" + gems + (gems == 1 ? " gem" : " gems"), GemBlue, "gem", 52), 2.2f); p.Screen = true; p.At = new Vector2(0, _root.rect.height * 0.5f + y); p.Drift = new Vector2(0, 90); p.Age = -0.15f; }
             if (money < 1 && gems <= 0) Toast("Done");
         }
 
@@ -93,8 +92,8 @@ namespace Crosswind.Game
             {
                 if (_tab < 0 && GameRoot.Speed <= 3)
                 {
-                    var p = Float(Chip(_root, "+" + Format.Money(_ratingOwed) + " rating", Ui.Gold, "★", "star", 34), 1.5f);
-                    p.Screen = true; p.At = new Vector2(_root.rect.width * 0.5f - 190, _root.rect.height * 0.5f - 300); p.Drift = new Vector2(0, 70);
+                    var p = Float(Chip(_root, "+" + Format.Money(_ratingOwed) + " rating", Ui.Gold, "star", 34), 1.5f);
+                    p.Screen = true; p.At = new Vector2(_root.rect.width * 0.5f - 210, _root.rect.height * 0.5f - 232); p.Drift = new Vector2(0, 46);
                 }
                 _starPulse = 0.6f; _ratingOwed = 0;
             }
@@ -132,12 +131,15 @@ namespace Crosswind.Game
             _toast.gameObject.SetActive(false);
 
             // The star banner: a gold-rimmed plate, a gold band across its top, the stars landing one by one.
-            var plate = Pill("Banner", _root, Ui.Gold, out outer, 5, false);
+            var plate = Pill("Banner", _root, Ui.Gold, out outer, 10, false);
             _banner = outer;
             _banner.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -430), new Vector2(940, 330));
             _bannerGroup = _banner.gameObject.AddComponent<CanvasGroup>(); _bannerGroup.blocksRaycasts = false;
+            _bannerRays = Ui.ArtImg("Rays", plate, "rays", new Color(1f, 0.82f, 0.3f, 0.35f), 0).rectTransform;
+            _bannerRays.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -130), new Vector2(620, 620));
+            plate.gameObject.AddComponent<RectMask2D>();
             var band = Ui.Img("Band", plate, Ui.Gold, true).rectTransform;
-            band.Band(true, 10, 58, 10);
+            band.Band(true, 6, 58, 6);
             Ui.Label("Kicker", band, "NEW RATING", 34, Ui.Ink).rectTransform.Fill();
             _bannerTitle = Ui.Label("Title", plate, "", 70, Color.white);
             _bannerTitle.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 78), new Vector2(880, 84));
@@ -166,8 +168,8 @@ namespace Crosswind.Game
             float size = stars > 7 ? 64 : 76, gap = size + 10, x0 = -(stars - 1) * gap * 0.5f;
             for (int i = 0; i < stars; i++)
             {
-                var img = Ui.IconImg("star", plate, Ui.Gold, new Vector2(0.5f, 1), new Vector2(x0 + i * gap, -122), size);
-                if (img.sprite == null) { img.sprite = Ui.Circle; }
+                var img = Ui.ArtImg("Star", plate, "star", Color.white, 0);
+                img.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(x0 + i * gap, -128), new Vector2(size + 14, size + 14));
                 img.rectTransform.localScale = Vector3.zero;
                 _bannerStars.Add(img.rectTransform);
             }
@@ -201,6 +203,7 @@ namespace Crosswind.Game
                 else
                 {
                     _banner.localScale = Vector3.one * Spring(_bannerAge / 1.6f);
+                    _bannerRays.localRotation = Quaternion.Euler(0, 0, _bannerAge * 24);
                     _bannerGroup.alpha = Mathf.Clamp01(_bannerAge / 0.12f) * Mathf.Clamp01(_bannerT / 0.4f);
                     for (int i = 0; i < _bannerStars.Count; i++)
                     {

@@ -215,6 +215,12 @@ namespace Crosswind.Core
                 A("research_" + n, "Bright Ideas", "Finish " + n + " research projects", n, s => s.State.researched.Count, g);
             foreach (var (n, g) in new[] { (1, 20), (3, 40), (5, 80) })
                 A("airports_" + n, "Portfolio", "Sell " + n + " airport" + (n == 1 ? "" : "s"), n, s => s.State.mapsRun.Count, g);
+            foreach (var (n, g) in new[] { (5, 10), (25, 25), (100, 60) })
+                A("grade_a_" + n, "Top Marks", "Close " + n + " days with grade A", n, s => s.State.daysAtA, g);
+            foreach (var (n, g) in new[] { (3, 5), (20, 20) })
+                A("cheap_fuel_" + n, "Fuel Trader", "Fill a quarter of the tanks or more at 10% below par, " + n + " times", n, s => s.State.cheapFills, g);
+            foreach (var (n, g) in new[] { (3, 5), (15, 20) })
+                A("resurface_" + n, "Fresh Tarmac", "Resurface the runway " + n + " times", n, s => s.State.resurfaced, g);
             A("class_c", "Jet Age", "Sign an Albatross 160 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class >= AircraftClass.C) ? 1 : 0, 10);
             A("class_e", "Heavy Metal", "Sign a Leviathan 520 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.E) ? 1 : 0, 40);
             return list;

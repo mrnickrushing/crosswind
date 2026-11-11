@@ -139,6 +139,7 @@ namespace Crosswind.Core
         public double dayIncome;
         public DayReport report;                                     // the last day closed (null before the first)
         public int gradeStreak, daysAtA;
+        public int cheapFills;                                       // tankers bought well below par
         public bool fuelWarned;                                      // the low-fuel warning has been given for this tankful
         public List<AirlineDeal> deals = new List<AirlineDeal>();    // each airline's punctuality deal in progress
         public List<LevelEntry> partner = new List<LevelEntry>();    // partner level with each airline, 0..3 (kept at this airport)

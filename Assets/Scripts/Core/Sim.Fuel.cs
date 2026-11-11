@@ -63,6 +63,7 @@ namespace Crosswind.Core
             State.money -= units * price;
             State.fuelStock = FuelStock + units;
             State.fuelSaved += units * (1 - price);
+            if (price <= 0.9f && units >= FuelCapacity * 0.25) State.cheapFills++;
             State.fuelWarned = false;
             Changed?.Invoke();
             return true;

@@ -7,6 +7,27 @@ namespace Crosswind.EditorTools
     /// material, so no materials, cameras, lights or animation are imported with them.</summary>
     public sealed class ArtImport : AssetPostprocessor
     {
+        void OnPreprocessTexture()
+        {
+            var t = (TextureImporter)assetImporter;
+            if (assetPath.StartsWith("Assets/Resources/Sky/"))
+            {
+                // The HDRI sky (Poly Haven, CC0): a cubemap for the skybox, the ambient light and reflections.
+                t.textureShape = TextureImporterShape.TextureCube;
+                t.generateCubemap = TextureImporterGenerateCubemap.Cylindrical;
+                t.sRGBTexture = false; t.mipmapEnabled = true; t.maxTextureSize = 1024;
+                t.textureCompression = TextureImporterCompression.CompressedHQ;
+                return;
+            }
+            if (!assetPath.StartsWith("Assets/Resources/Textures/") && !assetPath.StartsWith("Assets/Resources/Models/")) return;
+            bool normal = assetPath.Contains("Normal") || assetPath.Contains("_normal");
+            t.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+            t.sRGBTexture = !normal;
+            t.wrapMode = TextureWrapMode.Repeat;
+            t.mipmapEnabled = true; t.anisoLevel = 8; t.maxTextureSize = 1024;
+            t.textureCompression = TextureImporterCompression.CompressedHQ;
+        }
+
         void OnPreprocessModel()
         {
             if (!assetPath.StartsWith("Assets/Resources/Models/")) return;

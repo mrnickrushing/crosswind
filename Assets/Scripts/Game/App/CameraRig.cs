@@ -9,9 +9,9 @@ namespace Crosswind.Game
         public Camera Cam { get; private set; }
 
         /// <summary>The point on the ground the camera looks at, and how far back it stands.</summary>
-        public Vector3 Focus = new Vector3(-6, 0, -36);
-        public float Distance = 160f;
-        const float Pitch = 52f, Yaw = 0f, MinDistance = 60f, MaxDistance = 460f;
+        public Vector3 Focus = new Vector3(6, 0, -30);
+        public float Distance = 300f;
+        const float Pitch = 40f, Yaw = -42f, MinDistance = 90f, MaxDistance = 700f;
         Vector3 _focusV;
         float _shown;
 
@@ -20,9 +20,9 @@ namespace Crosswind.Game
             var go = new GameObject("Camera");
             var rig = go.AddComponent<CameraRig>();
             rig.Cam = go.AddComponent<Camera>();
-            rig.Cam.fieldOfView = 34;
-            rig.Cam.nearClipPlane = 1f; rig.Cam.farClipPlane = 1400f;
-            rig.Cam.clearFlags = CameraClearFlags.SolidColor;
+            rig.Cam.fieldOfView = 22;
+            rig.Cam.nearClipPlane = 1f; rig.Cam.farClipPlane = 2200f;
+            rig.Cam.clearFlags = CameraClearFlags.Skybox;
             rig.Cam.backgroundColor = new Color(0.72f, 0.82f, 0.9f);
             go.tag = "MainCamera";
             go.AddComponent<AudioListener>();

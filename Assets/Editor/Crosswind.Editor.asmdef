@@ -1,8 +1,16 @@
 {
     "name": "Crosswind.Editor",
     "rootNamespace": "Crosswind.EditorTools",
-    "references": ["Crosswind.Core", "Crosswind.Game"],
-    "includePlatforms": ["Editor"],
+    "references": [
+        "Crosswind.Core",
+        "Crosswind.Game",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

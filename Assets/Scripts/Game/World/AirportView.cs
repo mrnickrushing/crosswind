@@ -82,15 +82,18 @@ namespace Crosswind.Game
             string map = s.State.map;
             Color ground = map == "coral" ? Palette.Hex(0xD9C58C) : map == "dune" ? Palette.Hex(0xCFA868) : map == "polar" ? Palette.Hex(0xE8EEF2) : map == "alpine" ? Palette.Hex(0x5E8F52) : map == "metro" ? Palette.Hex(0x7D9468) : Palette.Grass;
             Color stripe = MeshBuilder.Darken(ground, 0.94f), tree = map == "dune" ? Palette.Hex(0x8A9A4A) : map == "polar" ? Palette.Hex(0x3E5A48) : Palette.Hex(0x4E7A3A);
-            mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), ground);
+            var g = new Ground();
+            bool green = map == "meadow" || map == "alpine" || map == "metro";
+            if (green) g.Rect("Grass", 20, 0, 1400, 1400, -0.05f); else mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), ground);
             if (map == "coral") mb.Box(new Vector3(-420, -0.28f, 0), new Vector3(520, 0.5f, 1400), Palette.Hex(0x2E9CB4));     // the sea, west of the strip
-            mb.Box(new Vector3(Layout.RunwayX, -0.04f, 0), new Vector3(w + 14, 0.04f, half * 2 + 30), MeshBuilder.Darken(ground, 0.86f));
+            if (green) g.Rect("Grass", Layout.RunwayX, 0, w + 16, half * 2 + 34, -0.03f, 0, new Color(0.82f, 0.86f, 0.78f)); else mb.Box(new Vector3(Layout.RunwayX, -0.04f, 0), new Vector3(w + 14, 0.04f, half * 2 + 30), MeshBuilder.Darken(ground, 0.86f));
             for (int k = -14; k <= 14; k++)
-                mb.Box(new Vector3(20, -0.045f, k * 44f), new Vector3(1400, 0.02f, 22), stripe);        // mowing stripes
+                if (green) g.Rect("Grass", 20, k * 44f, 1400, 22, -0.04f, 0, new Color(0.9f, 0.93f, 0.88f)); else mb.Box(new Vector3(20, -0.045f, k * 44f), new Vector3(1400, 0.02f, 22), stripe);        // mowing stripes
 
             // Runway: grass strip, gravel, asphalt, then concrete with full markings.
             Color surface = rl <= 1 ? Palette.GrassWorn : rl <= 2 ? Palette.Gravel : rl <= 9 ? Palette.Asphalt : Palette.AsphaltPale;
-            mb.Box(new Vector3(Layout.RunwayX, 0.0f, 0), new Vector3(w, 0.06f, half * 2), surface);
+            if (rl >= 3) { g.Rect("Asphalt", Layout.RunwayX, 0, w, half * 2, 0.03f); g.Rect("Tarmac", Layout.RunwayX, 0, w + 3, half * 2 + 6, 0.015f, 0, new Color(0.8f, 0.8f, 0.8f)); }
+            else mb.Box(new Vector3(Layout.RunwayX, 0.0f, 0), new Vector3(w, 0.06f, half * 2), surface);
             if (rl >= 3)
             {
                 for (float z = -half + 14; z < half - 14; z += 9) mb.Box(new Vector3(Layout.RunwayX, 0.04f, z), new Vector3(0.35f, 0.02f, 4.5f), Palette.Paint);
@@ -111,21 +114,54 @@ namespace Crosswind.Game
             Color taxi = tl == 0 ? Palette.Dirt : tl < 4 ? Palette.Gravel : Palette.Asphalt;
             float tw = 4.5f + Mathf.Min(6, tl) * 0.35f;
             float lineUp = Layout.LineUpZ(s), exit = Layout.ExitZ(s);
-            mb.Box(new Vector3(Layout.TaxiX, 0.01f, (lineUp + Mathf.Max(exit, 46)) * 0.5f), new Vector3(tw, 0.06f, Mathf.Max(exit, 46) - lineUp + tw), taxi);
+            if (tl >= 4) g.Rect("Tarmac", Layout.TaxiX, (lineUp + Mathf.Max(exit, 46)) * 0.5f, tw, Mathf.Max(exit, 46) - lineUp + tw, 0.035f);
+            else mb.Box(new Vector3(Layout.TaxiX, 0.01f, (lineUp + Mathf.Max(exit, 46)) * 0.5f), new Vector3(tw, 0.06f, Mathf.Max(exit, 46) - lineUp + tw), taxi);
             foreach (float z in new[] { lineUp, exit })
-                mb.Box(new Vector3((Layout.RunwayX + Layout.TaxiX) * 0.5f, 0.01f, z), new Vector3(Layout.TaxiX - Layout.RunwayX, 0.06f, tw), taxi);
+                if (tl >= 4) g.Rect("Tarmac", (Layout.RunwayX + Layout.TaxiX) * 0.5f, z, Layout.TaxiX - Layout.RunwayX, tw, 0.035f); else mb.Box(new Vector3((Layout.RunwayX + Layout.TaxiX) * 0.5f, 0.01f, z), new Vector3(Layout.TaxiX - Layout.RunwayX, 0.06f, tw), taxi);
             if (tl >= 4) mb.Box(new Vector3(Layout.TaxiX, 0.05f, (lineUp + Mathf.Max(exit, 46)) * 0.5f), new Vector3(0.2f, 0.02f, Mathf.Max(exit, 46) - lineUp), Palette.PaintYellow);
 
             // Apron and stands.
             int cols = Layout.Columns(s);
             float apronW = termX - Layout.TaxiX + 2;
-            mb.Box(new Vector3(Layout.TaxiX + apronW * 0.5f, 0.0f, 0), new Vector3(apronW, 0.05f, 112), s.StandCount <= 2 ? Palette.Gravel : Palette.Concrete);
+            if (s.StandCount <= 2) mb.Box(new Vector3(Layout.TaxiX + apronW * 0.5f, 0.0f, 0), new Vector3(apronW, 0.05f, 112), Palette.Gravel);
+            else g.Rect("Concrete", Layout.TaxiX + apronW * 0.5f, 0, apronW, 112, 0.025f);
+            bool paved = s.StandCount > 2;
             for (int i = 0; i < s.StandCount; i++)
             {
                 var p = Layout.Stand(i);
-                mb.Box(new Vector3(p.x - 3, 0.04f, p.z), new Vector3(12, 0.02f, 0.25f), Palette.PaintYellow);             // lead-in line
-                mb.Box(new Vector3(p.x + 3.2f, 0.04f, p.z), new Vector3(0.3f, 0.02f, 3f), Palette.PaintYellow);            // stop bar
-                mb.Box(new Vector3(p.x + 5.2f, 0.04f, p.z - 5.2f), new Vector3(1.6f, 0.02f, 1.6f), Palette.Paint);         // stand number pad
+                float y = 0.05f;
+                mb.Box(new Vector3(p.x - 3, y, p.z), new Vector3(12, 0.02f, 0.28f), Palette.PaintYellow);                  // lead-in line
+                mb.Box(new Vector3(p.x + 3.4f, y, p.z), new Vector3(0.3f, 0.02f, 3f), Palette.PaintYellow);                // stop bar
+                if (!paved) continue;
+                // The stand's box in red, hatched at the service side, with a white equipment bay.
+                foreach (float sz in new[] { -5.6f, 5.6f }) mb.Box(new Vector3(p.x - 1.5f, y, p.z + sz), new Vector3(15, 0.02f, 0.18f), Palette.Hex(0xC8362E));
+                mb.Box(new Vector3(p.x + 6f, y, p.z), new Vector3(0.18f, 0.02f, 11.2f), Palette.Hex(0xC8362E));
+                for (int k = 0; k < 5; k++)
+                {
+                    mb.Push().Translate(p.x - 6.5f + k * 1.2f, y, p.z - 4.6f).RotateY(45);
+                    mb.Box(Vector3.zero, new Vector3(0.14f, 0.02f, 1.8f), Palette.Paint);
+                    mb.Pop();
+                }
+                mb.Box(new Vector3(p.x - 4.2f, y, p.z - 5.45f), new Vector3(5.6f, 0.02f, 0.12f), Palette.Paint);
+                mb.Box(new Vector3(p.x - 4.2f, y, p.z - 3.7f), new Vector3(5.6f, 0.02f, 0.12f), Palette.Paint);
+                // The stand's number board: yellow on black at the lane.
+                mb.Box(new Vector3(p.x - 9.6f, y, p.z + 1.6f), new Vector3(1.8f, 0.02f, 1.4f), Palette.Black);
+                mb.Box(new Vector3(p.x - 9.6f, y + 0.005f, p.z + 1.6f), new Vector3(1.2f, 0.02f, 0.8f), Palette.PaintYellow);
+            }
+            if (paved)
+            {
+                // The apron's taxilane (yellow centre line down each column's lane) and a service road along the terminal (white edges).
+                for (int col = 0; col < cols; col++)
+                    mb.Box(new Vector3(Layout.StandX0 + col * Layout.ColumnGap - 9f, 0.05f, 0), new Vector3(0.25f, 0.02f, 108), Palette.PaintYellow);
+                foreach (float off in new[] { -3.2f, -6.4f })
+                    for (float z = -54; z < 54; z += 3f) mb.Box(new Vector3(termX + off, 0.05f, z), new Vector3(0.14f, 0.02f, 1.6f), Palette.Paint);
+                // Floodlight masts along the apron's edge.
+                for (float z = -48; z <= 50; z += 24)
+                {
+                    var lp = new Vector3(termX - 1.2f, 0, z);
+                    mb.Cylinder(lp, lp + Vector3.up * 14, 0.22f, 0.14f, 6, Palette.Steel);
+                    mb.Box(lp + new Vector3(-0.8f, 14.2f, 0), new Vector3(2.4f, 0.5f, 1.4f), Palette.SteelDark);
+                }
             }
 
             // Terminal: a shed at first, then a hall with a glass front to the apron that grows along the stands.
@@ -202,12 +238,12 @@ namespace Crosswind.Game
             float roadX = termX + tDepth + 12;
             RoadX = roadX;
             mb.Smoothness = 0.08f;
-            mb.Box(new Vector3(roadX, 0.0f, 0), new Vector3(7, 0.05f, 420), Palette.Asphalt);
+            g.Rect("Tarmac", roadX, 0, 7, 420, 0.03f);
             for (float z = -200; z < 200; z += 8) mb.Box(new Vector3(roadX, 0.04f, z), new Vector3(0.2f, 0.02f, 3.5f), Palette.Paint);
             int park = s.Level("parking");
             float lotW = 16 + Mathf.Min(6, park) * 3, lotL = 26 + Mathf.Min(10, park) * 5;
             var lot = new Vector3(roadX + 5 + lotW * 0.5f, 0, -46 + lotL * 0.5f);
-            mb.Box(lot, new Vector3(lotW, 0.05f, lotL), Palette.AsphaltPale);
+            g.Rect("Tarmac", lot.x, lot.z, lotW, lotL, 0.03f, 0, new Color(1.25f, 1.25f, 1.25f));
             var kit = new GameObject("Kit").transform;
             _kitRoot = kit;
             var rng = new System.Random(11);
@@ -249,7 +285,7 @@ namespace Crosswind.Game
                         Models.Kit("works_s", kit, new Vector3(dx - 7, 0, -70), 90, 6);
                     }
                     else Models.Kit(model, kit, new Vector3(dx, 0, -71), 0, size);
-                    mb.Box(new Vector3(dx, 0.0f, -66), new Vector3(14, 0.05f, 16), Palette.AsphaltPale);
+                    g.Rect("Concrete", dx, -66, 15, 17, 0.03f, 0, new Color(0.85f, 0.85f, 0.85f));
                 }
                 dx += 19;
             }
@@ -262,7 +298,7 @@ namespace Crosswind.Game
                 mb.Box(hp + Vector3.up * 4, new Vector3(hw, 8, 20), Palette.Hex(0xC8CCD0), Palette.Steel);
                 mb.Cylinder(hp + new Vector3(-hw * 0.5f, 8, 0), hp + new Vector3(hw * 0.5f, 8, 0), 10f, 10f, 14, Palette.Hex(0xAEB4BA));
                 mb.Box(hp + new Vector3(0, 3.2f, -10.1f), new Vector3(hw * 0.8f, 6.4f, 0.2f), Palette.Hex(0x38424C));
-                mb.Box(hp + new Vector3(0, 0, -16), new Vector3(hw, 0.05f, 12), Palette.Concrete);
+                g.Rect("Concrete", hp.x, hp.z - 16, hw, 12, 0.03f);
             }
             if (s.Level("cargo") > 0)
             {
@@ -271,7 +307,7 @@ namespace Crosswind.Game
                 string[] boxes = { "container_a", "container_b", "container_c" };
                 for (int k = 0; k < Mathf.Min(14, 3 + s.Level("cargo")); k++)
                     Models.Kit(boxes[k % 3], kit, cp + new Vector3(12 + (k % 4) * 3.2f, (k / 8) * 2.6f, -6 + (k / 4 % 2) * 7.5f), 0, 6);
-                mb.Box(cp + new Vector3(8, 0, -2), new Vector3(40, 0.05f, 22), Palette.AsphaltPale);
+                g.Rect("Concrete", cp.x + 8, cp.z - 2, 40, 22, 0.03f, 0, new Color(0.85f, 0.85f, 0.85f));
             }
             if (s.Level("ils") > 0)
             {
@@ -310,6 +346,7 @@ namespace Crosswind.Game
             }
 
             _static = mb.ToObject("Static", transform);
+            g.Build(_static.transform);
             kit.SetParent(_static.transform, false);
         }
     }

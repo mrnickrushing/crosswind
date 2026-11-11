@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Crosswind.Game
@@ -13,6 +14,27 @@ namespace Crosswind.Game
     public static class Materials
     {
         static Material _world;
+        static readonly Dictionary<string, Material> _surfaces = new Dictionary<string, Material>();
+
+        /// <summary>Metres one repeat of a surface covers.</summary>
+        public static float Tile(string surface) { return surface == "Grass" ? 9f : surface == "Concrete" ? 13f : surface == "Asphalt" ? 7f : 8f; }
+
+        /// <summary>A textured ground material (Resources/Textures/{name}.jpg + {name}Normal.jpg), lit, matte.</summary>
+        public static Material Surface(string name)
+        {
+            Material m;
+            if (_surfaces.TryGetValue(name, out m)) return m;
+            m = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
+            var tex = Resources.Load<Texture2D>("Textures/" + name);
+            m.SetTexture("_BaseMap", tex);
+            m.SetColor("_BaseColor", name == "Asphalt" ? new Color(1.9f, 1.9f, 2.0f) : name == "Grass" ? new Color(1.05f, 1.12f, 0.9f) : name == "Concrete" ? new Color(1.15f, 1.15f, 1.12f) : Color.white);
+            m.SetFloat("_Smoothness", name == "Grass" ? 0.05f : 0.22f);
+            m.SetFloat("_Metallic", 0);
+            var n = Resources.Load<Texture2D>("Textures/" + name + "Normal");
+            if (n != null) { m.SetTexture("_BumpMap", n); m.SetFloat("_BumpScale", 1f); m.EnableKeyword("_NORMALMAP"); }
+            return _surfaces[name] = m;
+        }
+
 
         /// <summary>Vertex colours, lit, with per-vertex smoothness and metallic: everything built from code uses it.</summary>
         public static Material World
@@ -23,6 +45,48 @@ namespace Crosswind.Game
                 var s = Resources.Load<Shader>("Shaders/VertexLit") ?? Shader.Find("Crosswind/VertexLit");
                 _world = new Material(s) { name = "World", enableInstancing = true };
                 return _world;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ground laid in real textures: quads on the ground whose UVs are their world position, so asphalt, concrete and
+    /// grass tile seamlessly across pieces. One mesh per surface.
+    /// </summary>
+    public sealed class Ground
+    {
+        sealed class Part { public readonly List<Vector3> V = new List<Vector3>(); public readonly List<Vector2> Uv = new List<Vector2>(); public readonly List<int> T = new List<int>(); public readonly List<Color> C = new List<Color>(); }
+        readonly Dictionary<string, Part> _parts = new Dictionary<string, Part>();
+
+        /// <summary>A rectangle of a surface, centred at (x, z), at height y, optionally turned and tinted.</summary>
+        public void Rect(string surface, float x, float z, float width, float length, float y = 0.02f, float yaw = 0, Color? tint = null)
+        {
+            Part p;
+            if (!_parts.TryGetValue(surface, out p)) _parts[surface] = p = new Part();
+            float tile = Materials.Tile(surface);
+            var rot = Quaternion.Euler(0, yaw, 0);
+            int i0 = p.V.Count;
+            foreach (var c in new[] { new Vector2(-1, -1), new Vector2(-1, 1), new Vector2(1, 1), new Vector2(1, -1) })
+            {
+                var w = new Vector3(x, y, z) + rot * new Vector3(c.x * width * 0.5f, 0, c.y * length * 0.5f);
+                p.V.Add(w); p.Uv.Add(new Vector2(w.x / tile, w.z / tile)); p.C.Add(tint ?? Color.white);
+            }
+            p.T.AddRange(new[] { i0, i0 + 1, i0 + 2, i0, i0 + 2, i0 + 3 });
+        }
+
+        public void Build(Transform parent)
+        {
+            foreach (var kv in _parts)
+            {
+                var go = new GameObject("Ground " + kv.Key);
+                go.transform.SetParent(parent, false);
+                var m = new Mesh { name = kv.Key };
+                m.SetVertices(kv.Value.V); m.SetUVs(0, kv.Value.Uv); m.SetColors(kv.Value.C); m.SetTriangles(kv.Value.T, 0);
+                m.RecalculateNormals(); m.RecalculateTangents(); m.RecalculateBounds();
+                go.AddComponent<MeshFilter>().sharedMesh = m;
+                var mr = go.AddComponent<MeshRenderer>();
+                mr.sharedMaterial = Materials.Surface(kv.Key);
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
         }
     }

@@ -45,13 +45,24 @@ namespace Crosswind.Game
             sun.shadowBias = 0.6f; sun.shadowNormalBias = 0.5f;
             sun.shadows = LightShadows.Soft;
             sun.transform.rotation = Quaternion.Euler(42, -128, 0);   // low from behind the camera's left: long shadows toward the viewer's right
+            // The sky: an HDRI for the background, the ambient light and the reflections in glass and paint.
+            var skyTex = Resources.Load<Cubemap>("Sky/sky");
+            if (skyTex != null)
+            {
+                var sky = new Material(Shader.Find("Skybox/Cubemap"));
+                sky.SetTexture("_Tex", skyTex); sky.SetFloat("_Exposure", 1.05f); sky.SetFloat("_Rotation", 120);
+                RenderSettings.skybox = sky;
+                RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
+                RenderSettings.customReflectionTexture = skyTex;
+                RenderSettings.reflectionIntensity = 0.9f;
+            }
             RenderSettings.ambientMode = AmbientMode.Trilight;
             RenderSettings.ambientSkyColor = new Color(0.62f, 0.72f, 0.86f);
             RenderSettings.ambientEquatorColor = new Color(0.55f, 0.58f, 0.56f);
             RenderSettings.ambientGroundColor = new Color(0.3f, 0.32f, 0.26f);
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogColor = new Color(0.72f, 0.82f, 0.9f);
+            RenderSettings.fogColor = new Color(0.74f, 0.83f, 0.92f);
             RenderSettings.fogStartDistance = 420; RenderSettings.fogEndDistance = 1100;
 
             Sfx.Init(transform);

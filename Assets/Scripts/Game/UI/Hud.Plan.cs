@@ -16,7 +16,7 @@ namespace Crosswind.Game
             if (!s.PlannerOpen)
             {
                 Header("DAY PLANNER");
-                Entry("Day planner", "OPENS AT " + Sim.PlannerStars + " STARS", "Give each route a slot in the day. Flights in a slot pay up to 60% more, but a crowded hour chokes the runway.", null, null, null);
+                Ico("calendar").Entry("Day planner", "OPENS AT " + Sim.PlannerStars + " STARS", "Give each route a slot in the day. Flights in a slot pay up to 60% more, but a crowded hour chokes the runway.", null, null, null);
                 return;
             }
             var load = s.HourlyLoad(); float cap = s.HourlyCapacity();

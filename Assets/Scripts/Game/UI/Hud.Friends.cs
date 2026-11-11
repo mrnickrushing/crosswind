@@ -68,9 +68,9 @@ namespace Crosswind.Game
             if (!AppleAccount.SignedIn)
             {
                 Header("YOUR ACCOUNT");
-                Entry("Sign in with Apple", null, "Creates your Crosswind account. Add friends by code, compare airports, and swap a gift every day. We never see your email: only an anonymous id.",
+                Ico("user", TintSocial).Entry("Sign in with Apple", null, "Creates your Crosswind account. Add friends by code, compare airports, and swap a gift every day. We never see your email: only an anonymous id.",
                     "SIGN IN", AppleAccount.Supported ? null : "On iPhone and iPad", () => AppleAccount.SignIn((ok, msg) => { if (ok) { Toast("Signed in"); EnsureRegistered(); } else if (msg != null) Toast(msg); _dirty = true; }), Ui.Ink + new Color(0.1f, 0.1f, 0.1f, 0));
-                Entry("Manager's name", s.DisplayName.ToUpper(), "What friends will see beside your airport.", "RENAME", null, AskName, Ui.Blue);
+                Ico("pen").Entry("Manager's name", s.DisplayName.ToUpper(), "What friends will see beside your airport.", "RENAME", null, AskName, Ui.Blue);
                 return;
             }
             EnsureRegistered();
@@ -78,28 +78,28 @@ namespace Crosswind.Game
             if (FriendsClient.SignedIn && Time.unscaledTime - _friendsFetched > 30) { _friendsFetched = Time.unscaledTime; FriendsClient.Run(FriendsClient.Refresh(list => _dirty = true)); }
 
             Header("YOU");
-            Entry(s.DisplayName, FriendsClient.SignedIn ? "CODE  " + FriendsClient.Code : "CONNECTING...", s.Map.Name + "  ·  " + s.Stars + (s.Stars == 1 ? " star" : " stars") + "  ·  " + s.State.flightsHandled + " flights.  Give your code to a friend so they can add you.", "RENAME", null, AskName, Ui.Blue);
-            Entry("Add a friend", null, "Type the six-letter code from their FRIENDS screen. You become friends at once, both ways.", "ADD", FriendsClient.SignedIn ? null : "Connecting", () =>
+            Ico("id", TintSocial).Entry(s.DisplayName, FriendsClient.SignedIn ? "CODE  " + FriendsClient.Code : "CONNECTING...", s.Map.Name + "  ·  " + s.Stars + (s.Stars == 1 ? " star" : " stars") + "  ·  " + s.State.flightsHandled + " flights.  Give your code to a friend so they can add you.", "RENAME", null, AskName, Ui.Blue);
+            Ico("userplus", TintGreen).Entry("Add a friend", null, "Type the six-letter code from their FRIENDS screen. You become friends at once, both ways.", "ADD", FriendsClient.SignedIn ? null : "Connecting", () =>
                 Prompt("FRIEND'S CODE", "ABC123", "", FriendRules.CodeLength, true, v => FriendsClient.Run(FriendsClient.Add(v, (ok, msg) => { Toast(ok ? msg + " is now your friend" : msg); if (ok) Sfx.Play("confirm"); _dirty = true; }))), Ui.Green);
 
             var friends = FriendsClient.Friends;
             Header(friends.Count == 0 ? "NO FRIENDS YET" : "FRIENDS  ·  " + friends.Count + " OF " + FriendRules.MaxFriends + (FriendsClient.Fresh ? "" : "  ·  OFFLINE"));
             int rank = 1 + friends.Count(f => f.Stars > s.Stars || (f.Stars == s.Stars && f.Flights > s.State.flightsHandled));
-            if (friends.Count > 0) Entry("You are #" + rank + " of " + (friends.Count + 1), null, "Ranked by stars, then flights handled.", _friendManage ? "DONE" : "MANAGE", null, () => { _friendManage = !_friendManage; }, Ui.Card);
+            if (friends.Count > 0) Ico("trophy", TintGold).Entry("You are #" + rank + " of " + (friends.Count + 1), null, "Ranked by stars, then flights handled.", _friendManage ? "DONE" : "MANAGE", null, () => { _friendManage = !_friendManage; }, Ui.Card);
             foreach (var f in friends)
             {
                 var fr = f; bool ready = s.GiftReady(f.Code);
                 string body = f.Map + "  ·  " + f.Flights + " flights  ·  " + FriendRules.LastSeenText(f.LastSeen, SaveSystem.Now);
                 if (_friendManage)
-                    Entry(f.Name, "★ " + f.Stars, body, "REMOVE", null, () => FriendsClient.Run(FriendsClient.Remove(fr.Code, (ok, msg) => { Toast(ok ? fr.Name + " removed" : msg); _dirty = true; })), Ui.Red);
+                    Ico("user", TintAir).Entry(f.Name, "★ " + f.Stars, body, "REMOVE", null, () => FriendsClient.Run(FriendsClient.Remove(fr.Code, (ok, msg) => { Toast(ok ? fr.Name + " removed" : msg); _dirty = true; })), Ui.Red);
                 else
-                    Entry(f.Name, "★ " + f.Stars, body, ready ? "GIFT\n<size=26>+" + Sim.FriendGiftGems + " gems</size>" : "GIFT", ready ? null : "in " + Format.Time(s.GiftWait(f.Code)),
+                    Ico("user", TintAir).Entry(f.Name, "★ " + f.Stars, body, ready ? "GIFT\n<size=26>+" + Sim.FriendGiftGems + " gems</size>" : "GIFT", ready ? null : "in " + Format.Time(s.GiftWait(f.Code)),
                         () => { if (s.CollectGift(fr.Code)) { Reward(0, Sim.FriendGiftGems); Sfx.Play("claim"); } }, Ui.Gold);
             }
 
             Header("ACCOUNT");
-            Entry("Sign out", null, "Your airport stays on this device and in your iCloud. Your friends keep you on their list.", "SIGN OUT", null, () => { AppleAccount.SignOut(); Toast("Signed out"); }, Ui.Card);
-            Entry("Delete account", null, "Erases your account, your code and every friendship from our server for good. Your airport stays on this device (Settings > Erase everything removes that too).", "DELETE", null, ConfirmDeleteAccount, Ui.Red);
+            Ico("signout").Entry("Sign out", null, "Your airport stays on this device and in your iCloud. Your friends keep you on their list.", "SIGN OUT", null, () => { AppleAccount.SignOut(); Toast("Signed out"); }, Ui.Card);
+            Ico("trash", TintRed).Entry("Delete account", null, "Erases your account, your code and every friendship from our server for good. Your airport stays on this device (Settings > Erase everything removes that too).", "DELETE", null, ConfirmDeleteAccount, Ui.Red);
         }
 
         void AskName()

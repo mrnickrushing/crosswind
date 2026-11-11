@@ -130,6 +130,18 @@ namespace Crosswind.Game
 
         static readonly Dictionary<string, Sprite> _art = new Dictionary<string, Sprite>();
         /// <summary>A painted piece from Resources/UI/Fx (Tools/art/ui_art.py), nine-sliced when a border is given; null when missing.</summary>
+        static readonly Dictionary<string, Sprite> _ic = new Dictionary<string, Sprite>();
+        /// <summary>A white menu glyph from Resources/UI/Ic (null when there is none by that name).</summary>
+        public static Sprite Ic(string name)
+        {
+            Sprite s;
+            if (_ic.TryGetValue(name, out s)) return s;
+            var tex = Resources.Load<Texture2D>("UI/Ic/" + name);
+            s = tex != null ? Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100) : null;
+            _ic[name] = s;
+            return s;
+        }
+
         public static Sprite Art(string name, int border = 0)
         {
             Sprite s; string key = name + border;

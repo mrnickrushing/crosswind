@@ -16,6 +16,9 @@ namespace Crosswind.Game
                 case "zip": return Palette.Hex(0xD83A6A);
                 case "meridian": return Palette.Hex(0x1E4E8C);
                 case "atlas": return Palette.Hex(0x4A5A3A);
+                case "fjord": return Palette.Hex(0x2FA3A0);
+                case "solstice": return Palette.Hex(0xF0624E);
+                case "crown": return Palette.Hex(0x8A6B1E);
                 default: return Palette.Steel;
             }
         }

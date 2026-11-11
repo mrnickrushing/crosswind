@@ -283,7 +283,7 @@ namespace Crosswind.Game
             {
                 var def = d;
                 string blocked = s.Stars < d.Stars ? "Needs " + d.Stars + " stars" : s.State.money < s.AmenityCost(d.Id) ? "Need " + Format.Money(s.AmenityCost(d.Id) - s.State.money) + " more" : s.FindSpot(d.Id) == null ? "No room" : null;
-                Entry(d.Name, (s.Placed(d.Id) > 0 ? "OWN " + s.Placed(d.Id) + "  ·  " : "") + d.W + " x " + d.D, d.Blurb + "  " + Gives(d), "PLACE\n<size=28>" + Format.Money(s.AmenityCost(d.Id)) + "</size>", blocked, () => StartPlacing(def), Ui.Green);
+                Ico(WantIcon(d.Gives), TintTerm).Entry(d.Name, (s.Placed(d.Id) > 0 ? "OWN " + s.Placed(d.Id) + "  ·  " : "") + d.W + " x " + d.D, d.Blurb + "  " + Gives(d), "PLACE\n<size=28>" + Format.Money(s.AmenityCost(d.Id)) + "</size>", blocked, () => StartPlacing(def), Ui.Green);
             }
         }
     }

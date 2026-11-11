@@ -133,12 +133,12 @@ namespace Crosswind.Game
 
             // The guide card under it.
             _goal = Ui.ArtImg("Goal", _safe, "panel", Color.white).rectTransform;
-            _goal.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(152, -152), new Vector2(660, 112));
+            _goal.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(152, -152), new Vector2(660, 132));
             var accent = Ui.Img("Accent", _goal, Ui.Green, true).rectTransform; accent.anchorMin = new Vector2(0, 0); accent.anchorMax = new Vector2(0, 1); accent.offsetMin = new Vector2(8, 14); accent.offsetMax = new Vector2(14, -14);
             Ui.Label("Cap", _goal, "NEXT", 20, Ui.Green, TextAnchor.UpperLeft).rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(26, -10), new Vector2(200, 26));
             _goalText = Ui.Label("Text", _goal, "", 30, Color.white, TextAnchor.UpperLeft, false);
             _goalText.rectTransform.Fill(); _goalText.rectTransform.offsetMin = new Vector2(26, 30); _goalText.rectTransform.offsetMax = new Vector2(-200, -34);
-            _goalText.resizeTextForBestFit = true; _goalText.resizeTextMinSize = 20; _goalText.resizeTextMaxSize = 30;
+            _goalText.resizeTextForBestFit = true; _goalText.resizeTextMinSize = 20; _goalText.resizeTextMaxSize = 28; _goalText.verticalOverflow = VerticalWrapMode.Truncate;
             var gbar = Ui.Img("Bar", _goal, new Color(0, 0, 0, 0.45f), true).rectTransform;
             gbar.anchorMin = new Vector2(0, 0); gbar.anchorMax = new Vector2(1, 0); gbar.pivot = new Vector2(0, 0); gbar.offsetMin = new Vector2(26, 12); gbar.offsetMax = new Vector2(-200, 24);
             _goalFill = Ui.Img("Fill", gbar, Ui.Green, true);

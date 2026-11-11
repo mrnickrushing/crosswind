@@ -43,10 +43,10 @@ namespace Crosswind.Game
             int have = Sim.Crew.Count(c => s.CrewLevel(c.Id) > 0), on = Sim.Crew.Count(c => s.OnDuty(c.Id));
             Header("YOUR TEAM  ·  " + have + " OF " + Sim.Crew.Count + "  ·  ON DUTY " + on + " OF " + s.DutyPlaces);
             if (s.State.crates > 0)
-                Entry("Team crate" + (s.State.crates > 1 ? "s: " + s.State.crates : ""), "ONE PERSON INSIDE", "Someone new, or another copy toward a level. A crate comes with every star.", "OPEN", null, OpenCrate, Ui.Gold);
-            Entry("Free crate", s.FreeCrateReady ? "READY" : "IN " + Format.Time(s.FreeCrateIn).ToUpper(), "One free crate every " + Sim.FreeCrateHours + " hours.", "COLLECT", s.FreeCrateReady ? null : "Not yet",
+                Ico("box", TintGold).Entry("Team crate" + (s.State.crates > 1 ? "s: " + s.State.crates : ""), "ONE PERSON INSIDE", "Someone new, or another copy toward a level. A crate comes with every star.", "OPEN", null, OpenCrate, Ui.Gold);
+            Ico("gift", TintGreen).Entry("Free crate", s.FreeCrateReady ? "READY" : "IN " + Format.Time(s.FreeCrateIn).ToUpper(), "One free crate every " + Sim.FreeCrateHours + " hours.", "COLLECT", s.FreeCrateReady ? null : "Not yet",
                 () => { if (s.TakeFreeCrate()) OpenCrate(); }, Ui.Green);
-            Entry("Buy a crate", null, "Odds: Common " + Sim.CrateOdds[0] + "%, Rare " + Sim.CrateOdds[1] + "%, Epic " + Sim.CrateOdds[2] + "%, Legendary " + Sim.CrateOdds[3] + "%. An Epic or better is certain by every " + Sim.CratePity + "th crate.",
+            Ico("cart", TintLab).Entry("Buy a crate", null, "Odds: Common " + Sim.CrateOdds[0] + "%, Rare " + Sim.CrateOdds[1] + "%, Epic " + Sim.CrateOdds[2] + "%, Legendary " + Sim.CrateOdds[3] + "%. An Epic or better is certain by every " + Sim.CratePity + "th crate.",
                 "BUY\n<size=34>" + Gems(Sim.CrateGems) + "</size>", s.State.gems >= Sim.CrateGems ? null : "Need " + Gems(Sim.CrateGems - s.State.gems) + " more", () => { if (s.BuyCrate()) OpenCrate(); }, Ui.Blue);
 
             foreach (var d in Sim.Crew.OrderByDescending(c => s.OnDuty(c.Id)).ThenByDescending(c => s.CrewLevel(c.Id) > 0).ThenByDescending(c => (int)c.Rarity))

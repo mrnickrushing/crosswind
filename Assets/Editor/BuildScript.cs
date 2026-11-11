@@ -13,12 +13,39 @@ namespace Crosswind.EditorTools
     /// </summary>
     public static class BuildScript
     {
-        static readonly string[] Shaders = { "Crosswind/VertexLit", "Universal Render Pipeline/Lit", "Universal Render Pipeline/Particles/Unlit", "Skybox/Cubemap" };
+        // Only small shaders go here: an always-included shader is built in every variant it has (URP/Lit has over half
+        // a million). The URP ones the game makes materials from at runtime ship through material assets instead
+        // (EnsureMaterials), so only the variants those use are built.
+        static readonly string[] Shaders = { "Crosswind/VertexLit", "Skybox/Cubemap" };
+
+        /// <summary>Resources/Materials/Surface.mat (URP Lit with a normal map) and Weather.mat (transparent particles): the runtime copies these.</summary>
+        [MenuItem("Crosswind/Ensure runtime materials")]
+        public static void EnsureMaterials()
+        {
+            System.IO.Directory.CreateDirectory("Assets/Resources/Materials");
+            if (AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/Materials/Surface.mat") == null)
+            {
+                var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                m.SetTexture("_BumpMap", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/Textures/ConcreteNormal.jpg"));
+                m.EnableKeyword("_NORMALMAP");
+                AssetDatabase.CreateAsset(m, "Assets/Resources/Materials/Surface.mat");
+            }
+            if (AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/Materials/Weather.mat") == null)
+            {
+                var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                m.SetFloat("_Surface", 1); m.SetColor("_BaseColor", new Color(1, 1, 1, 0.55f));
+                m.renderQueue = 3000; m.SetInt("_SrcBlend", 5); m.SetInt("_DstBlend", 10); m.SetInt("_ZWrite", 0);
+                m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                AssetDatabase.CreateAsset(m, "Assets/Resources/Materials/Weather.mat");
+            }
+            AssetDatabase.SaveAssets();
+        }
 
         public static string BuildIos()
         {
             Time.timeScale = 1f;
             UrpSetup.Run();
+            EnsureMaterials();
             IncludeShaders();
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
             if (scenes.Length == 0) scenes = new[] { "Assets/Scenes/SampleScene.unity" };

@@ -17,7 +17,8 @@ namespace Crosswind.Game
             var w = go.AddComponent<WeatherFx>();
             w._ps = go.AddComponent<ParticleSystem>();
             w._r = go.GetComponent<ParticleSystemRenderer>();
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            var basis = Resources.Load<Material>("Materials/Weather");
+            var mat = basis != null ? new Material(basis) : new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
             mat.SetFloat("_Surface", 1); mat.SetColor("_BaseColor", new Color(1, 1, 1, 0.55f));
             mat.renderQueue = 3000; mat.SetInt("_SrcBlend", 5); mat.SetInt("_DstBlend", 10); mat.SetInt("_ZWrite", 0);
             mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");

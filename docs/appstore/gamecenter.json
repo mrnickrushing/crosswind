@@ -1,0 +1,336 @@
+{
+ "leaderboards": [
+  {
+   "id": "crosswind.board.flights",
+   "ref": "flights",
+   "name": "Flights Handled",
+   "description": "The most flights handled at one airport.",
+   "suffix": " flights",
+   "singular": " flight",
+   "glyph": "arrival",
+   "tier": 2,
+   "image": "gamecenter/board_flights.png"
+  },
+  {
+   "id": "crosswind.board.wings",
+   "ref": "wings",
+   "name": "Wings Earned",
+   "description": "Wings earned by selling airports on.",
+   "suffix": " Wings",
+   "singular": " Wing",
+   "glyph": "wings",
+   "tier": 3,
+   "image": "gamecenter/board_wings.png"
+  },
+  {
+   "id": "crosswind.board.topdays",
+   "ref": "topdays",
+   "name": "Grade A Days",
+   "description": "Airport days closed with grade A.",
+   "suffix": " days",
+   "singular": " day",
+   "glyph": "medal",
+   "tier": 2,
+   "image": "gamecenter/board_topdays.png"
+  }
+ ],
+ "achievements": [
+  {
+   "id": "crosswind.ach.flights_100",
+   "ref": "flights_100",
+   "name": "Wheels Down I",
+   "before": "Handle 100 flights at one airport.",
+   "after": "You handled 100 flights at one airport.",
+   "points": 5,
+   "glyph": "arrival",
+   "tier": 0,
+   "image": "gamecenter/flights_100.png"
+  },
+  {
+   "id": "crosswind.ach.flights_1000",
+   "ref": "flights_1000",
+   "name": "Wheels Down II",
+   "before": "Handle 1,000 flights at one airport.",
+   "after": "You handled 1,000 flights at one airport.",
+   "points": 10,
+   "glyph": "arrival",
+   "tier": 1,
+   "image": "gamecenter/flights_1000.png"
+  },
+  {
+   "id": "crosswind.ach.flights_10000",
+   "ref": "flights_10000",
+   "name": "Wheels Down III",
+   "before": "Handle 10,000 flights at one airport.",
+   "after": "You handled 10,000 flights at one airport.",
+   "points": 20,
+   "glyph": "arrival",
+   "tier": 2,
+   "image": "gamecenter/flights_10000.png"
+  },
+  {
+   "id": "crosswind.ach.flights_100000",
+   "ref": "flights_100000",
+   "name": "Wheels Down IV",
+   "before": "Handle 100,000 flights at one airport.",
+   "after": "You handled 100,000 flights at one airport.",
+   "points": 40,
+   "glyph": "arrival",
+   "tier": 3,
+   "image": "gamecenter/flights_100000.png"
+  },
+  {
+   "id": "crosswind.ach.stars_3",
+   "ref": "stars_3",
+   "name": "Rising Star I",
+   "before": "Reach a 3-star airport.",
+   "after": "You reached a 3-star airport.",
+   "points": 5,
+   "glyph": "star",
+   "tier": 0,
+   "image": "gamecenter/stars_3.png"
+  },
+  {
+   "id": "crosswind.ach.stars_5",
+   "ref": "stars_5",
+   "name": "Rising Star II",
+   "before": "Reach a 5-star airport.",
+   "after": "You reached a 5-star airport.",
+   "points": 10,
+   "glyph": "star",
+   "tier": 1,
+   "image": "gamecenter/stars_5.png"
+  },
+  {
+   "id": "crosswind.ach.stars_7",
+   "ref": "stars_7",
+   "name": "Rising Star III",
+   "before": "Reach a 7-star airport.",
+   "after": "You reached a 7-star airport.",
+   "points": 20,
+   "glyph": "star",
+   "tier": 2,
+   "image": "gamecenter/stars_7.png"
+  },
+  {
+   "id": "crosswind.ach.stars_10",
+   "ref": "stars_10",
+   "name": "Rising Star IV",
+   "before": "Reach a 10-star airport.",
+   "after": "You reached a 10-star airport.",
+   "points": 50,
+   "glyph": "star",
+   "tier": 3,
+   "image": "gamecenter/stars_10.png"
+  },
+  {
+   "id": "crosswind.ach.managers_2",
+   "ref": "managers_2",
+   "name": "Delegation I",
+   "before": "Have 2 managers.",
+   "after": "You have 2 managers.",
+   "points": 5,
+   "glyph": "manager",
+   "tier": 0,
+   "image": "gamecenter/managers_2.png"
+  },
+  {
+   "id": "crosswind.ach.managers_4",
+   "ref": "managers_4",
+   "name": "Delegation II",
+   "before": "Have 4 managers.",
+   "after": "You have 4 managers.",
+   "points": 15,
+   "glyph": "manager",
+   "tier": 2,
+   "image": "gamecenter/managers_4.png"
+  },
+  {
+   "id": "crosswind.ach.research_5",
+   "ref": "research_5",
+   "name": "Bright Ideas I",
+   "before": "Finish 5 research projects.",
+   "after": "You finished 5 research projects.",
+   "points": 10,
+   "glyph": "flask",
+   "tier": 0,
+   "image": "gamecenter/research_5.png"
+  },
+  {
+   "id": "crosswind.ach.research_15",
+   "ref": "research_15",
+   "name": "Bright Ideas II",
+   "before": "Finish 15 research projects.",
+   "after": "You finished 15 research projects.",
+   "points": 25,
+   "glyph": "flask",
+   "tier": 1,
+   "image": "gamecenter/research_15.png"
+  },
+  {
+   "id": "crosswind.ach.research_26",
+   "ref": "research_26",
+   "name": "Bright Ideas III",
+   "before": "Finish 26 research projects.",
+   "after": "You finished 26 research projects.",
+   "points": 60,
+   "glyph": "flask",
+   "tier": 2,
+   "image": "gamecenter/research_26.png"
+  },
+  {
+   "id": "crosswind.ach.airports_1",
+   "ref": "airports_1",
+   "name": "Portfolio I",
+   "before": "Sell 1 airport.",
+   "after": "You sold 1 airport.",
+   "points": 20,
+   "glyph": "globe",
+   "tier": 0,
+   "image": "gamecenter/airports_1.png"
+  },
+  {
+   "id": "crosswind.ach.airports_3",
+   "ref": "airports_3",
+   "name": "Portfolio II",
+   "before": "Sell 3 airports.",
+   "after": "You sold 3 airports.",
+   "points": 40,
+   "glyph": "globe",
+   "tier": 1,
+   "image": "gamecenter/airports_3.png"
+  },
+  {
+   "id": "crosswind.ach.airports_5",
+   "ref": "airports_5",
+   "name": "Portfolio III",
+   "before": "Sell 5 airports.",
+   "after": "You sold 5 airports.",
+   "points": 80,
+   "glyph": "globe",
+   "tier": 2,
+   "image": "gamecenter/airports_5.png"
+  },
+  {
+   "id": "crosswind.ach.grade_a_5",
+   "ref": "grade_a_5",
+   "name": "Top Marks I",
+   "before": "Close 5 days with grade A.",
+   "after": "You closed 5 days with grade A.",
+   "points": 10,
+   "glyph": "medal",
+   "tier": 0,
+   "image": "gamecenter/grade_a_5.png"
+  },
+  {
+   "id": "crosswind.ach.grade_a_25",
+   "ref": "grade_a_25",
+   "name": "Top Marks II",
+   "before": "Close 25 days with grade A.",
+   "after": "You closed 25 days with grade A.",
+   "points": 25,
+   "glyph": "medal",
+   "tier": 1,
+   "image": "gamecenter/grade_a_25.png"
+  },
+  {
+   "id": "crosswind.ach.grade_a_100",
+   "ref": "grade_a_100",
+   "name": "Top Marks III",
+   "before": "Close 100 days with grade A.",
+   "after": "You closed 100 days with grade A.",
+   "points": 60,
+   "glyph": "medal",
+   "tier": 2,
+   "image": "gamecenter/grade_a_100.png"
+  },
+  {
+   "id": "crosswind.ach.cheap_fuel_3",
+   "ref": "cheap_fuel_3",
+   "name": "Fuel Trader I",
+   "before": "Fill a quarter of the tanks or more at 10% below par, 3 times.",
+   "after": "You filled a quarter of the tanks or more at 10% below par, 3 times.",
+   "points": 5,
+   "glyph": "fuel",
+   "tier": 0,
+   "image": "gamecenter/cheap_fuel_3.png"
+  },
+  {
+   "id": "crosswind.ach.cheap_fuel_20",
+   "ref": "cheap_fuel_20",
+   "name": "Fuel Trader II",
+   "before": "Fill a quarter of the tanks or more at 10% below par, 20 times.",
+   "after": "You filled a quarter of the tanks or more at 10% below par, 20 times.",
+   "points": 20,
+   "glyph": "fuel",
+   "tier": 2,
+   "image": "gamecenter/cheap_fuel_20.png"
+  },
+  {
+   "id": "crosswind.ach.resurface_3",
+   "ref": "resurface_3",
+   "name": "Fresh Tarmac I",
+   "before": "Resurface the runway 3 times.",
+   "after": "You resurfaced the runway 3 times.",
+   "points": 5,
+   "glyph": "road",
+   "tier": 0,
+   "image": "gamecenter/resurface_3.png"
+  },
+  {
+   "id": "crosswind.ach.resurface_15",
+   "ref": "resurface_15",
+   "name": "Fresh Tarmac II",
+   "before": "Resurface the runway 15 times.",
+   "after": "You resurfaced the runway 15 times.",
+   "points": 20,
+   "glyph": "road",
+   "tier": 2,
+   "image": "gamecenter/resurface_15.png"
+  },
+  {
+   "id": "crosswind.ach.checks_5",
+   "ref": "checks_5",
+   "name": "Airworthy I",
+   "before": "Complete 5 fleet maintenance checks.",
+   "after": "You completed 5 fleet maintenance checks.",
+   "points": 5,
+   "glyph": "wrench",
+   "tier": 0,
+   "image": "gamecenter/checks_5.png"
+  },
+  {
+   "id": "crosswind.ach.checks_40",
+   "ref": "checks_40",
+   "name": "Airworthy II",
+   "before": "Complete 40 fleet maintenance checks.",
+   "after": "You completed 40 fleet maintenance checks.",
+   "points": 20,
+   "glyph": "wrench",
+   "tier": 2,
+   "image": "gamecenter/checks_40.png"
+  },
+  {
+   "id": "crosswind.ach.class_c",
+   "ref": "class_c",
+   "name": "Jet Age",
+   "before": "Sign an Albatross 160 route.",
+   "after": "You signed an Albatross 160 route.",
+   "points": 10,
+   "glyph": "plane",
+   "tier": 2,
+   "image": "gamecenter/class_c.png"
+  },
+  {
+   "id": "crosswind.ach.class_e",
+   "ref": "class_e",
+   "name": "Heavy Metal",
+   "before": "Sign a Leviathan 520 route.",
+   "after": "You signed a Leviathan 520 route.",
+   "points": 40,
+   "glyph": "heavy",
+   "tier": 3,
+   "image": "gamecenter/class_e.png"
+  }
+ ]
+}

@@ -1,0 +1,71 @@
+{
+  "locale": "en-US",
+  "name": "Crosswind: Airport Tycoon",
+  "subtitle": "Build Your Airport Empire",
+  "primaryCategory": "GAMES",
+  "primarySubcategoryOne": "GAMES_SIMULATION",
+  "primarySubcategoryTwo": "GAMES_STRATEGY",
+  "privacyPolicyUrl": "https://mrnickrushing.github.io/crosswind/privacy.html",
+  "supportUrl": "https://mrnickrushing.github.io/crosswind/support.html",
+  "marketingUrl": "https://mrnickrushing.github.io/crosswind/",
+  "copyright": "2026 Rushing Technologies",
+  "promotionalText": "Turn a grass airstrip into an international hub. Sign airlines, turn every flight round on time, and trade up to bigger, tougher airports.",
+  "keywords": "airport,tycoon,airline,plane,idle,manager,simulator,flight,terminal,aviation,build,business,empire",
+  "description": [
+    "A grass strip, one small stand and a windsock. Crosswind hands you the keys and asks one thing: build the airport everyone wants to fly to.",
+    "",
+    "RUN THE AIRFIELD",
+    "- Sign routes with airlines, from little turboprops to wide-body jets that need their own stands.",
+    "- Turn every flight round on time: fuel, baggage, catering, cleaning, de-icing and pushback, with your crews and vehicles working each aircraft.",
+    "- Build and upgrade the runway, taxiways, stands with boarding bridges, the tower, hangar and cargo shed.",
+    "- Hire managers so departments run themselves while you plan the next move.",
+    "",
+    "DESIGN THE TERMINAL",
+    "- Step inside and furnish the concourse yourself: coffee bars, shops, seating, lounges, an arcade and more.",
+    "- Watch passengers queue, shop and board. Meet their needs and your rating climbs.",
+    "",
+    "THINK LIKE AN OPERATOR",
+    "- Fuel prices move every day: fill the tank farm when it's cheap, or pay for it when the tanks run dry.",
+    "- Landings wear the runway. Pick a quiet hour to resurface before it slows you down.",
+    "- Plan the day's schedule, keep airlines happy and choose the terms of each contract.",
+    "- Buy aircraft for your own airline and keep them maintained.",
+    "- Every airport day is graded A to E. Good days pay a bonus, and streaks pay more.",
+    "",
+    "GROW AN EMPIRE",
+    "- Research new technology, train your managers and collect a team of specialists.",
+    "- Rain, fog and snow change the day. Take passing opportunities when they come up.",
+    "- Sell your airport for Wings that raise all income for good, then start again somewhere harder and richer: six airports to master.",
+    "- Your airport keeps earning while you're away.",
+    "",
+    "PLAY TOGETHER",
+    "- Add friends by code, compare airports and swap a gift every day.",
+    "- Game Center leaderboards and achievements.",
+    "- Your save follows you between iPhone and iPad through iCloud.",
+    "",
+    "Crosswind is free to play, with no ads. Optional in-app purchases include gems, the Founder's Pack and Golden Runway. Team crates are opened with gems and show their odds before you open one. Nothing in the game needs a purchase.",
+    "",
+    "Made by Rushing Technologies."
+  ],
+  "ageRating": {
+    "lootBox": true
+  },
+  "contentRightsDeclaration": "USES_THIRD_PARTY_CONTENT",
+  "screenshots": {
+    "APP_IPHONE_67": [
+      "iphone_1.jpg",
+      "iphone_2.jpg",
+      "iphone_3.jpg",
+      "iphone_4.jpg",
+      "iphone_5.jpg",
+      "iphone_6.jpg"
+    ],
+    "APP_IPAD_PRO_3GEN_129": [
+      "ipad_1.jpg",
+      "ipad_2.jpg",
+      "ipad_3.jpg",
+      "ipad_4.jpg",
+      "ipad_5.jpg",
+      "ipad_6.jpg"
+    ]
+  }
+}

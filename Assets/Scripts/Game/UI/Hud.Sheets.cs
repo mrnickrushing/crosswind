@@ -92,7 +92,7 @@ namespace Crosswind.Game
                         string blocked = s.UpgradeBlocked(id);
                         string why = blocked == null ? null : blocked.StartsWith("Need ") ? blocked : blocked;
                         Entry(d.Name, (level > 0 ? "LEVEL " + level : "NOT BUILT") + (secs > 0 ? " · " + Format.Time(secs) + " TO BUILD" : ""), d.Blurb, level >= d.MaxLevel ? "MAX" : (level > 0 ? "UPGRADE\n" : "BUILD\n") + "<size=34>" + Format.Money(s.Cost(id)) + "</size>",
-                            blocked != null && blocked.StartsWith("Need ") ? blocked : why, () => { if (s.Upgrade(id)) Toast(secs > 0 ? d.Name + ": the crew has started" : d.Name + (level > 0 ? " upgraded to level " + (level + 1) : " built")); });
+                            blocked != null && blocked.StartsWith("Need ") ? blocked : why, () => { if (s.Upgrade(id)) if (secs > 60) Reminders.AskOnce(); Toast(secs > 0 ? d.Name + ": the crew has started" : d.Name + (level > 0 ? " upgraded to level " + (level + 1) : " built")); });
                     }
                 }
             }
@@ -237,6 +237,9 @@ namespace Crosswind.Game
             Header("SETTINGS");
             Entry("Sound", Sfx.Muted ? "OFF" : "ON", "Interface sounds and the airfield.", Sfx.Muted ? "TURN ON" : "TURN OFF", null, () => { Sfx.Muted = !Sfx.Muted; }, Ui.Card);
             Entry("Share anonymous play statistics", Telemetry.Sharing ? "ON" : "OFF", "Tells us where players get stuck: goals reached, stars, frame rate. Nothing about you, no tracking.", Telemetry.Sharing ? "TURN OFF" : "TURN ON", null, () => { Telemetry.Sharing = !Telemetry.Sharing; }, Ui.Card);
+            Entry("Reminders", Reminders.On ? "ON" : "OFF", "A notification when the builders or research finish, a free crate is ready, or the airport has earned all it can.", Reminders.On ? "TURN OFF" : "TURN ON", null, () => { Reminders.On = !Reminders.On; }, Ui.Card);
+            Entry("iCloud save", CloudSave.Available ? "ON" : "OFF", CloudSave.Available ? "Your airport is kept in your own iCloud and follows you to a new phone." + (CloudSave.LastPushed > 0 ? " Last saved " + Format.Time(System.Math.Max(0, SaveSystem.Now - CloudSave.LastPushed)) + " ago." : "")
+                : "Sign in to iCloud in the iPhone's Settings to keep your airport safe and move it to a new phone.", null, null, null);
             Header("ACHIEVEMENTS");
             foreach (var a in Sim.Achievements.OrderBy(a => s.AchievementClaimed(a) ? 2 : s.AchievementDone(a) ? 0 : 1))
             {
@@ -269,6 +272,30 @@ namespace Crosswind.Game
             var no = Ui.Button("No", box, "STAY", Ui.Off, () => { Destroy(_confirm.gameObject); _confirm = null; }, 46);
             ((RectTransform)no.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-210, 50), new Vector2(400, 120));
         }
+
+        // ------------------------------------------------------------------ a newer save on another device
+
+        /// <summary>Another device saved since this one last looked: ask which airport to continue, never overwrite either unasked.</summary>
+        public void OfferCloud()
+        {
+            var cloud = GameRoot.Instance.PendingCloud; var meta = GameRoot.Instance.PendingMeta;
+            if (cloud == null || _cloud != null) return;
+            _cloud = Ui.Img("Cloud", _root, new Color(0, 0, 0, 0.7f)).rectTransform;
+            _cloud.Fill(); _cloud.GetComponent<Image>().raycastTarget = true;
+            var box = Ui.Img("Box", _cloud, Ui.Panel, true).rectTransform;
+            box.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(920, 700));
+            Ui.Label("T", box, "CONTINUE FROM YOUR OTHER DEVICE?", 52, Color.white).rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -40), new Vector2(840, 80));
+            int theirs = meta != null ? meta.Stars : new Sim(cloud).Stars;
+            Ui.Label("B", box, "iCloud has a newer save from another device:\n<color=#FFC83D>" + theirs + (theirs == 1 ? " star" : " stars") + "</color>, saved " + Format.Time(System.Math.Max(0, SaveSystem.Now - cloud.savedAt)) + " ago.\n\n"
+                + "This device has a <color=#FFC83D>" + _sim.Stars + "-star</color> airport.\n\nThe one you don't pick is replaced.", 36, Ui.Dim, TextAnchor.UpperCenter, false)
+                .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(820, 360));
+            var yes = Ui.Button("Yes", box, "USE ICLOUD", Ui.Blue, () => { Destroy(_cloud.gameObject); _cloud = null; GameRoot.Instance.ResolveCloud(true); }, 44);
+            ((RectTransform)yes.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(210, 50), new Vector2(400, 120));
+            var no = Ui.Button("No", box, "KEEP THIS ONE", Ui.Off, () => { Destroy(_cloud.gameObject); _cloud = null; GameRoot.Instance.ResolveCloud(false); }, 44);
+            ((RectTransform)no.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-210, 50), new Vector2(400, 120));
+        }
+
+        RectTransform _cloud;
 
         // ------------------------------------------------------------------ welcome back
 

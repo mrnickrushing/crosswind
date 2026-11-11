@@ -67,3 +67,4 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   `ProjectSettings/Packages/com.unity.pipeline/`.
 - Core tests passing; once there is a Game layer: recompile with 0 errors and Play mode with 0 Console errors.
 - Commit `.meta` files.
+- Accounts (`Game/Platform`): the save also lives in the player's iCloud key-value store (`CloudSave` + `Plugins/iOS/CrosswindCloud.mm`, rules in `Core/CloudRules`: a new phone adopts it, a newer save from another device is offered by `Hud.OfferCloud`, never overwritten); local reminders (`Reminders`, `Sim.ReminderPlan`; permission asked after the first build over a minute; Settings switch). `Editor/IosCapabilities.cs` writes `Crosswind.entitlements`; the bundle id needs iCloud enabled before a signed build. Committing `Packages/manifest.json`: stage it from HEAD plus your line so `com.unity.pipeline` stays out.

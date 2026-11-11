@@ -6,7 +6,8 @@
         "UnityEngine.UI",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.Notifications.iOS"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

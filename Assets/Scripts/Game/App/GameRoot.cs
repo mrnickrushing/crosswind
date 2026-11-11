@@ -32,7 +32,18 @@ namespace Crosswind.Game
             foreach (var cam in FindObjectsByType<Camera>(FindObjectsSortMode.None)) Destroy(cam.gameObject);
             foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) Destroy(l.gameObject);
 
+            Reminders.Clear();
             var state = SaveSystem.Load();
+            // The save in the player's iCloud: a new phone continues from it; a newer one from another device is offered.
+            var cloud = CloudSave.Fetch();
+            if (cloud != null)
+            {
+                var meta = CloudSave.Meta();
+                var step = CloudRules.Decide(state != null, meta, CloudSave.Me, CloudSave.Seen);
+                if (step == CloudStep.Adopt) { cloud.Repair(); state = cloud; CloudSave.Seen = cloud.savedAt; }
+                else if (step == CloudStep.Offer) { PendingCloud = cloud; PendingMeta = meta; }
+            }
+            CloudSave.NewerElsewhere += meta => { if (PendingCloud != null) return; var c = CloudSave.Fetch(); if (c == null) return; PendingCloud = c; PendingMeta = meta; if (Hud.Instance != null) Hud.Instance.OfferCloud(); };
             bool fresh = state == null;
             if (fresh) state = GameState.New();
             Sim = new Sim(state);
@@ -82,21 +93,44 @@ namespace Crosswind.Game
 
         public void ClearAway() { AwaySeconds = 0; }
 
-        public void Save() { SaveSystem.Save(Sim.State); }
+        public void Save(bool now = false) { SaveSystem.Save(Sim.State); if (PendingCloud == null) CloudSave.Push(Sim.State, Sim.Stars, now); }
+
+        /// <summary>A newer save from another device, waiting for the player's choice (null: none).</summary>
+        public GameState PendingCloud { get; private set; }
+        public CloudMeta PendingMeta { get; private set; }
+
+        /// <summary>The player's answer to "continue from your other device?".</summary>
+        public void ResolveCloud(bool useCloud)
+        {
+            var cloud = PendingCloud; var meta = PendingMeta;
+            PendingCloud = null; PendingMeta = null;
+            if (cloud == null) return;
+            CloudSave.Seen = meta != null ? meta.SavedAt : cloud.savedAt;
+            if (useCloud) { cloud.Repair(); Rebuild(cloud); SaveSystem.Save(Sim.State); }
+            else Save(true);
+        }
 
         void OnApplicationPause(bool paused)
         {
-            if (paused) Save();
-            else if (Sim != null && Sim.State.savedAt > 0) { AwaySeconds = System.Math.Max(0, SaveSystem.Now - Sim.State.savedAt); if (Hud.Instance != null) Hud.Instance.OfferAway(); }
+            if (paused) { Save(true); Reminders.Schedule(); }
+            else Reminders.Clear();
+            if (!paused)
+                if (Sim != null && Sim.State.savedAt > 0) { AwaySeconds = System.Math.Max(0, SaveSystem.Now - Sim.State.savedAt); if (Hud.Instance != null) Hud.Instance.OfferAway(); }
         }
 
-        void OnApplicationQuit() { Save(); }
+        void OnApplicationQuit() { Save(true); }
 
         /// <summary>Starts over (Editor and Settings): deletes the save and rebuilds everything.</summary>
         public void Restart()
         {
             SaveSystem.Delete();
-            Sim = new Sim(GameState.New());
+            CloudSave.Erase();
+            Rebuild(GameState.New());
+        }
+
+        void Rebuild(GameState state)
+        {
+            Sim = new Sim(state);
             AwaySeconds = 0;
             if (AirportView.Instance != null) Destroy(AirportView.Instance.gameObject);
             if (Hud.Instance != null) Destroy(Hud.Instance.gameObject);

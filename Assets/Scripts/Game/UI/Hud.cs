@@ -53,6 +53,7 @@ namespace Crosswind.Game
             h._sim.WeatherChanged += w => { if (w != Weather.Clear) h.Toast(w + ": the runway slows down"); };
             h._shownMoney = h._sim.State.money;
             h.OfferAway();
+            h.OfferCloud();
             return h;
         }
 

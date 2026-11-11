@@ -148,6 +148,7 @@ namespace Crosswind.Tests
             Assert.AreEqual(12, s.State.gems);
             Assert.IsTrue(s.Researched("com_fees"));
             CollectionAssert.Contains(s.State.mapsRun, "meadow");
+            Assert.IsNotNull(s.CurrentGoal, "the guide runs again at the new airport");
             Assert.Greater(s.FlightValue(Content.Routes["puffin_isles"]), meadowValue * 3, "the island pays more, and Wings add to it");
             Assert.Greater(s.Cost("stands"), 150, "and costs more");
             s.Tick(30);

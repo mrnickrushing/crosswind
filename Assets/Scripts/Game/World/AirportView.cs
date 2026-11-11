@@ -86,11 +86,19 @@ namespace Crosswind.Game
             Color stripe = MeshBuilder.Darken(ground, 0.94f), tree = map == "dune" ? Palette.Hex(0x8A9A4A) : map == "polar" ? Palette.Hex(0x3E5A48) : Palette.Hex(0x4E7A3A);
             var g = new Ground();
             bool green = map == "meadow" || map == "alpine" || map == "metro";
-            if (green) g.Rect("Grass", 20, 0, 1400, 1400, -0.05f); else mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), ground);
-            if (map == "coral") mb.Box(new Vector3(-420, -0.28f, 0), new Vector3(520, 0.5f, 1400), Palette.Hex(0x2E9CB4));     // the sea, west of the strip
+            if (green) g.Rect("Grass", 20, 0, 1400, 1400, -0.05f); else if (map != "coral") mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), ground);
+            if (map == "coral")
+            {
+                // An island: turquoise shallows round the sand on every side, deeper blue beyond.
+                mb.Smoothness = 0.85f;
+                mb.Box(new Vector3(20, -0.32f, 0), new Vector3(2400, 0.5f, 2400), Palette.Hex(0x1E86A8));
+                mb.Box(new Vector3(40, -0.3f, 0), new Vector3(560, 0.5f, 560), Palette.Hex(0x4CC4C9));
+                mb.Smoothness = 0.08f;
+                mb.Box(new Vector3(40, -0.27f, 0), new Vector3(470, 0.5f, 470), ground);
+            }
             if (green) g.Rect("Grass", Layout.RunwayX, 0, w + 16, half * 2 + 34, -0.03f, 0, new Color(0.82f, 0.86f, 0.78f)); else mb.Box(new Vector3(Layout.RunwayX, -0.04f, 0), new Vector3(w + 14, 0.04f, half * 2 + 30), MeshBuilder.Darken(ground, 0.86f));
             for (int k = -14; k <= 14; k++)
-                if (green) g.Rect("Grass", 20, k * 44f, 1400, 22, -0.04f, 0, new Color(0.9f, 0.93f, 0.88f)); else mb.Box(new Vector3(20, -0.045f, k * 44f), new Vector3(1400, 0.02f, 22), stripe);        // mowing stripes
+                if (green) g.Rect("Grass", 20, k * 44f, 1400, 22, -0.04f, 0, new Color(0.9f, 0.93f, 0.88f)); else if (map != "coral") mb.Box(new Vector3(20, -0.045f, k * 44f), new Vector3(1400, 0.02f, 22), stripe);        // mowing stripes
 
             // Runway: grass strip, gravel, asphalt, then concrete with full markings.
             Color surface = rl <= 1 ? Palette.GrassWorn : rl <= 2 ? Palette.Gravel : rl <= 9 ? Palette.Asphalt : Palette.AsphaltPale;
@@ -454,7 +462,7 @@ namespace Crosswind.Game
             {
                 float x = (float)rng.NextDouble() * 900 - 430, z = (float)rng.NextDouble() * 900 - 450;
                 bool clear = x > Layout.RunwayX - 22 && x < roadX + 150 && z > -half - 85 && z < half + 110;
-                if (clear || (map == "coral" && x < -150)) continue;
+                if (clear || (map == "coral" && (Mathf.Abs(x - 40) > 225 || Mathf.Abs(z) > 225))) continue;
                 float h = 3 + (float)rng.NextDouble() * 4;
                 mb.Smoothness = 0.05f;
                 mb.Cylinder(new Vector3(x, 0, z), new Vector3(x, h * 0.4f, z), 0.3f, 0.25f, 5, Palette.Wood);

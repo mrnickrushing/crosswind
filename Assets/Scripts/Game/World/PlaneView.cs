@@ -106,7 +106,6 @@ namespace Crosswind.Game
             Trucks();
         }
 
-        static string TruckModel(Service s) { return s == Service.Fuel ? "truck" : s == Service.Baggage || s == Service.Pushback ? "tractor" : s == Service.Catering ? "delivery" : s == Service.Deice ? "firetruck" : "van"; }
         ParticleSystem _spray;
         readonly Dictionary<Service, float> _truckT = new Dictionary<Service, float>();
 
@@ -130,13 +129,18 @@ namespace Crosswind.Game
                 if (t == null)
                 {
                     if (!working) { k++; continue; }
-                    t = Models.Kit(TruckModel(j.service), transform.parent, Vector3.zero, 0, j.service == Service.Baggage ? 3.2f : tug ? 4.2f : j.service == Service.Deice ? Mathf.Clamp(L * 0.3f, 3.6f, 6f) : 5f) ?? Models.Truck(j.service).ToObject("Truck", transform.parent);
+                    t = Gse.Build(j.service).ToObject("Gse " + j.service, transform.parent);
+                    t.transform.localScale = Vector3.one * (j.service == Service.Deice ? Mathf.Clamp(L * 0.085f, 0.85f, 1.15f) : j.service == Service.Pushback ? Mathf.Clamp(L * 0.09f, 0.8f, 1.1f) : 1f);
                     _trucks[j.service] = t; at = 0;
                 }
                 // 0 at the depot, 1 beside the aircraft.
                 at = Mathf.MoveTowards(at, working ? 1 : 0, Time.deltaTime * Mathf.Max(1, GameRoot.Speed) * 0.55f);
                 _truckT[j.service] = at;
-                var side = Layout.Stand(StandOrLast()) + (k % 2 == 0 ? 1 : -1) * Vector3.forward * (L * 0.2f + 2.6f) + Vector3.left * (k / 2 * 3.4f - 1f);
+                // The first crew works the service side (away from the bridges), level with the wing root; the next
+                // goes under the other wing, aft of the bridges; any more take a second row further out.
+                var side = k % 2 == 0
+                    ? Layout.Stand(StandOrLast()) + Vector3.back * (L * 0.2f + 2.6f + k / 2 * 2.3f) + Vector3.right * 1f
+                    : Layout.Stand(StandOrLast()) + Vector3.forward * (L * 0.2f + 2.2f) + Vector3.left * (3f + k / 2 * 5.2f);
                 // The tug couples to the nose gear (the aircraft is nose-in, facing +X); the de-icer works off the wing.
                 if (tug) side = (pushing ? transform.position : Layout.Stand(StandOrLast())) + Vector3.right * (L * 0.5f + 1.2f) + Vector3.forward * 0.01f;
                 else if (j.service == Service.Deice) side = Layout.Stand(StandOrLast()) + Vector3.forward * (L * 0.34f + 3f) + Vector3.left * (L * 0.05f);

@@ -84,6 +84,9 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   stand is spare, so the apron stays full without costing throughput. `Content.Departments` lists the six crewed
   departments (managers, depots, `IdleRate` crew loads). View: `PlaneView.Trucks` (tug on the nose, also through
   the push back; `Spray` for de-icing), bubbles and board statuses in `Hud.cs` / `Hud.Board.cs`.
+- Ground support vehicles are built from code in `World/Gse.cs` (bowser, baggage train, catering high-loader, cabin
+  van, pushback tug, de-icer; all face -Z, about 4 m long). `PlaneView.Trucks` parks the first crew on the service
+  side (-Z, away from the bridges), the next under the other wing aft of the bridges.
 - Wide-body stands (facility `heavy`, 5 stars, max 6): class D and E (`Sim.Heavy`) park only on the first
   `HeavyStands` stands of the row; smaller aircraft fill the ordinary ones first and leave a wide-body stand at once
   when one is circling (`WideBodyWaiting`). `Sim.Missing(route)` lists the facilities a route still waits for (the

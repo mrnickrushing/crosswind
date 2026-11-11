@@ -69,6 +69,7 @@ namespace Crosswind.Game
                 if (next != null && s.State.money > s.ResearchCost(next) * 1.5) s.StartResearch(next.Id);
             }
             else if (s.State.gems >= s.ResearchSkipGems + 20) s.SkipResearch();
+            if (s.ReportWaiting) s.ClaimReport();
             if (s.RunwayCondition < 0.45f && s.ResurfaceBlocked() == null && s.ResurfaceCost < s.State.money * 0.3) s.Resurface();
             if (s.FuelFill < 0.3f && (s.FuelPrice <= 1.05f || s.FuelFill < 0.08f)) s.BuyFuel(s.FuelPrice < 0.95f ? 1f : 0.6f);
             var wanted = Content.Routes.Values.Where(r => !s.Signed(r.Id) && s.Stars >= r.Stars)

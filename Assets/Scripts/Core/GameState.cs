@@ -135,6 +135,10 @@ namespace Crosswind.Core
         public float runwayWear;                                     // 0 fresh .. 1 worn out
         public double runwayClosedUntil;                             // game time the resurfacing crews leave
         public int resurfaced;
+        public int dayIndex = -1, dayFlights, dayOnTime, dayDry;     // the airport day being counted, and its tallies
+        public double dayIncome;
+        public DayReport report;                                     // the last day closed (null before the first)
+        public int gradeStreak, daysAtA;
         public bool fuelWarned;                                      // the low-fuel warning has been given for this tankful
         public List<AirlineDeal> deals = new List<AirlineDeal>();    // each airline's punctuality deal in progress
         public List<LevelEntry> partner = new List<LevelEntry>();    // partner level with each airline, 0..3 (kept at this airport)

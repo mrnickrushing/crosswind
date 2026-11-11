@@ -56,13 +56,15 @@ namespace Crosswind.Core
             var parts = new double[5];
             double value = FlightValue(r, onTime, parts);
             // Dry tanks: an outside supplier fuels the aircraft and keeps most of the margin.
-            if (!DrawFuel(r)) { value -= parts[2] * (1 - DryMargin) * IncomeScale; parts[2] *= DryMargin; }
+            bool dry = !DrawFuel(r);
+            if (dry) { value -= parts[2] * (1 - DryMargin) * IncomeScale; parts[2] *= DryMargin; }
             double paid = value * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay : RelationPay(r.Airline) * FeePay * PartnerPay(r.Airline));
             if (r.Airline != "own") Relate(r.Airline, (onTime ? 0.4f : -2.5f) + FeeMoodPerFlight);
             if (r.Airline != "own") CountDeal(r, onTime, paid);
             double sum = parts[0] + parts[1] + parts[2] + parts[3] + parts[4];
             if (sum > 0) for (int i = 0; i < 5; i++) State.incomeBy[i] += paid * parts[i] / sum;
             Earn(AfterLoan(paid), true);
+            CountDay(onTime, dry, paid);
             State.flightsHandled++;
             Count("flights", 1);
             if (onTime) Count("ontime", 1);

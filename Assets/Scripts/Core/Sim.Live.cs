@@ -68,6 +68,7 @@ namespace Crosswind.Core
             double park = ParkingRate * dt;
             if (park > 0) Earn(park, true);
             RollTasks();
+            TurnDay();
         }
 
         void NextWeather()

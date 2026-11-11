@@ -283,6 +283,24 @@ namespace Crosswind.Game
         void EmpireSheet()
         {
             var s = _sim;
+            {
+                // The day report: yesterday's grade and bonus, and how today is going.
+                var rep = s.State.report;
+                int nowGrade = Sim.GradeIndex(s.DayScore);
+                Header("DAY " + (s.FuelDay + 1) + (s.State.dayFlights > 0 ? "  ·  ON COURSE FOR GRADE " + Sim.Grades[nowGrade] : "") + (s.State.gradeStreak > 0 ? "  ·  STREAK " + s.State.gradeStreak : ""));
+                if (rep == null)
+                    Ico("medal", TintGold).Bar(s.DayPhase).Entry("Day report", "FIRST ONE AT 06:00", "Each day is graded on flights away on time, happy passengers, tanks that never run dry and a sound runway. Good grades pay a bonus on the day's takings.", null, null, null);
+                else
+                {
+                    int gi = System.Array.IndexOf(Sim.Grades, rep.grade); int rg = s.ReportGems(rep);
+                    var gt = gi <= 0 ? TintGold : gi == 1 ? TintGreen : gi == 2 ? TintAir : TintRed;
+                    string body = rep.flights + " flights, " + Mathf.RoundToInt(100f * rep.onTime / Mathf.Max(1, rep.flights)) + "% on time  ·  took " + Format.Money(rep.income) + "  ·  passengers " + Mathf.RoundToInt(rep.satisfaction * 100) + "%"
+                        + (rep.dry > 0 ? "  ·  " + rep.dry + " fuelled by a supplier" : "") + (rep.runway < Sim.WornAt ? "  ·  runway worn" : "");
+                    Ico("medal", gt).Bar(rep.score, gi <= 1 ? Ui.Green : gi == 2 ? Ui.Gold : Ui.Red).Entry("Day " + rep.day + " report", "GRADE " + rep.grade + (rep.streak > 1 ? "  ·  " + rep.streak + " GOOD DAYS RUNNING" : ""), body,
+                        rep.claimed ? null : rep.bonus > 0 || rg > 0 ? "COLLECT\n<size=34>" + (rep.bonus > 0 ? Format.Money(rep.bonus) : "") + (rg > 0 ? (rep.bonus > 0 ? " + " : "") + rg + " gems" : "") + "</size>" : "OK", null,
+                        () => { double got = s.ClaimReport(); Sfx.Play("confirm"); if (got > 0 || rg > 0) Toast("Day bonus: " + (got > 0 ? "+" + Format.Money(got) : "") + (rg > 0 ? "  +" + rg + " gems" : "")); }, gi <= 1 ? Ui.Gold : Ui.Blue);
+                }
+            }
             FinanceSection();
             Header("TODAY");
             for (int i = 0; i < s.State.tasks.Count; i++)

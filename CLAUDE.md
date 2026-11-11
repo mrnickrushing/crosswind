@@ -99,6 +99,10 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   under half condition `SurfaceFactor` scales `RunwaySpeed` down to 0.8. `Resurface()` costs money and shuts the
   runway for `ResurfaceSeconds` (`RunwayClosed` holds arrivals and departures; `AirportView._closed` shows the gang).
   UI: OPERATIONS at the top of BUILD, with the tank farm.
+- Day report (`Core/Sim.Report.cs`, `ReportTests`): `TurnDay` (from `Live`) closes each 12-minute day into
+  `State.report` (`ScoreOf`: 50% on time, 30% satisfaction, 10% never dry, 10% runway sound; grades A-E; bonus 5/3/1%
+  of the day's takings; `gradeStreak` of B-or-better days pays `StreakGems` every `StreakEvery`). Uncollected bonuses
+  roll over. UI: top of EMPIRE, toast and the EMPIRE dot.
 - Wide-body stands (facility `heavy`, 5 stars, max 6): class D and E (`Sim.Heavy`) park only on the first
   `HeavyStands` stands of the row; smaller aircraft fill the ordinary ones first and leave a wide-body stand at once
   when one is circling (`WideBodyWaiting`). `Sim.Missing(route)` lists the facilities a route still waits for (the

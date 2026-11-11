@@ -52,6 +52,7 @@ namespace Crosswind.Game
             h._sim.FuelLow += () => { h.Toast(h._sim.State.managers.Contains("fuel") ? "Fuel is low and the price is high: your manager is waiting" : "Fuel is running low: fill the tanks in BUILD"); h._dirty = true; };
             h._sim.RunwayWorn += () => { h.Toast("The runway is worn: it clears slower until it is resurfaced (BUILD)"); h._dirty = true; };
             h._sim.RunwayReopened += () => { h.Toast("Runway open: a fresh surface"); Sfx.Play("build"); h._dirty = true; };
+            h._sim.DayEnded += r => { if (GameRoot.Speed <= 3) { h.Toast("Day " + r.day + ": grade " + r.grade + (r.bonus > 0 ? ". Collect your bonus in EMPIRE" : "")); Sfx.Play("chime", 0.6f); } h._dirty = true; };
             h._sim.OpportunityAppeared += o => Sfx.Play("chime", 0.6f);
             h._sim.WeatherChanged += w => { if (w != Weather.Clear) h.Toast(w + ": the runway slows down"); };
             h._shownMoney = h._sim.State.money;
@@ -242,7 +243,7 @@ namespace Crosswind.Game
                 _opp.anchoredPosition = new Vector2(-20, CameraRig.Inside ? 124 : 20);      // clear of the ratings strip indoors
             }
             _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
-            _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
+            _empireDot.gameObject.SetActive(_sim.ReportWaiting || _sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateBoard();
             UpdateTerminalUi();
             UpdateServiceButtons();

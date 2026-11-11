@@ -24,6 +24,11 @@ namespace Crosswind.Game
             "Queues at check-in and security cost you in the shops. Upgrade the slowest one.",
             "Storm coming? Landing aids keep the runway moving.",
             "Sell a finished airport for Wings: every one adds to all income, for good.",
+            "Fuel is cheaper some days than others. Fill the tank farm on a cheap one.",
+            "A worn runway clears slowly. Resurface it in a quiet hour.",
+            "Close the day with grade A for a 5% bonus. Five good days in a row pay gems.",
+            "Your own aircraft need a check now and then. A hangar halves the bill.",
+            "Wide-body jets only park on wide-body stands. Build one before signing the route.",
         };
 
         CanvasGroup _group;

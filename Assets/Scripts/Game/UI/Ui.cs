@@ -29,7 +29,9 @@ namespace Crosswind.Game
             c.renderMode = RenderMode.ScreenSpaceOverlay;
             var s = go.AddComponent<CanvasScaler>();
             s.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            s.referenceResolution = new Vector2(1920, 1080);
+            // Wider than 16:9 (every notched iPhone) the canvas is 940 tall, not 1080: everything is drawn 15% larger, so
+            // the smallest labels clear 11 points. 16:9 and iPads are unchanged (they are limited by width).
+            s.referenceResolution = new Vector2(1920, 940);
             s.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             go.AddComponent<GraphicRaycaster>();
             if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() == null)
@@ -241,9 +243,12 @@ namespace Crosswind.Game
     public sealed class SafeArea : MonoBehaviour
     {
         Rect _last;
+        /// <summary>Editor only: pretend the screen has these insets (left/right, bottom, as shares of the screen) to check a notched phone.</summary>
+        public static Vector2 DebugInset;
         void Update()
         {
             var sa = Screen.safeArea;
+            if (Application.isEditor && DebugInset != Vector2.zero) sa = new Rect(DebugInset.x * Screen.width, DebugInset.y * Screen.height, Screen.width * (1 - DebugInset.x * 2), Screen.height * (1 - DebugInset.y));
             if (sa == _last || Screen.width <= 0 || Screen.height <= 0) return;
             _last = sa;
             var rt = (RectTransform)transform;

@@ -90,7 +90,7 @@ namespace Crosswind.Game
                 var b = Ui.Button(TabNames[i], rail, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 22);
                 var lab = b.GetComponentInChildren<Text>().rectTransform; lab.anchorMin = new Vector2(0, 0); lab.anchorMax = new Vector2(1, 0.36f); lab.offsetMin = new Vector2(2, 8); lab.offsetMax = new Vector2(-2, 0);
                 Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 50);
-                ((RectTransform)b.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12 - i * 124), new Vector2(112, 116));
+                ((RectTransform)b.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12 - i * 118), new Vector2(112, 112));      // six tabs and the terminal button fit a 940-high phone canvas
                 _tabs.Add(b);
             }
             var dot = Ui.Img("Dot", _tabs[4].transform, Ui.Red); dot.sprite = Ui.Circle;
@@ -150,11 +150,11 @@ namespace Crosswind.Game
 
             // Top centre: the clock and the weather; under it what is running (a boost, a rush).
             var clock = Ui.ArtImg("Clock", _safe, "panel", Color.white).rectTransform;
-            clock.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(60, -12), new Vector2(380, 58));
+            clock.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(824, -12), new Vector2(380, 58));      // beside the status block, whatever the width
             _weather = Ui.Label("Weather", clock, "", 30, Color.white);
             _weather.rectTransform.Fill(4);
             _chips = Ui.Label("Chips", _safe, "", 30, Ui.Gold);
-            _chips.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(60, -76), new Vector2(620, 44));
+            _chips.rectTransform.Place(new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(1014, -76), new Vector2(620, 44));
             Outline(_chips);
 
             BuildBoard();

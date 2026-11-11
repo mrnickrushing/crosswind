@@ -107,7 +107,9 @@ namespace Crosswind.Core
         public List<TaskState> tasks = new List<TaskState>();
         public int upgradesBought;
         public List<BuildJob> builds = new List<BuildJob>();
-        public int signInDay = -1, signInStreak;                    // the last day claimed, and days in a row
+        public int signInDay = -1, signInStreak;
+        public int eventWeek = -1, eventClaimed;                    // the week the progress belongs to, and milestones claimed
+        public double eventProgress;                    // the last day claimed, and days in a row
         public double sessionEarned;
 
         public static GameState New()

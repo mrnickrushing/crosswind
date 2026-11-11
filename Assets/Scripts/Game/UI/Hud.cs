@@ -214,7 +214,7 @@ namespace Crosswind.Game
                     + "\n<size=26>" + Mathf.CeilToInt((float)(o.expiresAt - _sim.State.time)) + "s</size>";
                 _opp.localScale = Vector3.one * (1 + Mathf.Sin(Time.unscaledTime * 6) * 0.03f);
             }
-            _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
+            _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateServiceButtons();
             UpdatePops();
             UpdateGuide();

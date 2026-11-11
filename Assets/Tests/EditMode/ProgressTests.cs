@@ -278,5 +278,26 @@ namespace Crosswind.Tests
             Assert.AreEqual(3, s.Builders);
             Assert.IsFalse(s.Grant("nothing", "t6"));
         }
+
+        [Test]
+        public void TheWeeklyEventCountsAndPaysItsMilestonesInOrderThenChanges()
+        {
+            var s = Fresh();
+            var e = s.CurrentEvent;
+            Assert.AreEqual(0, s.ClaimEvent());
+            s.State.money = 1e6; s.Hire("fuel");
+            s.State.eventProgress = 0; s.State.eventWeek = s.Week;
+            s.State.eventProgress = e.Targets[1];
+            Assert.AreEqual(2, s.EventWaiting);
+            Assert.AreEqual(e.Gems[0], s.ClaimEvent());
+            Assert.AreEqual(e.Gems[1], s.ClaimEvent());
+            Assert.AreEqual(0, s.ClaimEvent());
+            Assert.That(s.EventLeft, Is.InRange(0.0, 7 * 86400.0));
+            _now += 7 * 86400;
+            Assert.AreNotEqual(e.Id, s.CurrentEvent.Id, "a new event the next week");
+            Assert.AreEqual(0, s.EventWaiting, "and its progress starts again");
+            for (int i = 0; i < 2400; i++) s.Tick(0.25f);
+            if (s.CurrentEvent.Counts == "flights" || s.CurrentEvent.Counts == "ontime" || s.CurrentEvent.Counts == "earnMinutes") Assert.Greater(s.State.eventProgress, 0);
+        }
     }
 }

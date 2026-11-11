@@ -135,6 +135,7 @@ namespace Crosswind.Core
 
         void Count(string kind, double n)
         {
+            CountEvent(kind, n);
             foreach (var t in State.tasks) if (t.kind == kind && !t.claimed) t.progress = Math.Min(t.target, t.progress + n);
         }
 

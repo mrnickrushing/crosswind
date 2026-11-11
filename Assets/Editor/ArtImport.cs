@@ -19,6 +19,14 @@ namespace Crosswind.EditorTools
                 t.textureCompression = TextureImporterCompression.CompressedHQ;
                 return;
             }
+            if (assetPath.StartsWith("Assets/Resources/UI/Faces/"))
+            {
+                // Painted portraits: shown from a third of their size to nearly full, so mipmapped, and compressed (22 of them).
+                t.textureType = TextureImporterType.Sprite; t.spriteImportMode = SpriteImportMode.Single; t.mipmapEnabled = true; t.alphaIsTransparency = true;
+                t.wrapMode = TextureWrapMode.Clamp; t.filterMode = FilterMode.Trilinear;
+                t.textureCompression = TextureImporterCompression.CompressedHQ;
+                return;
+            }
             if (assetPath.StartsWith("Assets/Resources/UI/"))
             {
                 t.textureType = TextureImporterType.Sprite; t.spriteImportMode = SpriteImportMode.Single; t.mipmapEnabled = false; t.alphaIsTransparency = true;

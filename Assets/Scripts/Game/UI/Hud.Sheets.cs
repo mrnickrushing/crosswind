@@ -47,6 +47,9 @@ namespace Crosswind.Game
 
         /// <summary>Gives the next row an icon tile: <c>Ico("bell").Entry(...)</c>.</summary>
         Hud Ico(string name, Color? tint = null) { _ic = name; _icTint = tint ?? TintPlain; return this; }
+        string _pic, _picBadge; Color _picTint;
+        /// <summary>Gives the next row a person's portrait in place of an icon: <c>Pic("mgr_fuel", tint).Entry(...)</c>.</summary>
+        Hud Pic(string face, Color tint, string badge = null) { _pic = face; _picTint = tint; _picBadge = badge; return this; }
         float _bar = -1; Color _barTint;
         /// <summary>Gives the next row a progress bar along its foot (0..1).</summary>
         Hud Bar(double value, Color? tint = null) { _bar = Mathf.Clamp01((float)value); _barTint = tint ?? Ui.Green; return this; }
@@ -74,7 +77,13 @@ namespace Crosswind.Game
         {
             var row = Row(150);
             float left = 24;
-            if (_ic != null)
+            if (_pic != null)
+            {
+                var tile = FaceTile(row, _pic, "", _picTint, new Vector2(0, 0.5f), new Vector2(78, 0), 126);
+                if (_picBadge != null) Badge(tile, _picBadge, _picTint);
+                left = 156; _pic = null; _ic = null;
+            }
+            else if (_ic != null)
             {
                 var tile = Ui.ArtImg("Tile", row, "button", _icTint, 44, 1.6f).rectTransform;
                 tile.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(18, 0), new Vector2(108, 108));
@@ -106,10 +115,56 @@ namespace Crosswind.Game
             }
             if (button == null) return;
             bool ok = blocked == null;
-            var btn = Ui.Button("Do", row, null, ok ? (accent ?? Ui.Green) : Ui.Off, () => { if (ok) { act(); Sfx.Play("build", 0.7f); _dirty = true; } else { Toast(blocked); Sfx.Play("error", 0.5f); } }, 40);
-            ((RectTransform)btn.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, 0), new Vector2(220, 112));
-            var l = Ui.Label("L", btn.transform, ok ? button : button + "\n<size=22>" + blocked + "</size>", 34, Color.white);
-            l.rectTransform.Fill(10); l.resizeTextForBestFit = true; l.resizeTextMinSize = 16; l.resizeTextMaxSize = 34;
+            var btn = Ui.Button("Do", row, null, ok ? (accent ?? Ui.Green) : Locked, () => { if (ok) { act(); Sfx.Play("build", 0.7f); _dirty = true; } else { Toast(blocked); Sfx.Play("error", 0.5f); } }, 40);
+            ((RectTransform)btn.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, 0), new Vector2(220, 118));
+            ButtonFace(btn.transform, button, blocked);
+        }
+
+        /// <summary>A button that can't be used yet: slate, lighter than the row it sits on so it still reads as a button.</summary>
+        static readonly Color Locked = new Color(0.42f, 0.48f, 0.58f);
+        static readonly System.Text.RegularExpressions.Regex Tags = new System.Text.RegularExpressions.Regex("<[^>]+>");
+
+        /// <summary>
+        /// What a row's button says, every line inside the button whatever its length: the action, the price under it
+        /// (the part of <paramref name="text"/> after a line break), and when it can't be used the reason on a dark
+        /// strip along its foot. Each line is its own label, sized to its own box.
+        /// </summary>
+        static void ButtonFace(Transform button, string text, string blocked)
+        {
+            int cut = text.IndexOf('\n');
+            string head = Tags.Replace(cut < 0 ? text : text.Substring(0, cut), ""), value = cut < 0 ? null : Tags.Replace(text.Substring(cut + 1), "").Replace('\n', ' ');
+            bool ok = blocked == null;
+            // The glossy button art has a darker lip along its foot: the words sit in the face above it.
+            // A long reason gets a taller strip and two lines, so it stays readable.
+            float foot = ok ? 0.1f : blocked.Length > 22 ? 0.48f : 0.36f, top = 0.95f;
+            if (!ok)
+            {
+                var strip = Ui.Img("Why", button, new Color(0, 0, 0, 0.42f), true).rectTransform;
+                strip.anchorMin = new Vector2(0, 0); strip.anchorMax = new Vector2(1, foot); strip.offsetMin = new Vector2(7, 9); strip.offsetMax = new Vector2(-7, 0);
+                var why = Line(strip, blocked, 22, 13, new Color(1f, 0.82f, 0.45f), 0, 1, 6);
+                why.horizontalOverflow = HorizontalWrapMode.Wrap; why.lineSpacing = 0.85f;
+            }
+            var ink = ok ? Color.white : new Color(1, 1, 1, 0.72f);
+            if (value == null) { Shade(Line(button, head, 34, 16, ink, foot, top, 10)); return; }
+            float mid = foot + (top - foot) * (ok ? 0.5f : 0.48f);
+            Shade(Line(button, head, ok ? 30 : 26, 14, ink, mid, top, 10));
+            Shade(Line(button, value, ok ? 36 : 30, 14, ink, foot, mid, 10));
+        }
+
+        /// <summary>One line of a button, shrunk to fit the band between two heights (0 the foot, 1 the top).</summary>
+        static Text Line(Transform parent, string text, int size, int min, Color color, float from, float to, float side)
+        {
+            var l = Ui.Label("L", parent, text, size, color);
+            var rt = l.rectTransform;
+            rt.anchorMin = new Vector2(0, from); rt.anchorMax = new Vector2(1, to); rt.offsetMin = new Vector2(side, 0); rt.offsetMax = new Vector2(-side, 0);
+            l.resizeTextForBestFit = true; l.resizeTextMinSize = min; l.resizeTextMaxSize = size;
+            l.horizontalOverflow = HorizontalWrapMode.Wrap; l.verticalOverflow = VerticalWrapMode.Truncate;
+            return l;
+        }
+
+        static void Shade(Text l)
+        {
+            var sh = l.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0, 0, 0, 0.4f); sh.effectDistance = new Vector2(0, -2);
         }
 
         void RefreshSheet()
@@ -250,10 +305,10 @@ namespace Crosswind.Game
                     if (d.Group != "Services" || id == "hangar" || id == "cargo") continue;
                     int ml = s.ManagerLevel(id);
                     if (hired)
-                        Ico("manager", FacilityTint(id)).Entry(d.Name + " manager", "LEVEL " + ml, "Sends the crews out the moment an aircraft parks. Crews work " + (ml * 10) + "% faster; training adds 10%.",
+                        Pic("mgr_" + id, FacilityTint(id), ml + "").Entry(d.Name + " manager", "LEVEL " + ml, "Sends the crews out the moment an aircraft parks. Crews work " + (ml * 10) + "% faster; training adds 10%.",
                             ml >= Sim.MaxManagerLevel ? null : "TRAIN\n<size=34>" + Format.Money(s.TrainCost(id)) + "</size>", s.TrainBlocked(id), () => { if (s.Train(id)) Toast(d.Name + " manager trained to level " + (ml + 1)); }, Ui.Blue);
                     else
-                        Ico("manager", FacilityTint(id)).Entry(d.Name + " manager", null, "No more tapping for this service, and its flights earn while the app is closed.",
+                        Pic("mgr_" + id, FacilityTint(id)).Entry(d.Name + " manager", null, "No more tapping for this service, and its flights earn while the app is closed.",
                             "HIRE\n<size=34>" + Format.Money(s.ManagerCost(id)) + "</size>", s.HireBlocked(id), () => { if (s.Hire(id)) Toast(d.Name + " now runs itself"); }, Ui.Gold);
                 }
                 CrewSection();

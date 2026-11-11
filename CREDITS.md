@@ -8,7 +8,9 @@ Crosswind uses free 3D models, textures, icons and fonts. Thank you to their aut
 
 ## People
 
-Passengers, staff portraits and ground crew: characters by **Quaternius** (CC0, via poly.pizza): Woman in Dress, Man in Long Sleeves, Man (two), Man in Suit, Woman in Tank Top, Animated Woman, Woman Casual, Woman, Casual Character, Business Man, Hoodie Character, Worker. Posed and slimmed by `Tools/art/models.py`.
+Passengers and ground crew: characters by **Quaternius** (CC0, via poly.pizza): Woman in Dress, Man in Long Sleeves, Man (two), Man in Suit, Woman in Tank Top, Animated Woman, Woman Casual, Woman, Casual Character, Business Man, Hoodie Character, Worker. Posed and slimmed by `Tools/art/models.py`.
+
+The staff's portraits (the sixteen team members and the six department managers) are our own: painted for Crosswind as two sheets with Higgsfield (GPT Image 2.5) and cut into tiles by `Tools/art/portraits.py`. They show invented people.
 
 ## Cars
 

@@ -18,7 +18,24 @@ Road cars (saloon, hatchback, SUV, taxi, pickup, coupe): **Quaternius** (CC0 / p
 
 ## Icons
 
-- Menu icons cut from **Font Awesome Free** 6 Solid by Fonticons, Inc. (icons CC BY 4.0, https://fontawesome.com/license/free), rendered to white glyphs by `Tools/art/icons.py`.
+- Flat glyphs (where there is no picture icon) cut from **Font Awesome Free** 6 Solid by Fonticons, Inc. (icons CC BY 4.0, https://fontawesome.com/license/free), rendered to white glyphs by `Tools/art/icons.py`.
+
+## Picture icons
+
+The menu and rail icons are renders of free 3D models (`Tools/art/icon_models.py` downloads them and records each licence; `Tools/blender/icon_render.py` renders them into `Assets/Resources/UI/Icons`). The models themselves are not shipped, only their pictures.
+
+- **Poly by Google** (CC BY 3.0, via poly.pizza): Airplane, Alarm clock, Bakery, Bank, Bell, Bench, Blue ribbon, Boombox, Broom, Car, Cheeseburger, Cloud, Coffee cup, Coin, Coins, Computer, Couch, Crown, Curved road, Door, Earth, Erlenmeyer flask, Gas can, Gears, Gem, Hard hat, Heart, Highway, Jet, Lightning bolt, Luggage, Paint roller, Pencil, Satellite dish, Scroll, Shopping cart, Star, Toilet, Toolbox, Tractor, Trashcan, Videogame Controller.
+- **Casey Tumbers** (CC BY 3.0, via poly.pizza): Trophy.
+- **Tomáš Bayer** (CC BY 3.0, via poly.pizza): Calendar.
+- **William Murphy** (CC BY 3.0, via poly.pizza): clipboard.
+- **jeremy** (CC BY 3.0, via poly.pizza): Hammer.
+- **abass20** (CC BY 4.0, Sketchfab): Air Traffic Control Tower.
+- **rikugo.studio** (CC BY 4.0, Sketchfab): Data Chart Graphic Table Infographic.
+- **Quaternius** (CC0): Compass, Container Red, Cube Crate, Gold Bag, Man, Padlock, Pickup Key Card, Snowflake, Target, Woman Casual.
+- **Kenney** (CC0): Signpost, Television.
+- **CreativeTrio** (CC0): Present.
+
+CC BY 3.0: https://creativecommons.org/licenses/by/3.0/ · CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ · The models were rendered as pictures (lit, framed and scaled); no other changes.
 
 ## Textures
 

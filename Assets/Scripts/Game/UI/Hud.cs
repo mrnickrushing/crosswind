@@ -35,6 +35,7 @@ namespace Crosswind.Game
         static readonly string[] TabIcons = { "wrench", "plane", "gear", "zoom", "trophy", "multiplayer", null };
         /// <summary>Where each tab sits on the rail, top to bottom (OPS, the newest, is second).</summary>
         static readonly int[] TabPlace = { 0, 2, 3, 4, 5, 6, 1 };
+        static readonly string[] RailArt = { "rail_build", "rail_airlines", "rail_staff", "rail_research", "rail_empire", "rail_friends", "rail_ops" };
         Text _gems, _weather, _chips, _oppText, _vitals;
         RectTransform _opp, _empireDot, _staffDot;
 
@@ -97,8 +98,10 @@ namespace Crosswind.Game
                 int k = i;
                 var b = Ui.Button(TabNames[i], rail, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 22);
                 var lab = b.GetComponentInChildren<Text>().rectTransform; lab.anchorMin = new Vector2(0, 0); lab.anchorMax = new Vector2(1, 0.36f); lab.offsetMin = new Vector2(2, 8); lab.offsetMax = new Vector2(-2, 0);
-                if (TabIcons[i] != null) Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 44);
-                else { var g = Ui.Img("Glyph", b.transform, Color.white); g.sprite = Ui.Ic("calendar"); g.preserveAspect = true; g.rectTransform.Place(new Vector2(0.5f, 0.62f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(40, 40)); }
+                // A picture of the thing itself: a hard hat, the tower, an aircraft, a member of staff...
+                var art = RailArt[i] == "rail_staff" ? Portraits.Of("quill") : IconArt.Of(RailArt[i]);
+                if (art != null) { var pic = Ui.Img("Icon", b.transform, Color.white); pic.sprite = art; pic.preserveAspect = true; pic.rectTransform.Place(new Vector2(0.5f, 0.63f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(RailArt[i] == "rail_staff" ? 58 : 68, RailArt[i] == "rail_staff" ? 58 : 68)); }
+                else if (TabIcons[i] != null) Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 44);
                 ((RectTransform)b.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -10 - TabPlace[i] * 104), new Vector2(112, 100));      // seven tabs and the terminal button fit a 940-high phone canvas
                 _tabs.Add(b);
             }
@@ -113,8 +116,9 @@ namespace Crosswind.Game
             ((RectTransform)inside.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(112, 104));
             var insideText = inside.GetComponentInChildren<Text>();
             var il = insideText.rectTransform; il.anchorMin = new Vector2(0, 0); il.anchorMax = new Vector2(1, 0.36f); il.offsetMin = new Vector2(2, 8); il.offsetMax = new Vector2(-2, 0);
-            Ui.IconImg("home", inside.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 50);
-            inside.onClick.AddListener(() => { Sfx.Play("open", 0.5f); CameraRig.Instance.SetInside(!CameraRig.Inside); insideText.text = CameraRig.Inside ? "AIRFIELD" : "TERMINAL"; OnInsideChanged(); });
+            var insidePic = Ui.Img("Icon", inside.transform, Color.white); insidePic.sprite = IconArt.Of("rail_terminal"); insidePic.preserveAspect = true;
+            insidePic.rectTransform.Place(new Vector2(0.5f, 0.63f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(70, 70));
+            inside.onClick.AddListener(() => { Sfx.Play("open", 0.5f); CameraRig.Instance.SetInside(!CameraRig.Inside); insideText.text = CameraRig.Inside ? "AIRFIELD" : "TERMINAL"; insidePic.sprite = IconArt.Of(CameraRig.Inside ? "rail_airfield" : "rail_terminal"); OnInsideChanged(); });
 
             // Top left: the airport's vital signs in one compact block (cash, income, gems, rating).
             var top = Ui.ArtImg("Status", _safe, "panel", Color.white).rectTransform;

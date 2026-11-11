@@ -918,79 +918,13 @@ namespace Crosswind.Game
             mb.Smoothness = 0.25f;
         }
 
-        static readonly Dictionary<string, Sprite> _pictures = new Dictionary<string, Sprite>();
-        static Camera _picCam; static Light _picKey, _picFill;
-        const int PicLayer = 31, PicSize = 320;
-
         /// <summary>
         /// A picture of a terminal item for the catalogue: its own model, built at level 2 and photographed once from
-        /// the passengers' side under studio light, on a clear background.
+        /// the passengers' side (see <see cref="Studio"/>).
         /// </summary>
         public static Sprite Picture(AmenityDef def)
         {
-            Sprite made;
-            if (_pictures.TryGetValue(def.Id, out made) && made != null) return made;
-            var mb = new MeshBuilder();
-            Amenity(mb, def, def.W * Sim.Cell, def.D * Sim.Cell, 2, 3);
-            var go = mb.ToObject("Picture", null, false);
-            go.layer = PicLayer;
-            var at = new Vector3(0, -900, 0);
-            go.transform.position = at;
-            var b = go.GetComponent<MeshFilter>().sharedMesh.bounds;
-            if (_picCam == null)
-            {
-                var c = new GameObject("Picture camera");
-                DontDestroyOnLoad(c);
-                _picCam = c.AddComponent<Camera>();
-                _picCam.enabled = false;
-                _picCam.clearFlags = CameraClearFlags.SolidColor; _picCam.backgroundColor = new Color(0, 0, 0, 0);
-                _picCam.cullingMask = 1 << PicLayer; _picCam.orthographic = true; _picCam.nearClipPlane = 0.1f; _picCam.farClipPlane = 80;
-                _picKey = new GameObject("Picture key").AddComponent<Light>(); DontDestroyOnLoad(_picKey.gameObject);
-                _picKey.type = LightType.Directional; _picKey.cullingMask = 1 << PicLayer; _picKey.intensity = 1.5f; _picKey.color = new Color(1f, 0.97f, 0.92f); _picKey.shadows = LightShadows.None;
-                _picFill = new GameObject("Picture fill").AddComponent<Light>(); DontDestroyOnLoad(_picFill.gameObject);
-                _picFill.type = LightType.Directional; _picFill.cullingMask = 1 << PicLayer; _picFill.intensity = 0.55f; _picFill.color = new Color(0.75f, 0.85f, 1f); _picFill.shadows = LightShadows.None;
-            }
-            // From the front (the items face -x), a little to one side and above.
-            var rot = Quaternion.Euler(24, 62, 0);
-            _picCam.transform.rotation = rot;
-            _picCam.transform.position = at + b.center - rot * Vector3.forward * 30;
-            // Fit the box: its corners, seen from the camera.
-            float half = 0.1f;
-            for (int i = 0; i < 8; i++)
-            {
-                var corner = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1)) - b.center;
-                var seen = Quaternion.Inverse(rot) * corner;
-                half = Mathf.Max(half, Mathf.Abs(seen.x), Mathf.Abs(seen.y));
-            }
-            _picCam.orthographicSize = half * 1.06f;
-            _picKey.transform.rotation = Quaternion.Euler(38, 28, 0);
-            _picFill.transform.rotation = Quaternion.Euler(20, 150, 0);
-            _picKey.enabled = _picFill.enabled = true;
-            // Only the studio lights fall on it: the scene's own (the sun at whatever hour, the lamps) are kept off this layer.
-            var others = FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l != _picKey && l != _picFill && (l.cullingMask & (1 << PicLayer)) != 0).ToList();
-            foreach (var l in others) l.cullingMask &= ~(1 << PicLayer);
-            var ambientMode = RenderSettings.ambientMode; var ambient = RenderSettings.ambientLight;
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat; RenderSettings.ambientLight = new Color(0.5f, 0.52f, 0.56f);
-            var rt = RenderTexture.GetTemporary(PicSize, PicSize, 24, RenderTextureFormat.ARGB32);
-            rt.antiAliasing = 4;
-            _picCam.targetTexture = rt;
-            _picCam.Render();
-            var prev = RenderTexture.active;
-            RenderTexture.active = rt;
-            var tex = new Texture2D(PicSize, PicSize, TextureFormat.RGBA32, false);
-            tex.ReadPixels(new Rect(0, 0, PicSize, PicSize), 0, 0);
-            tex.Apply();
-            RenderTexture.active = prev;
-            _picCam.targetTexture = null;
-            RenderTexture.ReleaseTemporary(rt);
-            RenderSettings.ambientMode = ambientMode; RenderSettings.ambientLight = ambient;
-            foreach (var l in others) l.cullingMask |= 1 << PicLayer;
-            _picKey.enabled = _picFill.enabled = false;
-            // Out of the studio at once: the next picture may be taken in this same frame.
-            go.SetActive(false);
-            Destroy(go.GetComponent<MeshFilter>().sharedMesh);
-            Destroy(go);
-            return _pictures[def.Id] = Sprite.Create(tex, new Rect(0, 0, PicSize, PicSize), new Vector2(0.5f, 0.5f), 100);
+            return Studio.Shot("amenity_" + def.Id, () => { var mb = new MeshBuilder(); Amenity(mb, def, def.W * Sim.Cell, def.D * Sim.Cell, 2, 3); return mb; }, 62, 24, 320);
         }
     }
 }

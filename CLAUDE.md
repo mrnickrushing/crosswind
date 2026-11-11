@@ -148,3 +148,11 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   Tables are rows with cells by share of the width (`Span`, `CellText`, `Plate`, `PartChip`, `NeedTiles`, `GradeBox`,
   `Mark`, `Meter`); `Row`/`Header`/`Entry` write into `_list` when it is set. Day-part colours: `Hud.PartColor`.
   The clock panel shows the weekday and, under it, today's on-time share, passenger satisfaction and total reputation.
+- Icons: the rail and every menu row show a picture icon where there is one (`World/IconArt.Of(name)` loads
+  `Resources/UI/Icons/<name>.png`; same names as the flat glyphs in `UI/Ic`, which remain the fallback). They are
+  Blender renders of free models: `Tools/art/icon_models.py fetch|render|credits` (the `ICONS` table maps a name to a
+  poly.pizza id, `a+b` for two side by side, or a Sketchfab folder `sf_*`; it refuses anything that is not CC0 / CC BY
+  and keeps title/author/licence in `art-src/free/icons/manifest.json`), `Tools/blender/icon_render.py` (Cycles, soft
+  studio light, shadow catcher, trimmed to a 256 square). Add an icon: put it in `ICONS`, fetch, `render <name>`, and
+  update the credits (`CREDITS.md` and the "Picture icons" row under EMPIRE). `World/Studio.cs` still photographs the
+  game's own terminal items for the catalogue (`Interior.Picture`).

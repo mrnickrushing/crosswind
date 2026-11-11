@@ -88,9 +88,18 @@ namespace Crosswind.Game
             }
             else if (_ic != null)
             {
-                var tile = Ui.ArtImg("Tile", row, "button", _icTint, 44, 1.6f).rectTransform;
+                var art = IconArt.Of(_ic);
+                var tile = Ui.ArtImg("Tile", row, art != null ? "well" : "button", art != null ? Color.white : _icTint, 44, art != null ? 1f : 1.6f).rectTransform;
                 tile.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(18, 0), new Vector2(108, 108));
-                var sp = Ui.Ic(_ic);
+                if (art != null)
+                {
+                    // A picture of the thing on a dark plate, lit in its department's colour.
+                    var glow = Ui.ArtImg("Glow", tile, "glow", new Color(_icTint.r, _icTint.g, _icTint.b, 0.55f), 0);
+                    glow.preserveAspect = false; glow.rectTransform.Fill(4);
+                    var pic = Ui.Img("Picture", tile, Color.white); pic.sprite = art; pic.preserveAspect = true;
+                    pic.rectTransform.Fill(7);
+                }
+                var sp = art != null ? null : Ui.Ic(_ic);
                 if (sp != null)
                 {
                     var shade = Ui.Img("Shade", tile, new Color(0, 0, 0, 0.35f)); shade.sprite = sp; shade.preserveAspect = true;
@@ -422,7 +431,8 @@ namespace Crosswind.Game
             Ico("trash", TintRed).Entry("Erase everything", null, "Deletes your airports, team and progress from this device and from your iCloud, and gives the statistics a new anonymous id. This can't be undone.", "ERASE", null, ConfirmErase, Ui.Red);
             Header("CREDITS");
             Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Ground and floor textures from Poly Haven and ambientCG. Aircraft, airport vehicles and buildings are our own.", null, null, null);
-            Ico("pen").Entry("Icons and lettering", null, "Menu icons from Font Awesome Free (CC BY 4.0, fontawesome.com). Lettering in Barlow by Jeremy Tribby (SIL Open Font License).", null, null, null);
+            Ico("pen").Entry("Icons and lettering", null, "Flat glyphs from Font Awesome Free (CC BY 4.0, fontawesome.com). Lettering in Barlow by Jeremy Tribby (SIL Open Font License).", null, null, null);
+            Ico("star", TintGold).Entry("Picture icons", "CC BY / CC0", "Renders of free 3D models. CC BY 3.0, via poly.pizza: Poly by Google (most of them), Casey Tumbers (trophy), Tom\u00e1\u0161 Bayer (calendar), William Murphy (clipboard), jeremy (hammer). CC BY 4.0, via Sketchfab: abass20 (control tower), rikugo.studio (chart). CC0: Quaternius, Kenney, CreativeTrio.", null, null, null);
             Ico("star", TintGold).Entry("Crosswind", "RUSHING TECHNOLOGIES", "Thank you for playing.", null, null, null);
             Header("ACHIEVEMENTS");
             foreach (var a in Sim.Achievements.OrderBy(a => s.AchievementClaimed(a) ? 2 : s.AchievementDone(a) ? 0 : 1))

@@ -330,10 +330,20 @@ namespace Crosswind.Game
                     var c = card();
                     var well = Ui.ArtImg("Well", c, "well", Color.white).rectTransform;
                     well.anchorMin = new Vector2(0, 1); well.anchorMax = new Vector2(1, 1); well.pivot = new Vector2(0.5f, 1); well.offsetMin = new Vector2(12, -182); well.offsetMax = new Vector2(-12, -12);
-                    var tile = Ui.ArtImg("Tile", well, "button", FacilityTint(id), 44, 1.6f).rectTransform;
-                    tile.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(128, 128));
-                    var sp = Ui.Ic(FacilityIcon(id));
-                    if (sp != null) { var g = Ui.Img("Glyph", tile, Color.white); g.sprite = sp; g.preserveAspect = true; g.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 4), new Vector2(78, 78)); }
+                    var art = IconArt.Of(FacilityIcon(id));
+                    if (art != null)
+                    {
+                        var glow = Ui.ArtImg("Glow", well, "glow", new Color(0.5f, 0.82f, 1f, 0.45f), 0);
+                        glow.preserveAspect = false; glow.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -6), new Vector2(300, 190));
+                        var pic = Ui.Img("Picture", well, Color.white); pic.sprite = art; pic.preserveAspect = true; pic.rectTransform.Fill(8);
+                    }
+                    else
+                    {
+                        var tile = Ui.ArtImg("Tile", well, "button", FacilityTint(id), 44, 1.6f).rectTransform;
+                        tile.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(128, 128));
+                        var sp = Ui.Ic(FacilityIcon(id));
+                        if (sp != null) { var g = Ui.Img("Glyph", tile, Color.white); g.sprite = sp; g.preserveAspect = true; g.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 4), new Vector2(78, 78)); }
+                    }
                     Chip(well, level > 0 ? "LEVEL " + level : "NOT BUILT", new Vector2(0, 1), level > 0 ? Ui.Blue : Ui.Off);
                     var build = s.Building(id);
                     if (build != null) Chip(well, Format.Time(build.doneAt - s.RealNow()).ToUpper() + " LEFT", new Vector2(1, 1), Ui.Gold);

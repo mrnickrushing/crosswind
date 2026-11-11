@@ -8,7 +8,8 @@
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.InputSystem",
         "Unity.Notifications.iOS",
-        "AppleAuth"
+        "AppleAuth",
+        "revenuecat.purchases-unity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -17,6 +18,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.revenuecat.purchases-unity",
+            "expression": "5.0.0",
+            "define": "CROSSWIND_REVENUECAT"
+        }
+    ],
     "noEngineReferences": false
 }

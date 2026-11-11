@@ -71,6 +71,7 @@ namespace Crosswind.Game
                 Ico("user", TintSocial).Entry("Sign in with Apple", null, "Creates your Crosswind account. Add friends by code, compare airports, and swap a gift every day. We never see your email: only an anonymous id.",
                     "SIGN IN", AppleAccount.Supported ? null : "On iPhone and iPad", () => AppleAccount.SignIn((ok, msg) => { if (ok) { Toast("Signed in"); EnsureRegistered(); } else if (msg != null) Toast(msg); _dirty = true; }), Ui.Ink + new Color(0.1f, 0.1f, 0.1f, 0));
                 Ico("pen").Entry("Manager's name", s.DisplayName.ToUpper(), "What friends will see beside your airport.", "RENAME", null, AskName, Ui.Blue);
+                GameCenterRows();
                 return;
             }
             EnsureRegistered();
@@ -97,9 +98,18 @@ namespace Crosswind.Game
                         () => { if (s.CollectGift(fr.Code)) { Reward(0, Sim.FriendGiftGems); Sfx.Play("claim"); } }, Ui.Gold);
             }
 
+            GameCenterRows();
             Header("ACCOUNT");
             Ico("signout").Entry("Sign out", null, "Your airport stays on this device and in your iCloud. Your friends keep you on their list.", "SIGN OUT", null, () => { AppleAccount.SignOut(); Toast("Signed out"); }, Ui.Card);
             Ico("trash", TintRed).Entry("Delete account", null, "Erases your account, your code and every friendship from our server for good. Your airport stays on this device (Settings > Erase everything removes that too).", "DELETE", null, ConfirmDeleteAccount, Ui.Red);
+        }
+
+        /// <summary>Apple's own boards: the whole world, under the player's Game Center name.</summary>
+        void GameCenterRows()
+        {
+            Header("GAME CENTER  ·  THE WHOLE WORLD");
+            Ico("trophy", TintGold).Entry("Leaderboards", null, "Flights handled, Wings earned and days closed at grade A, against every Crosswind manager. Uses your Game Center name.", "OPEN", GameCenter.Blocked, GameCenter.ShowBoards, Ui.Gold);
+            Ico("star", TintGold).Entry("Achievements", null, "Every achievement you finish here is also kept on your Game Center profile.", "OPEN", GameCenter.Blocked, GameCenter.ShowAchievements, Ui.Card);
         }
 
         void AskName()

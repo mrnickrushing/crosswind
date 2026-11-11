@@ -45,14 +45,17 @@
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0",
     "com.unity.cinemachine": "3.1.7",
-    "com.lupidan.apple-signin-unity": "1.5.0"
+    "com.lupidan.apple-signin-unity": "1.5.0",
+    "com.revenuecat.purchases-unity": "10.0.0"
   },
   "scopedRegistries": [
     {
       "name": "package.openupm.com",
       "url": "https://package.openupm.com",
       "scopes": [
-        "com.lupidan"
+        "com.lupidan",
+        "com.revenuecat",
+        "com.google.external-dependency-manager"
       ]
     }
   ]

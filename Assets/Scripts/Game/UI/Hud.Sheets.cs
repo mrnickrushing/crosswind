@@ -344,13 +344,15 @@ namespace Crosswind.Game
                     "MOVE", s.SellBlocked(m.Id), () => ConfirmSell(m), Ui.Gold);
             }
 
-            Header("SHOP" + (Store.Available ? "" : " (OPENS WITH THE APP STORE RELEASE)"));
+            Header("SHOP" + (Store.Testing ? Store.Available ? " (TEST PURCHASES)" : " (NOT OPEN YET)" : Store.Available ? "" : " (CONNECTING TO THE APP STORE)"));
             foreach (var prod in Sim.Products)
             {
                 bool owned = prod.Once && s.Owns(prod.Id);
                 Ico("cart", TintGold).Entry(prod.Name, owned ? "OWNED" : null, prod.Blurb, owned ? null : "BUY\n<size=34>" + Store.Price(prod) + "</size>", null,
                     () => Store.Buy(prod, (ok, msg) => { Toast(msg); if (ok) Sfx.Play("confirm"); _dirty = true; }), Ui.Gold);
             }
+            Ico("cart").Entry("Restore purchases", null, "Brings back the Founder's Pack and Golden Runway on a new iPhone or iPad. Gems you bought travel with your iCloud save.", "RESTORE", null,
+                () => Store.Restore(msg => { Toast(msg); _dirty = true; }), Ui.Card);
             Header("SETTINGS");
             Ico("sound").Entry("Sound", Sfx.Muted ? "OFF" : "ON", "Interface sounds and the airfield.", Sfx.Muted ? "TURN ON" : "TURN OFF", null, () => { Sfx.Muted = !Sfx.Muted; }, Ui.Card);
             Ico("sound", TintSocial).Entry("Music", Sfx.Music ? "ON" : "OFF", "A calm loop by day and a quieter one after dark.", Sfx.Music ? "TURN OFF" : "TURN ON", null, () => { Sfx.Music = !Sfx.Music; }, Ui.Blue);
@@ -410,6 +412,7 @@ namespace Crosswind.Game
             {
                 Destroy(_confirm.gameObject); _confirm = null;
                 Telemetry.Forget();
+                GameCenter.Forget();
                 GameRoot.Instance.Restart();
             }, 46);
             ((RectTransform)yes.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(210, 50), new Vector2(400, 120));

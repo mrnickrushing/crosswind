@@ -33,6 +33,7 @@ namespace Crosswind.Game
             foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) Destroy(l.gameObject);
 
             AppleAccount.Start();
+            GameCenter.Start();
             Reminders.Clear();
             var state = SaveSystem.Load();
             // The save in the player's iCloud: a new phone continues from it; a newer one from another device is offered.
@@ -49,6 +50,7 @@ namespace Crosswind.Game
             if (fresh) state = GameState.New();
             Sim = new Sim(state);
             if (!fresh && state.savedAt > 0) AwaySeconds = System.Math.Max(0, SaveSystem.Now - state.savedAt);
+            Store.Start();
 
             var sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
@@ -108,6 +110,7 @@ namespace Crosswind.Game
             AppleAccount.Update();
             if (!_ready) return;
             Sim.Tick(Time.deltaTime * Speed);
+            GameCenter.Sync(Sim);
             Sfx.TickMusic(Sim.Night, Time.unscaledDeltaTime);
             if ((_saveIn -= Time.unscaledDeltaTime) <= 0) { _saveIn = 10f; Save(); }
         }

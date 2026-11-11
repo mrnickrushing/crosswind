@@ -101,6 +101,7 @@ namespace Crosswind.Core
         public List<string> achievements = new List<string>();     // claimed
         public List<string> owned = new List<string>();            // one-time purchases
         public List<string> transactions = new List<string>();     // store transactions already granted
+        public List<PendingPurchase> pending = new List<PendingPurchase>();   // purchases started and not yet paid out
         public bool tutorialDone;
 
         public List<LevelEntry> relations = new List<LevelEntry>();   // each airline's satisfaction with you, 0..100 (starts at 50)
@@ -185,6 +186,8 @@ namespace Crosswind.Core
             if (achievements == null) achievements = new List<string>();
             if (owned == null) owned = new List<string>();
             if (transactions == null) transactions = new List<string>();
+            if (pending == null) pending = new List<PendingPurchase>();
+            pending.RemoveAll(x => x == null || string.IsNullOrEmpty(x.product));
             if (relations == null) relations = new List<LevelEntry>();
             if (fleet == null) fleet = new List<LevelEntry>();
             if (opportunity != null && string.IsNullOrEmpty(opportunity.kind)) opportunity = null;

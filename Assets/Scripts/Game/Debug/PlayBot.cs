@@ -61,6 +61,8 @@ namespace Crosswind.Game
             var pick = wanted.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault()
                 ?? (wanted.Count == 0 ? Content.FacilityOrder.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault() : null);
             if (pick != null) s.Upgrade(pick);
+            foreach (AircraftClass ac in System.Enum.GetValues(typeof(AircraftClass)))
+                if (s.BuyAircraftBlocked(ac) == null && s.State.money > s.AircraftCost(ac) * 3) s.BuyAircraft(ac);
         }
     }
 }

@@ -179,7 +179,7 @@ namespace Crosswind.Tests
             foreach (var r in Content.Routes.Values)
             {
                 Assert.IsTrue(Content.Airlines.ContainsKey(r.Airline), r.Id);
-                Assert.LessOrEqual(r.Stars, Content.MaxStars, r.Id);
+                if (r.Airline != "own") Assert.LessOrEqual(r.Stars, Content.MaxStars, r.Id);
                 Assert.IsNotEmpty(r.Needs, r.Id);
             }
             foreach (var r in Content.Research)

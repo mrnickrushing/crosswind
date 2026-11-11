@@ -202,6 +202,7 @@ namespace Crosswind.Core
             old.ratingXp = 0; old.lifetimeEarned = 0; old.flightsHandled = 0; old.onTime = 0; old.late = 0;
             old.levels = fresh.levels; old.contracts = fresh.contracts; old.flights = fresh.flights;
             old.managers = new List<string>(); old.managerLevels = new List<LevelEntry>();
+            old.fleet = new List<LevelEntry>(); old.relations = new List<LevelEntry>(); old.builds = new List<BuildJob>();
             old.goalIndex = Math.Min(Goals.All.Count, 6);    // the guide runs again at each airport, without the first-minute steps
             old.incomeRate = 0; old.weather = 0; old.weatherUntil = 0; old.opportunity = null; old.nextOpportunityAt = 150; old.rushUntil = 0;
             Count("sell", 1);

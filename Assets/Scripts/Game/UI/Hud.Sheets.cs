@@ -102,6 +102,7 @@ namespace Crosswind.Game
                 foreach (var c in s.State.contracts.ToList())
                 {
                     var r = Content.Routes[c.route]; var plane = Content.Aircraft[r.Class];
+                    if (r.Airline == "own") { Entry(r.Destination, "YOUR AIRLINE", plane.Name + "  ·  " + s.Owned(r.Class) + " aircraft  ·  " + Format.Money(s.FlightValue(r) * Sim.OwnPay) + " a flight on time", null, null, null); continue; }
                     float mood = s.Relation(r.Airline);
                     int nextTerms = (c.terms + 1) % 3;
                     Entry(r.Destination, Content.Airlines[r.Airline].Name + " · " + Sim.Mood(mood).ToUpper(),
@@ -109,11 +110,20 @@ namespace Crosswind.Game
                         "TERMS\n<size=30>" + Sim.TermsName[nextTerms] + "</size>", null, () => { s.SetTerms(r.Id, nextTerms); Toast(r.Destination + ": " + Sim.TermsBlurb[nextTerms]); }, Ui.Card);
                 }
                 Header("AIRLINES: ON-TIME FLIGHTS PLEASE THEM, LATE ONES COST YOU");
-                foreach (var line in s.State.contracts.Select(c => Content.Routes[c.route].Airline).Distinct())
+                foreach (var line in s.State.contracts.Select(c => Content.Routes[c.route].Airline).Where(a => a != "own").Distinct())
                 {
                     float mood = s.Relation(line);
                     Entry(Content.Airlines[line].Name, Sim.Mood(mood).ToUpper() + "  " + Mathf.RoundToInt(mood) + "/100", "\"" + Content.Airlines[line].Motto + "\"  Pays " + Mathf.RoundToInt((float)s.RelationPay(line) * 100) + "% of its fees."
                         + (mood < 20 ? "  One more bad day and they cancel a route." : mood >= 85 ? "  Your best partner." : ""), null, null, null);
+                }
+                Header("YOUR AIRLINE  ·  " + s.FleetSize + " AIRCRAFT  ·  EACH FLIGHT PAYS " + Mathf.RoundToInt((float)Sim.OwnPay * 100) + "%");
+                Entry("Livery: " + Sim.Liveries[s.State.livery], null, "Your aircraft fly in your colours. New aircraft and the next arrivals wear the new paint.", "CHANGE", null,
+                    () => { s.SetLivery(s.State.livery + 1); Toast("Livery: " + Sim.Liveries[s.State.livery]); }, Palette.Hex(Sim.LiveryHex[s.State.livery]));
+                foreach (AircraftClass ac in System.Enum.GetValues(typeof(AircraftClass)))
+                {
+                    var pl = Content.Aircraft[ac]; var own = Content.Routes["own_" + ac.ToString().ToLower()];
+                    Entry(pl.Name, s.Owned(ac) > 0 ? "OWN " + s.Owned(ac) : null, pl.Seats + " seats on your " + own.Destination + " route  ·  " + Format.Money(s.FlightValue(own) * Sim.OwnPay) + " a flight  ·  each one you own adds flights",
+                        "BUY\n<size=34>" + Format.Money(s.AircraftCost(ac)) + "</size>", s.BuyAircraftBlocked(ac), () => { if (s.BuyAircraft(ac)) Toast(pl.Name + " joins your fleet"); }, Ui.Gold);
                 }
                 var offers = s.Offers.ToList();
                 Header(offers.Count > 0 ? "ON OFFER" : "NO NEW OFFERS: RAISE YOUR STAR RATING");

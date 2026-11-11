@@ -156,6 +156,14 @@ namespace Crosswind.Core
             Route("zip_jumbo", "zip", "Zip Max", AircraftClass.E, 20, 9, 2.0e7, Service.Fuel, Service.Baggage, Service.Cleaning);
             Route("crown_flag", "crown", "The Crown Jewel", AircraftClass.E, 10, 10, 1.0e8, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
 
+            // Your own airline: one route per aircraft class, flown by the aircraft you buy (never offered as a contract).
+            Line("own", "Your Airline", "Your colours, your routes.", 1.0f, 1.2f);
+            Route("own_a", "own", "Island Hopper", AircraftClass.A, 14, 99, 0, Service.Fuel);
+            Route("own_b", "own", "Regional Link", AircraftClass.B, 11, 99, 0, Service.Fuel, Service.Baggage);
+            Route("own_c", "own", "City Express", AircraftClass.C, 9, 99, 0, Service.Fuel, Service.Baggage);
+            Route("own_d", "own", "Long Haul", AircraftClass.D, 7, 99, 0, Service.Fuel, Service.Baggage, Service.Catering);
+            Route("own_e", "own", "Flagship", AircraftClass.E, 5, 99, 0, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
+
             ExtendProgress();
         }
 

@@ -58,5 +58,26 @@ namespace Crosswind.Tests
             Assert.Greater(Flights(1), Flights(0));
             Assert.Greater(Flights(0), Flights(2));
         }
+
+        [Test]
+        public void YourOwnAircraftFlyYourRouteAndPayMore()
+        {
+            var s = Fresh();
+            s.State.money = 1e9;
+            StringAssert.Contains("4-star", s.BuyAircraftBlocked(AircraftClass.A));
+            s.State.ratingXp = Content.StarXp[4];
+            s.Hire("fuel");
+            double cost = s.AircraftCost(AircraftClass.A);
+            Assert.IsTrue(s.BuyAircraft(AircraftClass.A));
+            Assert.AreEqual(1, s.Owned(AircraftClass.A));
+            Assert.IsTrue(s.Signed("own_a"));
+            Assert.Greater(s.AircraftCost(AircraftClass.A), cost);
+            StringAssert.Contains("Runway", s.BuyAircraftBlocked(AircraftClass.C));
+            Assert.IsFalse(s.Offers.Any(r => r.Airline == "own"), "never offered as a contract");
+            double paid = 0; s.FlightPaid += (f, m, ok) => { if (f.route == "own_a" && ok) paid = m; };
+            for (int i = 0; i < 4800 && paid == 0; i++) s.Tick(0.25f);
+            Assert.AreEqual(s.FlightValue(Content.Routes["own_a"]) * Sim.OwnPay, paid, paid * 0.01);
+            s.SetLivery(8); Assert.AreEqual(2, s.State.livery);
+        }
     }
 }

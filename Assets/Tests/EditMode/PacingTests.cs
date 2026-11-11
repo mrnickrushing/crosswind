@@ -41,6 +41,8 @@ namespace Crosswind.Tests
                 var pick = wanted.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault()
                     ?? (wanted.Count == 0 ? Content.FacilityOrder.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault() : null);
                 if (pick != null) s.Upgrade(pick);
+                foreach (AircraftClass ac in System.Enum.GetValues(typeof(AircraftClass)))
+                    if (s.BuyAircraftBlocked(ac) == null && s.State.money > s.AircraftCost(ac) * 3) s.BuyAircraft(ac);
                 if (s.Stars != stars) { stars = s.Stars; log.Add(Format.Time(t) + ": " + stars + " stars, " + Format.Money(s.State.incomeRate * 60) + "/min, " + s.State.contracts.Count + " routes"); }
                 if (s.State.goalIndex != goal) { goal = s.State.goalIndex; log.Add(Format.Time(t) + ": goal " + goal + " done (" + Goals.All[goal - 1].Id + ")"); }
             }

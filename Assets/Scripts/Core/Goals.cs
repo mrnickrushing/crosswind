@@ -42,6 +42,7 @@ namespace Crosswind.Core
             G("runway_6", "Build a level 6 runway for the Albatross 160", 6, s => s.Level("runway"), 40000);
             G("jet", "Sign an Albatross 160 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.C) ? 1 : 0, 80000, 15);
             G("four_stars", "Reach a 4-star airport", 4, s => s.Stars, 250000, 20);
+            G("own_plane", "Buy your first aircraft (AIRLINES, Your Airline)", 1, s => s.FleetSize, 100000, 15);
             G("research_3", "Finish 3 research projects (RESEARCH)", 3, s => s.State.researched.Count, 60000, 10);
             G("catering", "Build the flight kitchen", 1, s => s.Level("catering"), 80000);
             G("ils", "Install landing aids for bad weather", 1, s => s.Level("ils"), 60000);

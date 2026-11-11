@@ -97,6 +97,9 @@ namespace Crosswind.Core
 
         public List<LevelEntry> relations = new List<LevelEntry>();   // each airline's satisfaction with you, 0..100 (starts at 50)
 
+        public List<LevelEntry> fleet = new List<LevelEntry>();      // your own aircraft: id = class letter ("a".."e"), level = how many
+        public int livery;                                           // your airline's colour (an index into Sim.Liveries)
+
         // The live layer.
         public int weather;                                         // Weather, as a number
         public double weatherUntil;                                 // game time it changes
@@ -149,6 +152,7 @@ namespace Crosswind.Core
             if (owned == null) owned = new List<string>();
             if (transactions == null) transactions = new List<string>();
             if (relations == null) relations = new List<LevelEntry>();
+            if (fleet == null) fleet = new List<LevelEntry>();
             if (opportunity != null && string.IsNullOrEmpty(opportunity.kind)) opportunity = null;
             if (tasks == null) tasks = new List<TaskState>();
             if (builds == null) builds = new List<BuildJob>();

@@ -46,6 +46,11 @@ namespace Crosswind.Game
                 case "fjord": return new Paint { Body = white, Belly = white, Tail = Palette.Hex(0x157A8C), Line = Palette.Hex(0x7FD1D9), Engine = white, Style = 1, Windows = true };
                 case "solstice": return new Paint { Body = Palette.Hex(0xFFF3DC), Belly = Palette.Hex(0xE2542A), Tail = Palette.Hex(0xE2542A), Line = Palette.Hex(0xF6A21E), Engine = Palette.Hex(0xF6A21E), Style = 2, Windows = true };
                 case "crown": return new Paint { Body = Palette.Hex(0x23262B), Belly = Palette.Hex(0x23262B), Tail = Palette.Hex(0x23262B), Line = Palette.Hex(0xD4AF37), Engine = Palette.Hex(0xD4AF37), Style = 0, Windows = true };
+                case "own":
+                {
+                    var c = Palette.Hex(Sim.LiveryHex[Mathf.Clamp(GameRoot.Sim != null ? GameRoot.Sim.State.livery : 0, 0, Sim.LiveryHex.Length - 1)]);
+                    return new Paint { Body = white, Belly = c, Tail = c, Line = MeshBuilder.Lighten(c, 0.45f), Engine = c, Style = 2, Windows = true };
+                }
                 default: return new Paint { Body = white, Belly = grey, Tail = Palette.Steel, Line = Palette.SteelDark, Engine = white, Style = 0, Windows = true };
             }
         }

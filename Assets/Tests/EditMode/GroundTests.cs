@@ -138,5 +138,57 @@ namespace Crosswind.Tests
             var s = new Sim(st);
             Assert.AreEqual(1, s.Level("pushback"));
         }
+
+        [Test]
+        public void WideBodiesNeedTheirOwnStand()
+        {
+            var s = Airport(3);
+            StringAssert.Contains("Wide-body Stand", s.SignBlocked("atlas_hub"));
+            CollectionAssert.Contains(s.Missing(Content.Routes["atlas_hub"]).ToList(), "heavy");
+            StringAssert.Contains("Wide-body", s.BuyAircraftBlocked(AircraftClass.D));
+            Assert.IsTrue(s.Upgrade("heavy"));
+            Assert.IsNull(s.SignBlocked("atlas_hub"));
+            Assert.IsTrue(s.Sign("atlas_hub"));
+            Assert.IsTrue(s.Sign("puffin_coast"));
+            Run(s, 240);
+            Assert.Greater(s.State.flightsHandled, 4);
+            // Whatever the hour, a wide-body is only ever on stand 0, and the small ones leave it alone while theirs are free.
+            for (float t = 0; t < 400; t += 0.25f)
+            {
+                foreach (var (f, j) in s.Waiting.ToList()) s.Dispatch(f.id, j.service);
+                s.Tick(0.25f);
+                foreach (var f in s.State.flights.Where(f => f.stand >= 0))
+                    if (Sim.Heavy(Content.Routes[f.route].Class)) Assert.AreEqual(0, f.stand, "a Condor on an ordinary stand");
+            }
+        }
+
+        [Test]
+        public void MoreWideBodyStandsTurnMoreWideBodies()
+        {
+            var one = Airport(6); one.Upgrade("heavy"); one.Sign("atlas_hub"); one.Sign("meridian_ocean"); one.Sign("zip_long");
+            var three = Airport(6); for (int i = 0; i < 3; i++) three.Upgrade("heavy"); three.Sign("atlas_hub"); three.Sign("meridian_ocean"); three.Sign("zip_long");
+            Assert.AreEqual(3, three.HeavyStands);
+            Run(one, 900); Run(three, 900);
+            Assert.Greater(three.State.flightsHandled, one.State.flightsHandled);
+            Assert.Greater(three.HourlyCapacity(), one.HourlyCapacity());
+        }
+
+        [Test]
+        public void NoMoreWideBodyStandsThanStands()
+        {
+            var s = Airport(2);
+            s.Upgrade("heavy"); s.Upgrade("heavy");
+            StringAssert.Contains("another stand", s.UpgradeBlocked("heavy"));
+        }
+
+        [Test]
+        public void AnOlderSaveKeepsFlyingItsWideBodies()
+        {
+            var st = GameState.New(); st.ratingXp = Content.StarXp[6];
+            st.levels.Find(l => l.id == "stands").level = 4;
+            st.contracts.Add(new ContractState { route = "atlas_hub" });
+            var s = new Sim(st);
+            Assert.AreEqual(2, s.HeavyStands);
+        }
     }
 }

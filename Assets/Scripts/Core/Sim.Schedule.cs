@@ -98,7 +98,7 @@ namespace Crosswind.Core
         public float HourlyCapacity()
         {
             if (State.contracts.Count == 0) return 0;
-            double weight = 0, runway = 0, ground = 0;
+            double weight = 0, runway = 0, ground = 0, heavy = 0;
             foreach (var c in State.contracts)
             {
                 var r = Content.Routes[c.route]; var plane = Content.Aircraft[r.Class];
@@ -106,9 +106,11 @@ namespace Crosswind.Core
                 weight += w;
                 runway += w * 2 * plane.RunwaySeconds / RunwaySpeed;
                 ground += w * GroundSeconds(r);
+                if (Heavy(r.Class)) heavy += w * GroundSeconds(r);
             }
             if (weight <= 0) return 0;
             double byRunway = RunwayLanes * 3600.0 / (runway / weight), byStands = StandCount * 3600.0 / (ground / weight);
+            if (heavy > 0) byStands = Math.Min(byStands, HeavyStands * 3600.0 / (heavy / weight));
             return (float)Math.Min(byRunway, byStands);
         }
 

@@ -112,7 +112,7 @@ namespace Crosswind.Core
         public double IdleRate()
         {
             double perSecond = 0;
-            double runwayLoad = 0, standLoad = 0;
+            double runwayLoad = 0, standLoad = 0, heavyLoad = 0;
             var crewLoad = new double[Content.Departments.Length];
             foreach (var c in State.contracts)
             {
@@ -124,6 +124,7 @@ namespace Crosswind.Core
                 double ground = GroundSeconds(r);
                 runwayLoad += perSec * 2 * plane.RunwaySeconds / RunwaySpeed;
                 standLoad += perSec * ground;
+                if (Heavy(r.Class)) heavyLoad += perSec * ground;
                 foreach (var n in r.Needs) crewLoad[(int)n] += perSec * plane.ServiceSeconds * Content.ServiceShare(n) / Math.Max(0.1f, CrewSpeed(n));
                 perSecond += perSec * FlightValue(r, true) * SlotPay(r, c.slot) * (r.Airline == "own" ? 1 : FeePay);
             }
@@ -132,6 +133,7 @@ namespace Crosswind.Core
             double cap = 1;
             if (runwayLoad > 0) cap = Math.Min(cap, RunwayLanes / runwayLoad);
             if (standLoad > 0) cap = Math.Min(cap, StandCount / standLoad);
+            if (heavyLoad > 0) cap = Math.Min(cap, HeavyStands / heavyLoad);
             for (int i = 0; i < crewLoad.Length; i++) if (crewLoad[i] > 0) cap = Math.Min(cap, Crews((Service)i) / crewLoad[i]);
             return perSecond * Math.Min(1, cap) + ParkingRate;
         }

@@ -70,7 +70,7 @@ namespace Crosswind.Game
             }
             else if (s.State.gems >= s.ResearchSkipGems + 20) s.SkipResearch();
             var wanted = Content.Routes.Values.Where(r => !s.Signed(r.Id) && s.Stars >= r.Stars)
-                .SelectMany(r => r.Needs.Select(Content.ServiceFacility).Where(f => s.Level(f) == 0).Concat(s.Level("runway") < Content.Aircraft[r.Class].RunwayLevel ? new[] { "runway" } : new string[0])).Distinct().ToList();
+                .SelectMany(s.Missing).Distinct().ToList();
             var pick = wanted.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault()
                 ?? (wanted.Count == 0 ? Content.FacilityOrder.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault() : null);
             if (pick != null) s.Upgrade(pick);

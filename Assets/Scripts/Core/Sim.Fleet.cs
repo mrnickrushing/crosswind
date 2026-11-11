@@ -35,6 +35,7 @@ namespace Crosswind.Core
             if (Stars < FleetStars) return "Needs a " + FleetStars + "-star airport";
             if (Owned(c) >= MaxPerClass) return "Fleet full for this type";
             if (Level("runway") < plane.RunwayLevel) return "Runway too short (level " + plane.RunwayLevel + ")";
+            if (Heavy(c) && HeavyStands == 0) return "Needs a Wide-body Stand";
             foreach (var n in Content.Routes["own_" + c.ToString().ToLower()].Needs) if (Crews(n) == 0) return "Needs " + Content.Facilities[Content.ServiceFacility(n)].Name;
             if (State.money < AircraftCost(c)) return "Need " + Format.Money(AircraftCost(c) - State.money) + " more";
             return null;

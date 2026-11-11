@@ -35,6 +35,8 @@ namespace Crosswind.Core
             foreach (var c in State.contracts)
                 foreach (var n in Content.Routes[c.route].Needs)
                     if (Level(Content.ServiceFacility(n)) == 0) SetLevel(Content.ServiceFacility(n), 1);
+            // And one from before wide-bodies needed their own stand keeps the stands it was already using for them.
+            if (HeavyStands == 0 && State.contracts.Exists(c => Heavy(Content.Routes[c.route].Class))) SetLevel("heavy", Math.Min(StandCount, 2));
         }
 
         // ------------------------------------------------------------------ levels and what they mean
@@ -76,6 +78,20 @@ namespace Crosswind.Core
         /// <summary>The apron is one row at the terminal: six stands at most.</summary>
         public const int MaxStands = 6;
         public int StandCount { get { return Math.Min(MaxStands, Level("stands")); } }
+        /// <summary>The first aircraft class that needs a wide-body stand.</summary>
+        public static bool Heavy(AircraftClass c) { return c >= AircraftClass.D; }
+        /// <summary>Stands rebuilt for wide-bodies: the first so many of the row, counted from the south end.</summary>
+        public int HeavyStands { get { return Math.Min(StandCount, Level("heavy")); } }
+        public bool HeavyStand(int stand) { return stand >= 0 && stand < HeavyStands; }
+
+        /// <summary>What a route is still waiting for before it can be signed, as facilities to build (rating aside).</summary>
+        public IEnumerable<string> Missing(RouteDef r)
+        {
+            if (Level("runway") < Content.Aircraft[r.Class].RunwayLevel) yield return "runway";
+            if (Heavy(r.Class) && HeavyStands == 0) yield return "heavy";
+            foreach (var n in r.Needs) if (Level(Content.ServiceFacility(n)) == 0) yield return Content.ServiceFacility(n);
+        }
+
         /// <summary>
         /// Past six stands, an upgrade equips the ones there are (more ground power, a second bridge, a tug on call):
         /// everything on the ground goes faster, as much as the extra stand would have added.
@@ -125,6 +141,7 @@ namespace Crosswind.Core
             if (Level(facility) >= d.MaxLevel) return "Fully upgraded";
             if (facility == "runway" && Level(facility) >= Map.MaxRunway) return "No room for a longer runway at " + Map.Name;
             if (facility == "deice" && Map.Snow <= 0) return "It never snows at " + Map.Name;
+            if (facility == "heavy" && Level(facility) >= StandCount) return "Build another stand first";
             if (Stars < d.Stars) return "Needs a " + d.Stars + "-star airport";
             if (Building(facility) != null) return "Being built";
             if (State.builds.Count >= Builders && BuildSeconds(facility) > 0) return "Every building crew is busy";
@@ -209,6 +226,7 @@ namespace Crosswind.Core
             if (Stars < r.Stars) return "Needs a " + r.Stars + "-star airport";
             var plane = Content.Aircraft[r.Class];
             if (Level("runway") < plane.RunwayLevel) return "Runway too short for the " + plane.Name + " (level " + plane.RunwayLevel + ")";
+            if (Heavy(r.Class) && HeavyStands == 0) return "Needs a Wide-body Stand for the " + plane.Name;
             foreach (var n in r.Needs) if (Crews(n) == 0) return "Needs " + Content.Facilities[Content.ServiceFacility(n)].Name;
             return null;
         }
@@ -276,7 +294,7 @@ namespace Crosswind.Core
             {
                 case Phase.Approach:
                     if (runwayBusy >= RunwayLanes) return;
-                    int stand = FreeStand();
+                    int stand = FreeStand(r.Class);
                     if (stand < 0) return;
                     f.stand = stand;
                     runwayBusy++;
@@ -330,7 +348,7 @@ namespace Crosswind.Core
                     }
                     // Ready. With stands to spare it keeps its gate a while (a full apron, not an empty one); the
                     // moment the last free stand is taken, the one that has waited longest goes.
-                    if (f.held < HoldLimit && StandsFree > 0) { f.held += dt; return; }
+                    if (f.held < HoldLimit && StandsFree > 0 && !(HeavyStand(f.stand) && WideBodyWaiting)) { f.held += dt; return; }
                     Enter(f, Phase.TaxiOut, plane.TaxiSeconds / TaxiSpeed);
                     return;
                 case Phase.TaxiOut:
@@ -362,9 +380,17 @@ namespace Crosswind.Core
         /// <summary>Stands empty or about to be (an aircraft taxiing out still holds its own until it takes off).</summary>
         int StandsFree { get { return StandCount - State.flights.Count(f => f.stand >= 0 && f.phase != Phase.TaxiOut); } }
 
-        int FreeStand()
+        /// <summary>A wide-body is circling for a stand only it can use: nobody lingers on one.</summary>
+        public bool WideBodyWaiting { get { return State.flights.Exists(f => f.phase == Phase.Approach && Heavy(Content.Routes[f.route].Class)); } }
+
+        /// <summary>Wide-bodies take a wide-body stand or wait; everything else fills the ordinary stands first.</summary>
+        int FreeStand(AircraftClass c)
         {
-            for (int i = 0; i < StandCount; i++)
+            int heavy = HeavyStands;
+            if (!Heavy(c))
+                for (int i = heavy; i < StandCount; i++)
+                    if (!State.flights.Exists(f => f.stand == i)) return i;
+            for (int i = 0; i < heavy; i++)
                 if (!State.flights.Exists(f => f.stand == i)) return i;
             return -1;
         }

@@ -49,7 +49,7 @@ namespace Crosswind.Tests
                 if (s.PlannerOpen && (s.State.plansMade == 0 || (int)(t / 60) % 10 == 0)) s.AutoPlan();
                 // What a contract on offer is waiting for comes first, then the cheapest thing.
                 var wanted = Content.Routes.Values.Where(r => !s.Signed(r.Id) && s.Stars >= r.Stars)
-                    .SelectMany(r => r.Needs.Select(Content.ServiceFacility).Where(f => s.Level(f) == 0).Concat(s.Level("runway") < Content.Aircraft[r.Class].RunwayLevel ? new[] { "runway" } : new string[0])).Distinct().ToList();
+                    .SelectMany(s.Missing).Distinct().ToList();
                 var pick = wanted.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault()
                     ?? (wanted.Count == 0 ? Content.FacilityOrder.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault() : null);
                 if (pick != null) s.Upgrade(pick);

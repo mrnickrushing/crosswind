@@ -64,7 +64,7 @@ namespace Crosswind.Game
         {
             // The levels that shape the airport, as one key: rebuild only when it changes.
             var s = _sim;
-            string key = s.Level("runway") + "|" + s.Level("stands") + "|" + s.Level("taxiways") + "|" + s.Level("tower") + "|" + s.Level("fuel") + "|" + s.Level("baggage") + "|"
+            string key = s.Level("runway") + "|" + s.Level("stands") + "|" + s.Level("heavy") + "|" + s.Level("taxiways") + "|" + s.Level("tower") + "|" + s.Level("fuel") + "|" + s.Level("baggage") + "|"
                  + s.Level("catering") + "|" + s.Level("cleaning") + "|" + s.Level("pushback") + "|" + s.Level("deice") + "|" + s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.Level("shops") + "|" + s.Level("lounge") + "|" + s.Level("parking") + "|" + s.Level("hangar") + "|" + s.Level("cargo") + "|" + s.Level("ils") + "|" + s.Stars + "|" + s.State.map;
             if (key != _built) Rebuild();
             _built = key;
@@ -172,6 +172,19 @@ namespace Crosswind.Game
                 }
                 mb.Box(new Vector3(p.x - 4.2f, y, p.z - 5.45f), new Vector3(5.6f, 0.02f, 0.12f), Palette.Paint);
                 mb.Box(new Vector3(p.x - 4.2f, y, p.z - 3.7f), new Vector3(5.6f, 0.02f, 0.12f), Palette.Paint);
+                if (s.HeavyStand(i))
+                {
+                    // A wide-body stand: a second, longer lead-in to its own stop bar, a strengthened concrete pad
+                    // under the main gear, and a wingtip clearance line either side.
+                    mb.Box(new Vector3(p.x - 0.5f, 0.035f, p.z), new Vector3(9f, 0.02f, 9.4f), new Color(0.56f, 0.57f, 0.58f));
+                    mb.Box(new Vector3(p.x - 3, y, p.z), new Vector3(12, 0.02f, 0.28f), Palette.PaintYellow);
+                    mb.Box(new Vector3(p.x + 4.6f, y, p.z), new Vector3(0.3f, 0.02f, 4.4f), Palette.PaintYellow);
+                    foreach (float sz in new[] { -7.6f, 7.6f })
+                        for (float x = p.x - 8f; x < p.x + 5f; x += 2f) mb.Box(new Vector3(x, y, p.z + sz), new Vector3(1.1f, 0.02f, 0.16f), Palette.Paint);
+                    mb.Box(new Vector3(p.x - 9.6f, y, p.z - 1.2f), new Vector3(1.8f, 0.02f, 1.4f), Palette.Hex(0xC8362E));
+                    mb.Box(new Vector3(p.x - 9.6f, y + 0.005f, p.z - 1.2f), new Vector3(1.1f, 0.02f, 0.22f), Palette.Paint);
+                    foreach (float hz in new[] { -0.45f, 0.45f }) mb.Box(new Vector3(p.x - 9.6f, y + 0.005f, p.z - 1.2f + hz), new Vector3(0.22f, 0.02f, 0.22f), Palette.Paint);
+                }
                 // The stand's number board: yellow on black at the lane.
                 mb.Box(new Vector3(p.x - 9.6f, y, p.z + 1.6f), new Vector3(1.8f, 0.02f, 1.4f), Palette.Black);
                 mb.Box(new Vector3(p.x - 9.6f, y + 0.005f, p.z + 1.6f), new Vector3(1.2f, 0.02f, 0.8f), Palette.PaintYellow);
@@ -364,6 +377,13 @@ namespace Crosswind.Game
                         mb.Box(new Vector3((termX + p.x + 5) * 0.5f, 2.6f, p.z + 3.4f), new Vector3(termX - p.x - 5, 1.5f, 1.4f), Palette.Hex(0xDADDE0), Palette.Steel);
                         mb.Cylinder(new Vector3(p.x + 5.4f, 0, p.z + 3.4f), new Vector3(p.x + 5.4f, 1.9f, p.z + 3.4f), 0.3f, 8, Palette.SteelDark);
                         mb.Cylinder(new Vector3(p.x + 5.2f, 1.8f, p.z + 3.4f), new Vector3(p.x + 5.2f, 3.5f, p.z + 3.4f), 1.1f, 1.1f, 10, Palette.Hex(0xDADDE0));
+                        if (s.HeavyStand(i))
+                        {
+                            // The second bridge, to the door behind the wing.
+                            mb.Box(new Vector3((termX + p.x + 1.5f) * 0.5f, 2.6f, p.z + 6.2f), new Vector3(termX - p.x - 1.5f, 1.5f, 1.3f), Palette.Hex(0xDADDE0), Palette.Steel);
+                            mb.Cylinder(new Vector3(p.x + 2f, 0, p.z + 6.2f), new Vector3(p.x + 2f, 1.9f, p.z + 6.2f), 0.3f, 8, Palette.SteelDark);
+                            mb.Cylinder(new Vector3(p.x + 1.7f, 1.8f, p.z + 6.2f), new Vector3(p.x + 1.7f, 3.5f, p.z + 6.2f), 1.0f, 1.0f, 10, Palette.Hex(0xDADDE0));
+                        }
                     }
                 }
             }

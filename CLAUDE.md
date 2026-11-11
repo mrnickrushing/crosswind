@@ -84,6 +84,11 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   stand is spare, so the apron stays full without costing throughput. `Content.Departments` lists the six crewed
   departments (managers, depots, `IdleRate` crew loads). View: `PlaneView.Trucks` (tug on the nose, also through
   the push back; `Spray` for de-icing), bubbles and board statuses in `Hud.cs` / `Hud.Board.cs`.
+- Wide-body stands (facility `heavy`, 5 stars, max 6): class D and E (`Sim.Heavy`) park only on the first
+  `HeavyStands` stands of the row; smaller aircraft fill the ordinary ones first and leave a wide-body stand at once
+  when one is circling (`WideBodyWaiting`). `Sim.Missing(route)` lists the facilities a route still waits for (the
+  bot and the pacing test buy from it). Old saves with a D/E route get two. `AirportView` draws the pad, the second
+  stop bar and the second jet bridge.
 - The country round each airfield is `World/Scenery.cs` (farmland, alpine forest and peaks, a city grid, palms and
   islets, dunes and mesas, drifts and ice), filled into the rectangles `AirportView` passes it; town buildings
   are `Scenery.Building` / `House` (window ribbons, some lit at night via `mb.Glow`). Keep ground layers at least

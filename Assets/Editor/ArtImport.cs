@@ -60,7 +60,7 @@ namespace Crosswind.EditorTools
             mi.materialImportMode = ModelImporterMaterialImportMode.None;
             mi.importAnimation = false; mi.importCameras = false; mi.importLights = false;
             mi.animationType = ModelImporterAnimationType.None;
-            mi.isReadable = false;
+            mi.isReadable = assetPath.StartsWith("Assets/Resources/Models/Props/");     // the terminal's furniture is merged into the hall's mesh
             mi.meshCompression = ModelImporterMeshCompression.Medium;
             mi.importNormals = ModelImporterNormals.Import;
             mi.useFileScale = true;

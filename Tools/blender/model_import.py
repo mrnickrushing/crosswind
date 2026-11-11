@@ -1,6 +1,6 @@
 """Imports a free (CC0 / CC BY) GLB model for Crosswind: aircraft, vehicles, buildings, people.
 
-  blender -b -P Tools/blender/model_import.py -- <in.glb> <out.fbx> [--height H | --size S] [--turn DEG] [--nose] [--rigged]
+  blender -b -P Tools/blender/model_import.py -- <in.glb> <out.fbx> [--height H | --size S] [--turn DEG] [--nose] [--rigged] [--leaf] [--double] [--maxfaces N]
 
 --nose: an aircraft or a vehicle: its long side is turned to run fore and aft, with the end that stands lowest (the
 nose: the tail fin is the highest point) forward.
@@ -112,11 +112,18 @@ def sample(img, uv):
     return (to_linear(px[i]), to_linear(px[i + 1]), to_linear(px[i + 2]), 1)
 
 
+leafy = "--leaf" in a
+
+
 def tame(c):
     """Kenney's palette has pastel whites that bloom in the tropical sun: keep every channel under 0.62 (linear)."""
     m = max(c[0], c[1], c[2])
     k = 0.9 / m if m > 0.9 else 1.0
-    return (c[0] * k, c[1] * k, c[2] * k, 1)
+    c = (c[0] * k, c[1] * k, c[2] * k, 1)
+    # --leaf: the kits' foliage is a mint green that reads as plastic indoors: turn it to a leaf green.
+    if leafy and c[1] > c[0] * 1.25 and c[2] > c[0] * 1.15 and c[1] > 0.15:
+        c = (c[0] * 0.8 + 0.015, c[1] * 0.6, c[2] * 0.2, 1)
+    return c
 
 
 for o in meshes:
@@ -134,6 +141,16 @@ for o in meshes:
     for li, c in picks:
         col.data[li].color = c
     me.color_attributes.active_color = col
+
+# --double: a model whose faces are wound to be seen from one side only (a clock's dial behind its rim) gets every
+# face twice, the copy turned over, so it shows from both.
+if "--double" in a:
+    import bmesh
+    for o in meshes:
+        bm = bmesh.new(); bm.from_mesh(o.data)
+        copy = bmesh.ops.duplicate(bm, geom=list(bm.faces))
+        bmesh.ops.reverse_faces(bm, faces=[g for g in copy["geom"] if isinstance(g, bmesh.types.BMFace)])
+        bm.to_mesh(o.data); bm.free()
 
 # Size and place: feet (or base) at 0, centred, facing the right way.
 bpy.context.view_layer.update()

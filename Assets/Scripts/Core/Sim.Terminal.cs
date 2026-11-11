@@ -62,7 +62,7 @@ namespace Crosswind.Core
             A("screens", "Flight Screens", "Information", "Departures at a glance.", 1, 1, 350, 2, Want.Info, 5),
             A("infodesk", "Information Desk", "Information", "A person who knows where gate 4 is.", 2, 1, 900, 3, Want.Info, 10),
             // Decor: nobody needs it, everybody remembers it.
-            A("sculpture", "Flight Sculpture", "Decor", "Polished steel wings on a stone plinth. People meet under it.", 1, 1, 450, 2, Want.Fun, 3, Want.Info, 2),
+            A("sculpture", "Flight Sculpture", "Decor", "A polished jet climbing off a stone plinth. People meet under it.", 1, 1, 450, 2, Want.Fun, 3, Want.Info, 2),
             A("clock", "Meeting Point Clock", "Decor", "Four faces, one time. \"See you under the clock.\"", 1, 1, 520, 2, Want.Info, 5),
             A("flags", "Flag Row", "Decor", "The flags of everywhere you fly.", 1, 2, 380, 2, Want.Info, 3, Want.Fun, 2),
             A("piano", "Concourse Piano", "Decor", "Anyone may play. Some of them can.", 1, 1, 700, 3, Want.Fun, 5),

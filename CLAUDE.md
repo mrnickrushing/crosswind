@@ -156,6 +156,15 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   studio light, shadow catcher, trimmed to a 256 square). Add an icon: put it in `ICONS`, fetch, `render <name>`, and
   update the credits (`CREDITS.md` and the "Picture icons" row under EMPIRE). `World/Studio.cs` still photographs the
   game's own terminal items for the catalogue (`Interior.Picture`).
+- Terminal furniture is free models, never code shapes (the user: "get free models for them. they look crappy"):
+  `Tools/art/props.py fetch|build|credits` (`PROPS`: Kenney furniture/market/arcade/food/nature kits and poly.pizza
+  ids; `SET` for turn/faces/leaf/double) writes `Resources/Models/Props/<id>.fbx` (one unit on the longest side, front
+  to +Z, imported readable by `Editor/ArtImport.cs`). `World/Props.cs` merges them into a `MeshBuilder`
+  (`mb.Tall/Wide/Long/Fit/Place/Painted`; yaw 0 faces the item's -x, 90 +z, 180 +x, 270 -z) and `World/Furnish.cs`
+  sets out each amenity by level (only walls, carpets, signs and lit panels are drawn in code); `Interior.Rebuild`
+  uses the same props for check-in desks, gate desks and seats, and bags on the belts. A new prop: add it to `PROPS`,
+  `build <id>`, check it with a `Studio.Shot`, then update `CREDITS.md` and the "Terminal furniture" row under EMPIRE.
+  Props the code doesn't name are not shipped (prune the table and the folder together).
 - Contract kinds (`Booking.kind`: `Sim.Charter`, `Series`, `Freight`, `Vip`): freight (the freight and mail airlines,
   2-4 flights, by night where the runway is lit) needs the cargo terminal; a VIP flight (airlines that ask for grade A
   or B; one flight, standard A) needs a Premium Lounge placed; both pay and earn more (`KindNeeds` is the reason shown).

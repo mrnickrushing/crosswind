@@ -1,6 +1,6 @@
 # Credits
 
-Crosswind uses free 3D models, textures, icons and fonts. Thank you to their authors. Aircraft, airport vehicles, the terminal and the airfield buildings are modelled in code and are our own.
+Crosswind uses free 3D models, textures, icons and fonts. Thank you to their authors. Aircraft, airport vehicles, the terminal building and the airfield buildings are modelled in code and are our own.
 
 ## Fonts
 
@@ -15,6 +15,16 @@ The staff's portraits (the sixteen team members and the six department managers)
 ## Cars
 
 Road cars (saloon, hatchback, SUV, taxi, pickup, coupe): **Quaternius** (CC0 / public domain, via poly.pizza), fetched by `Tools/art/cars.py` and slimmed by `Tools/art/models.py`.
+
+## Terminal furniture
+
+Everything that stands in the terminal (counters, chairs and sofas, shelves and tills, arcade machines, plants and palms, the piano, the fountain, the fish in the aquarium, the bags on the belts) is a free 3D model. `Tools/art/props.py` downloads them and records each licence, and `Tools/blender/model_import.py` converts them for the game: colours baked into the mesh, some slimmed to fewer triangles, the kits' mint foliage turned leaf green. The game sizes, tints and arranges them (`Assets/Scripts/Game/World/Furnish.cs`).
+
+- **Kenney** (CC0, kenney.nl): Furniture Kit, Mini Market, Mini Arcade, Food Kit, Nature Kit.
+- **Poly by Google** (CC BY 3.0, via poly.pizza): Airplane, Analog clock, Bench, Bottle of wine, Broom, Bucket, Cell phone, Coral, Desk, Fiddle-leaf Plant, Fish, Fountain, Garbage, Goldfish, Jet, Koala, Luggage, Mirror, Panda, Roomba, Rubber Duck, Rubik's cube, Sea anemone, Seahorse, Slide, Swing set, Vacuum.
+- **J-Toastie** (CC BY 3.0, via poly.pizza): ATM.
+- **jeremy** (CC BY 3.0, via poly.pizza): Piano.
+- **Quaternius** (CC0): Bookcase with Books, Chukaman Steamer, Flag, Houseplant, Light Ceiling, Ramen, Udon.
 
 ## Icons
 

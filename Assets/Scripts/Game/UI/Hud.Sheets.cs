@@ -432,6 +432,7 @@ namespace Crosswind.Game
             Header("CREDITS");
             Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Ground and floor textures from Poly Haven and ambientCG. Aircraft, airport vehicles and buildings are our own.", null, null, null);
             Ico("pen").Entry("Icons and lettering", null, "Flat glyphs from Font Awesome Free (CC BY 4.0, fontawesome.com). Lettering in Barlow by Jeremy Tribby (SIL Open Font License).", null, null, null);
+            Ico("couch", TintGold).Entry("Terminal furniture", "CC BY / CC0", "Free 3D models, recoloured and slimmed for the game. CC0: Kenney (Furniture Kit, Mini Market, Mini Arcade, Food Kit, Nature Kit), Quaternius. CC BY 3.0, via poly.pizza: Poly by Google (the fountain, slide, swing, fish and corals, soft toys, luggage, model aircraft and more), J-Toastie (ATM), jeremy (piano).", null, null, null);
             Ico("star", TintGold).Entry("Picture icons", "CC BY / CC0", "Renders of free 3D models. CC BY 3.0, via poly.pizza: Poly by Google (most of them), Casey Tumbers (trophy), Tom\u00e1\u0161 Bayer (calendar), William Murphy (clipboard), jeremy (hammer). CC BY 4.0, via Sketchfab: abass20 (control tower), rikugo.studio (chart). CC0: Quaternius, Kenney, CreativeTrio.", null, null, null);
             Ico("star", TintGold).Entry("Crosswind", "RUSHING TECHNOLOGIES", "Thank you for playing.", null, null, null);
             Header("ACHIEVEMENTS");

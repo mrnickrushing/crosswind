@@ -141,7 +141,7 @@ namespace Crosswind.Game
                     float price = s.FuelPrice, next = s.FuelForecast, fill = s.FuelFill;
                     string pct = (price < 1 ? Mathf.RoundToInt((1 - price) * 100) + "% BELOW PAR" : price > 1.005f ? Mathf.RoundToInt((price - 1) * 100) + "% ABOVE PAR" : "AT PAR");
                     string trend = next < price - 0.03f ? "cheaper tomorrow" : next > price + 0.03f ? "dearer tomorrow" : "steady tomorrow";
-                    Header("FUEL MARKET  ·  " + pct);
+                    Header("OPERATIONS  ·  FUEL " + pct);
                     var tint = fill < Sim.LowFuel ? Ui.Red : price <= 0.95f ? Ui.Green : Palette.Fuel;
                     string fb = s.BuyFuelBlocked();
                     Ico("fuel", tint).Bar(fill, fill < Sim.LowFuel ? Ui.Red : Ui.Green).Entry("Tank farm", Mathf.RoundToInt(fill * 100) + "% FULL  ·  " + trend.ToUpper(),
@@ -149,6 +149,18 @@ namespace Crosswind.Game
                         + (s.State.fuelSaved > 1 ? " Saved so far: " + Format.Money(s.State.fuelSaved) + "." : ""),
                         fb == "Tanks full" ? "FULL" : "FILL\n<size=34>" + Format.Money(System.Math.Min(s.FuelCost(), s.State.money)) + "</size>", fb == "Tanks full" ? null : fb,
                         () => { if (s.BuyFuel()) { Sfx.Play("confirm"); Toast("Tanks filled at " + pct.ToLower()); } }, price <= 0.95f ? Ui.Green : (Color?)null);
+                }
+                {
+                    // The runway's surface: how worn, what that costs in speed, and the closure to relay it.
+                    float cond = s.RunwayCondition; bool shut = s.RunwayClosed;
+                    string rb = s.ResurfaceBlocked();
+                    string state = shut ? "CLOSED · " + Format.Time(s.RunwayClosedLeft) + " LEFT" : cond >= Sim.WornAt ? Mathf.RoundToInt(cond * 100) + "% · GOOD" : Mathf.RoundToInt(cond * 100) + "% · WORN, " + Mathf.RoundToInt((1 - s.SurfaceFactor) * 100) + "% SLOWER";
+                    var rt = cond < Sim.WornAt ? Ui.Red : cond < 0.7f ? Ui.Gold : TintAir;
+                    if (s.Level("fuel") <= 0) Header("OPERATIONS");
+                    Ico("runway", rt).Bar(cond, cond < Sim.WornAt ? Ui.Red : cond < 0.7f ? Ui.Gold : Ui.Green).Entry("Runway surface", state,
+                        shut ? "The crews are laying the new surface. Nothing lands or leaves until they are off." : "Every landing wears it, heavy aircraft most. Relaying shuts the runway for " + Format.Time(Sim.ResurfaceSeconds) + ": pick a quiet hour.",
+                        shut ? "CLOSED" : rb == "The surface is good" ? "GOOD" : "RESURFACE\n<size=34>" + Format.Money(s.ResurfaceCost) + "</size>", shut || rb == "The surface is good" ? null : rb == "An aircraft is on the runway" ? null : rb,
+                        () => { if (s.Resurface()) { Sfx.Play("build"); Toast("Runway closed for resurfacing"); } }, cond < Sim.WornAt ? Ui.Gold : (Color?)null);
                 }
                 foreach (var group in new[] { "Airside", "Services", "Terminal" })
                 {

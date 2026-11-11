@@ -132,6 +132,9 @@ namespace Crosswind.Core
         public double loanOwed, loanTotal;                           // what the bank is still owed, and what was owed at the start
         public double[] incomeBy = new double[5];                    // lifetime income here by source: landing, passengers, fuel, shops, cargo
         public double fuelStock = -1, fuelSaved;                     // fuel in the tanks at par (-1: never filled), and what buying below par has saved
+        public float runwayWear;                                     // 0 fresh .. 1 worn out
+        public double runwayClosedUntil;                             // game time the resurfacing crews leave
+        public int resurfaced;
         public bool fuelWarned;                                      // the low-fuel warning has been given for this tankful
         public List<AirlineDeal> deals = new List<AirlineDeal>();    // each airline's punctuality deal in progress
         public List<LevelEntry> partner = new List<LevelEntry>();    // partner level with each airline, 0..3 (kept at this airport)

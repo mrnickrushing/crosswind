@@ -103,7 +103,7 @@ namespace Crosswind.Core
         public int TowerSlots { get { return 2 + Level("tower") * 2; } }
         /// <summary>Movements the runway handles at once (a second one from tower level 8: a parallel runway).</summary>
         public int RunwayLanes { get { return Level("tower") >= 8 ? 2 : 1; } }
-        public float RunwaySpeed { get { return (1 + (Level("runway") - 1) * 0.06f) * (1 + Fx(Effect.RunwaySpeed)) * WeatherFactor; } }
+        public float RunwaySpeed { get { return (1 + (Level("runway") - 1) * 0.06f) * (1 + Fx(Effect.RunwaySpeed)) * WeatherFactor * SurfaceFactor; } }
         public float TaxiSpeed { get { return (1 + Level("taxiways") * 0.08f) * (1 + Fx(Effect.TaxiSpeed)) * (0.5f + 0.5f * WeatherFactor) * StandBoost; } }
         public int Crews(Service s) { int l = Level(Content.ServiceFacility(s)); return l <= 0 ? 0 : 1 + (l - 1) / 3; }
         public float CrewSpeed(Service s)
@@ -259,7 +259,9 @@ namespace Crosswind.Core
 
         void Step(float dt)
         {
+            bool shut = RunwayClosed;
             State.time += dt;
+            if (shut && !RunwayClosed) RunwayReopened?.Invoke();
             Live(dt);
             Arrivals();
             int runwayBusy = State.flights.Count(f => f.phase == Phase.Landing || f.phase == Phase.Takeoff);
@@ -295,12 +297,13 @@ namespace Crosswind.Core
             switch (f.phase)
             {
                 case Phase.Approach:
-                    if (runwayBusy >= RunwayLanes) return;
+                    if (runwayBusy >= RunwayLanes || RunwayClosed) return;
                     int stand = FreeStand(r.Class);
                     if (stand < 0) return;
                     f.stand = stand;
                     runwayBusy++;
                     Enter(f, Phase.Landing, plane.RunwaySeconds / RunwaySpeed);
+                    WearRunway(r.Class);
                     return;
                 case Phase.Landing:
                     if (!Count(f, dt)) return;
@@ -355,10 +358,11 @@ namespace Crosswind.Core
                     return;
                 case Phase.TaxiOut:
                     if (f.timer > 0) { f.timer -= dt; return; }
-                    if (runwayBusy >= RunwayLanes) return;         // holding short
+                    if (runwayBusy >= RunwayLanes || RunwayClosed) return;         // holding short
                     runwayBusy++;
                     f.stand = -1;
                     Enter(f, Phase.Takeoff, plane.RunwaySeconds / RunwaySpeed);
+                    WearRunway(r.Class);
                     return;
                 case Phase.Takeoff:
                     if (!Count(f, dt)) return;

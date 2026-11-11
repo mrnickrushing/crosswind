@@ -95,6 +95,10 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   `BuyFuel(to)` pays stock x price, each fuelled departure draws `FuelDraw` and is paid it back (`DrawFuel` in `Pay`);
   dry tanks leave `DryMargin` of the fuel margin. A fuel manager reorders to 60% under 25% when the price is <= 1.08.
   `FlightValue` and the idle rate are unchanged (neutral at par). UI: FUEL MARKET at the top of BUILD.
+- Runway wear (`Core/Sim.Runway.cs`, `RunwayTests`): each movement adds `WearOf(class)` to `State.runwayWear`;
+  under half condition `SurfaceFactor` scales `RunwaySpeed` down to 0.8. `Resurface()` costs money and shuts the
+  runway for `ResurfaceSeconds` (`RunwayClosed` holds arrivals and departures; `AirportView._closed` shows the gang).
+  UI: OPERATIONS at the top of BUILD, with the tank farm.
 - Wide-body stands (facility `heavy`, 5 stars, max 6): class D and E (`Sim.Heavy`) park only on the first
   `HeavyStands` stands of the row; smaller aircraft fill the ordinary ones first and leave a wide-body stand at once
   when one is circling (`WideBodyWaiting`). `Sim.Missing(route)` lists the facilities a route still waits for (the

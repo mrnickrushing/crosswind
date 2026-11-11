@@ -60,6 +60,7 @@ namespace Crosswind.Game
             if (f.phase == Phase.Gone) { _planes.Remove(f.id); Destroy(p.gameObject, 0.1f); }
         }
 
+        GameObject _closed;
         readonly HashSet<int> _bridged = new HashSet<int>();
         /// <summary>Whether this stand has a boarding bridge (nobody walks across the apron to it).</summary>
         public bool HasBridge(int stand) { return _bridged.Contains(stand); }
@@ -120,6 +121,7 @@ namespace Crosswind.Game
             string key = s.Level("runway") + "|" + s.Level("stands") + "|" + s.Level("heavy") + "|" + s.Level("taxiways") + "|" + s.Level("tower") + "|" + s.Level("fuel") + "|" + s.Level("baggage") + "|"
                  + s.Level("catering") + "|" + s.Level("cleaning") + "|" + s.Level("pushback") + "|" + s.Level("deice") + "|" + s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.Level("shops") + "|" + s.Level("lounge") + "|" + s.Level("parking") + "|" + s.Level("hangar") + "|" + s.Level("cargo") + "|" + s.Level("ils") + "|" + s.Stars + "|" + s.State.map;
             if (key != _built) Rebuild();
+            if (_closed != null && _closed.activeSelf != s.RunwayClosed) _closed.SetActive(s.RunwayClosed);
             _built = key;
         }
 
@@ -601,6 +603,38 @@ namespace Crosswind.Game
             }
 
             _static = mb.ToObject("Static", transform);
+            // The resurfacing gang, shown only while the runway is shut: closed crosses at both ends, a paver and
+            // rollers on a fresh black strip, lorries, cones across the turn-offs.
+            var cb = new MeshBuilder { Smoothness = 0.3f };
+            foreach (float e in new[] { -1f, 1f })
+                foreach (float a in new[] { -45f, 45f })
+                { cb.Push().Translate(Layout.RunwayX, 0.06f, e * (half - 12)).RotateY(a); cb.Box(Vector3.zero, new Vector3(1.1f, 0.02f, w * 0.9f), Palette.PaintYellow); cb.Pop(); }
+            cb.Smoothness = 0.05f;
+            cb.Box(new Vector3(Layout.RunwayX - w * 0.2f, 0.055f, -6), new Vector3(w * 0.4f, 0.02f, 46), Palette.Hex(0x15171A));
+            cb.Smoothness = 0.4f;
+            // Paver: a hopper, a body, the screed behind.
+            cb.Push().Translate(Layout.RunwayX - w * 0.2f, 0.06f, 18);
+            cb.Box(new Vector3(0, 0.9f, 0), new Vector3(2.2f, 1.2f, 3.4f), Palette.Hex(0xF07A1A)); cb.Box(new Vector3(0, 0.7f, 2.3f), new Vector3(2.6f, 0.9f, 1.4f), Palette.Hex(0x3A3F45));
+            cb.Box(new Vector3(0, 0.3f, -2.0f), new Vector3(w * 0.4f, 0.3f, 0.6f), Palette.Hex(0x3A3F45)); cb.Box(new Vector3(0, 1.9f, -0.4f), new Vector3(1.8f, 0.08f, 1.6f), Palette.Hex(0xF07A1A));
+            foreach (float ex in new[] { -1f, 1f }) cb.Box(new Vector3(ex * 0.9f, 0.3f, 0), new Vector3(0.4f, 0.6f, 3.0f), Palette.Tyre);
+            cb.Pop();
+            // Two rollers following it.
+            foreach (float rz in new[] { 6f, -8f })
+            {
+                cb.Push().Translate(Layout.RunwayX - w * 0.2f + (rz > 0 ? 0.6f : -0.6f), 0.06f, rz);
+                cb.Box(new Vector3(0, 1.0f, 0), new Vector3(1.5f, 0.8f, 1.6f), Palette.PaintYellow); cb.Box(new Vector3(0, 1.75f, 0), new Vector3(1.3f, 0.06f, 1.4f), Palette.PaintYellow);
+                foreach (float ez in new[] { -1f, 1f }) cb.Cylinder(new Vector3(-0.75f, 0.5f, ez * 1.2f), new Vector3(0.75f, 0.5f, ez * 1.2f), 0.5f, 12, Palette.Hex(0x70767C));
+                cb.Pop();
+            }
+            cb.Push().Translate(Layout.RunwayX + w * 0.2f, 0.05f, 30).RotateY(180); cb.Append(Gse.Lorry(Palette.Hex(0xF07A1A))); cb.Pop();
+            cb.Push().Translate(Layout.RunwayX + w * 0.25f, 0.05f, -22); cb.Append(Gse.Lorry(Palette.Hex(0x70767C))); cb.Pop();
+            cb.Smoothness = 0.3f;
+            for (int k = 0; k < 7; k++) { Gse.Cone(cb, new Vector3(Layout.RunwayX + w * 0.5f + 1.5f, 0.05f, Layout.ExitZ(s) - 6 + k * 2)); Gse.Cone(cb, new Vector3(Layout.RunwayX + w * 0.5f + 1.5f, 0.05f, Layout.LineUpZ(s) - 6 + k * 2)); }
+            cb.Glow = true;
+            for (int k = 0; k < 6; k++) cb.Sphere(new Vector3(Layout.RunwayX + (k % 2 == 0 ? -1 : 1) * w * 0.45f, 0.5f, -24 + k * 10), Vector3.one * 0.28f, 6, Palette.Hex(0xFFB020));
+            cb.Glow = false;
+            _closed = cb.ToObject("RunwayWorks", _static.transform);
+            _closed.SetActive(s.RunwayClosed);
             g.Build(_static.transform);
             kit.SetParent(_static.transform, false);
         }

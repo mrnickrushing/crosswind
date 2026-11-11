@@ -248,6 +248,21 @@ namespace Crosswind.Game
                 mb.GableRoof(new Vector3(termX + 4, 3f, -45.5f), new Vector3(7, 1.6f, 9), Palette.Roof, Palette.WoodPale, 0.5f);
                 mb.Box(new Vector3(termX + 0.4f, 1.1f, -45.5f), new Vector3(0.2f, 2.2f, 1.4f), Palette.Hex(0x4A3A2A));     // the door
                 mb.Box(new Vector3(termX + 4, 4.9f, -43f), new Vector3(0.12f, 2.2f, 0.12f), Palette.Steel);              // aerial
+                // The little airfield you inherit: a name board, a picket fence, a bench, a bicycle shed, flower tubs.
+                mb.Box(new Vector3(termX - 1.5f, 1.3f, -38.5f), new Vector3(0.14f, 2.6f, 0.14f), Palette.Wood);
+                mb.Box(new Vector3(termX - 1.5f, 2.3f, -38.5f), new Vector3(0.12f, 0.9f, 3.4f), Palette.White, Palette.Hex(0x1F5FA8));
+                mb.Box(new Vector3(termX - 1.56f, 2.3f, -38.5f), new Vector3(0.04f, 0.3f, 2.4f), Palette.Hex(0x1F5FA8));
+                for (float z = -52; z <= -32; z += 0.9f) mb.Box(new Vector3(termX + 9.5f, 0.45f, z), new Vector3(0.1f, 0.9f, 0.5f), Palette.White);
+                mb.Box(new Vector3(termX + 9.5f, 0.55f, -42), new Vector3(0.06f, 0.1f, 20f), Palette.White);
+                mb.Box(new Vector3(termX - 0.8f, 0.45f, -49.5f), new Vector3(0.6f, 0.1f, 2.0f), Palette.Wood);
+                foreach (float bz in new[] { -50.3f, -48.7f }) mb.Box(new Vector3(termX - 0.8f, 0.22f, bz), new Vector3(0.5f, 0.44f, 0.12f), Palette.SteelDark);
+                foreach (float fz in new[] { -41.5f, -49.8f })
+                {
+                    mb.Cylinder(new Vector3(termX - 0.2f, 0, fz), new Vector3(termX - 0.2f, 0.5f, fz), 0.5f, 0.6f, 8, Palette.Hex(0x9A6B4A));
+                    mb.Sphere(new Vector3(termX - 0.2f, 0.75f, fz), new Vector3(0.6f, 0.4f, 0.6f), 6, Palette.Hex(0xE2557A));
+                }
+                Models.Kit("sedan", kitEarly, new Vector3(termX + 6.5f, 0.05f, -52), 20, 4.2f);
+                Models.Kit("truck", kitEarly, new Vector3(Layout.TaxiX + 9, 0.05f, -57), 100, 5f);
             }
             else
             {

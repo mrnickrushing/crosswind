@@ -19,6 +19,12 @@ namespace Crosswind.EditorTools
                 t.textureCompression = TextureImporterCompression.CompressedHQ;
                 return;
             }
+            if (assetPath.StartsWith("Assets/Resources/UI/"))
+            {
+                t.textureType = TextureImporterType.Sprite; t.spriteImportMode = SpriteImportMode.Single; t.mipmapEnabled = false; t.alphaIsTransparency = true;
+                t.textureCompression = TextureImporterCompression.Uncompressed;
+                return;
+            }
             if (!assetPath.StartsWith("Assets/Resources/Textures/") && !assetPath.StartsWith("Assets/Resources/Models/")) return;
             bool normal = assetPath.Contains("Normal") || assetPath.Contains("_normal");
             t.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;

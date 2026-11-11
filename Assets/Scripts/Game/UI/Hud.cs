@@ -32,6 +32,7 @@ namespace Crosswind.Game
         sealed class Pop { public RectTransform Rt; public Text Text; public Vector3 World; public float Age; }
 
         static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE" };
+        static readonly string[] TabIcons = { "wrench", "plane", "multiplayer", "zoom", "trophy" };
         Text _gems, _weather, _chips, _oppText;
         RectTransform _opp, _empireDot;
 
@@ -136,10 +137,13 @@ namespace Crosswind.Game
             for (int i = 0; i < TabNames.Length; i++)
             {
                 int k = i;
-                var b = Ui.Button(TabNames[i], bottom, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 34);
+                var b = Ui.Button(TabNames[i], bottom, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 28);
+                // An icon above the word.
+                var lab = b.GetComponentInChildren<Text>().rectTransform; lab.anchorMin = new Vector2(0, 0); lab.anchorMax = new Vector2(1, 0.4f); lab.offsetMin = new Vector2(2, 4); lab.offsetMax = new Vector2(-2, 0);
+                Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.66f), Vector2.zero, 62);
                 var rt = (RectTransform)b.transform;
                 float n = TabNames.Length;
-                rt.anchorMin = new Vector2(i / n, 0); rt.anchorMax = new Vector2((i + 1) / n, 1); rt.offsetMin = new Vector2(i == 0 ? 16 : 6, 54); rt.offsetMax = new Vector2(i == n - 1 ? -16 : -6, -18);
+                rt.anchorMin = new Vector2(i / n, 0); rt.anchorMax = new Vector2((i + 1) / n, 1); rt.offsetMin = new Vector2(i == 0 ? 16 : 6, 44); rt.offsetMax = new Vector2(i == n - 1 ? -16 : -6, -12);
                 _tabs.Add(b);
             }
             // A dot on EMPIRE when a task or an achievement is waiting to be claimed.

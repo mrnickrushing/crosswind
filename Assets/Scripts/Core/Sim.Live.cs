@@ -76,7 +76,7 @@ namespace Crosswind.Core
             double roll = Rand();
             Weather w = roll < m.Storm ? Weather.Storm : roll < m.Storm + m.Fog ? Weather.Fog : roll < m.Storm + m.Fog + m.Snow ? Weather.Snow : roll < m.Storm + m.Fog + m.Snow + 0.15 ? Weather.Rain : Weather.Clear;
             // The first few minutes of a new airport are always fair.
-            if (State.time < 240) w = Weather.Clear;
+            if (State.time < 300) w = Weather.Clear;
             bool changed = (int)w != State.weather;
             State.weather = (int)w;
             State.weatherUntil = State.time + (w == Weather.Clear ? 180 + Rand() * 240 : 60 + Rand() * 90);

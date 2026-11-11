@@ -104,7 +104,7 @@ namespace Crosswind.Core
         public int weather;                                         // Weather, as a number
         public double weatherUntil;                                 // game time it changes
         public Opportunity opportunity;
-        public double nextOpportunityAt = 150;                      // game time
+        public double nextOpportunityAt = 210;                      // game time
         public double rushUntil;                                    // game time a rush (double pay) ends
         public int taskDay;                                         // the day today's tasks belong to
         public List<TaskState> tasks = new List<TaskState>();
@@ -117,10 +117,10 @@ namespace Crosswind.Core
 
         public static GameState New()
         {
-            var s = new GameState { money = Content.StartMoney };
+            var s = new GameState { money = Content.StartMoney, time = 60 };      // a new airport opens at eight in the morning
             foreach (var id in Content.FacilityOrder)
                 if (Content.Facilities[id].StartLevel > 0) s.levels.Add(new LevelEntry { id = id, level = Content.Facilities[id].StartLevel });
-            s.contracts.Add(new ContractState { route = "puffin_isles", nextArrival = 2 });
+            s.contracts.Add(new ContractState { route = "puffin_isles", nextArrival = 62 });
             return s;
         }
 

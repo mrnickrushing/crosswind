@@ -104,6 +104,23 @@ namespace Crosswind.Game
             return b;
         }
 
+        static readonly Dictionary<string, Sprite> _icons = new Dictionary<string, Sprite>();
+        /// <summary>A white icon from Resources/UI (tinted by the Image's colour); null when missing.</summary>
+        public static Sprite Icon(string name)
+        {
+            Sprite s;
+            if (!_icons.TryGetValue(name, out s)) _icons[name] = s = Resources.Load<Sprite>("UI/" + name);
+            return s;
+        }
+
+        public static Image IconImg(string name, Transform parent, Color color, Vector2 anchor, Vector2 pos, float size)
+        {
+            var img = Img("Icon", parent, color);
+            img.sprite = Icon(name); img.preserveAspect = true;
+            img.rectTransform.Place(anchor, new Vector2(0.5f, 0.5f), pos, new Vector2(size, size));
+            return img;
+        }
+
         public static void Clear(Transform t) { for (int i = t.childCount - 1; i >= 0; i--) UnityEngine.Object.Destroy(t.GetChild(i).gameObject); }
 
         /// <summary>A white rounded rectangle, nine-sliced.</summary>

@@ -1,0 +1,51 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+/ios/
+*.csproj
+*.sln
+*.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.apk
+*.aab
+*.unitypackage
+crashlytics-build.properties
+.vs/
+.vscode/
+.idea/
+.DS_Store
+
+# Keep the standalone logic test project
+!Tools/**/*.csproj
+Tools/**/bin/
+Tools/**/obj/
+
+# Local tooling / IDE
+*.slnx
+/ProjectSettings/Packages/com.unity.pipeline/
+
+# AI art working files (concepts, raw GLBs; large)
+/art-src/
+__pycache__/
+/Packages/packages-lock.json
+/art-src/
+
+# local tooling
+/art-src/
+/Packages/packages-lock.json
+/ProjectSettings/Packages/com.unity.pipeline/
+Tools/CoreTests/bin/
+Tools/CoreTests/obj/

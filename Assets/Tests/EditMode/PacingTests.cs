@@ -1,0 +1,51 @@
+using System.Collections.Generic;
+using System.Linq;
+using Crosswind.Core;
+using NUnit.Framework;
+
+namespace Crosswind.Tests
+{
+    /// <summary>A greedy player, to see how long the first hour's milestones take and that nothing ever dead-ends.</summary>
+    public class PacingTests
+    {
+        /// <summary>Plays to a time limit: taps services, claims goals, signs what it can, hires managers, buys the cheapest upgrade.</summary>
+        public static List<string> Greedy(Sim s, float seconds, float tapEvery = 1f)
+        {
+            var log = new List<string>();
+            int stars = s.Stars, goal = s.State.goalIndex;
+            float sinceTap = 0;
+            for (float t = 0; t < seconds; t += 0.25f)
+            {
+                sinceTap += 0.25f;
+                if (sinceTap >= tapEvery) { sinceTap = 0; foreach (var (f, j) in s.Waiting.ToList()) s.Dispatch(f.id, j.service); }
+                s.Tick(0.25f);
+                if ((int)(t * 4) % 4 != 0) continue;
+                while (s.ClaimGoal()) { }
+                foreach (var r in s.Offers.ToList()) s.Sign(r.Id);
+                foreach (var id in Content.FacilityOrder) if (s.HireBlocked(id) == null) s.Hire(id);
+                // What a contract on offer is waiting for comes first, then the cheapest thing.
+                var wanted = Content.Routes.Values.Where(r => !s.Signed(r.Id) && s.Stars >= r.Stars)
+                    .SelectMany(r => r.Needs.Select(Content.ServiceFacility).Where(f => s.Level(f) == 0).Concat(s.Level("runway") < Content.Aircraft[r.Class].RunwayLevel ? new[] { "runway" } : new string[0])).Distinct().ToList();
+                var pick = wanted.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault()
+                    ?? (wanted.Count == 0 ? Content.FacilityOrder.Where(f => s.UpgradeBlocked(f) == null).OrderBy(s.Cost).FirstOrDefault() : null);
+                if (pick != null) s.Upgrade(pick);
+                if (s.Stars != stars) { stars = s.Stars; log.Add(Format.Time(t) + ": " + stars + " stars, " + Format.Money(s.State.incomeRate * 60) + "/min, " + s.State.contracts.Count + " routes"); }
+                if (s.State.goalIndex != goal) { goal = s.State.goalIndex; log.Add(Format.Time(t) + ": goal " + goal + " done (" + Goals.All[goal - 1].Id + ")"); }
+            }
+            return log;
+        }
+
+        [Test]
+        public void TheFirstHourKeepsMoving()
+        {
+            var s = new Sim(GameState.New());
+            var log = Greedy(s, 3600);
+            foreach (var l in log) TestContext.WriteLine(l);
+            TestContext.WriteLine("after 1h: " + s.Stars + " stars, money " + Format.Money(s.State.money) + ", " + s.State.flightsHandled + " flights (" + s.State.onTime + " on time), goal " + s.State.goalIndex + "/" + Goals.All.Count + ", idle/min " + Format.Money(s.IdleRate() * 60));
+            Assert.GreaterOrEqual(s.Stars, 3, "three stars inside the first hour");
+            Assert.GreaterOrEqual(s.State.goalIndex, 8, "the guide keeps up");
+            Assert.Greater(s.IdleRate(), 0, "the airport earns by itself by then");
+            Assert.Greater(s.State.onTime, s.State.late, "mostly on time");
+        }
+    }
+}

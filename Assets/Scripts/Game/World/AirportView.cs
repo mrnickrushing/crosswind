@@ -489,13 +489,7 @@ namespace Crosswind.Game
                 DepotAt[id] = new Vector3(dx, 0, -62);
                 if (l > 0)
                 {
-                    float size = 7 + Mathf.Min(8, l) * 0.5f;
-                    if (id == "fuel")
-                    {
-                        for (int k = 0; k < 1 + Mathf.Min(3, l / 3); k++) Models.Kit(l >= 6 ? "tank_large" : "tank", kit, new Vector3(dx + k * 4.5f - 2, 0, -70), 0, l >= 6 ? 5.5f : 4f);
-                        Models.Kit("works_s", kit, new Vector3(dx - 7, 0, -70), 90, 6);
-                    }
-                    else Models.Kit(model, kit, new Vector3(dx, 0, -71), 0, size);
+                    Works.Depot(mb, id, new Vector3(dx, 0, -71), l);
                     g.Rect("Concrete", dx, -66, 15, 17, 0.03f, 0, new Color(0.85f, 0.85f, 0.85f));
                 }
                 dx += 19;
@@ -505,20 +499,18 @@ namespace Crosswind.Game
             {
                 float hw = 18 + Mathf.Min(10, s.Level("hangar")) * 1.2f;
                 var hp = new Vector3(Layout.TaxiX + 18, 0, 78);
-                mb.Smoothness = 0.35f;
-                mb.Box(hp + Vector3.up * 4, new Vector3(hw, 8, 20), Palette.Hex(0xC8CCD0), Palette.Steel);
-                mb.Cylinder(hp + new Vector3(-hw * 0.5f, 8, 0), hp + new Vector3(hw * 0.5f, 8, 0), 10f, 10f, 14, Palette.Hex(0xAEB4BA));
-                mb.Box(hp + new Vector3(0, 3.2f, -10.1f), new Vector3(hw * 0.8f, 6.4f, 0.2f), Palette.Hex(0x38424C));
-                g.Rect("Concrete", hp.x, hp.z - 16, hw, 12, 0.03f);
+                // Doors to the west, onto the taxiway (and toward the camera).
+                mb.Push().Translate(hp).RotateY(90); Works.Hangar(mb, Vector3.zero, hw); mb.Pop();
+                mb.Smoothness = 0.3f;
+                g.Rect("Concrete", hp.x - 15, hp.z, 10, hw, 0.03f);
             }
             if (s.Level("cargo") > 0)
             {
                 var cp = new Vector3(Layout.TaxiX + 52, 0, 76);
-                Models.Kit("works_q", kit, cp, 180, 14);
-                string[] boxes = { "container_a", "container_b", "container_c" };
-                for (int k = 0; k < Mathf.Min(14, 3 + s.Level("cargo")); k++)
-                    Models.Kit(boxes[k % 3], kit, cp + new Vector3(12 + (k % 4) * 3.2f, (k / 8) * 2.6f, -6 + (k / 4 % 2) * 7.5f), 0, 6);
-                g.Rect("Concrete", cp.x + 8, cp.z - 2, 40, 22, 0.03f, 0, new Color(0.85f, 0.85f, 0.85f));
+                float cw = 20f + Mathf.Min(10, s.Level("cargo")) * 1.2f;
+                mb.Push().Translate(cp + new Vector3(10, 0, 6)).RotateY(90); Works.Cargo(mb, Vector3.zero, s.Level("cargo")); mb.Pop();
+                mb.Smoothness = 0.3f;
+                g.Rect("Concrete", cp.x - 2, cp.z + 4, 38, cw + 14, 0.03f, 0, new Color(0.85f, 0.85f, 0.85f));
             }
             if (s.Level("ils") > 0)
             {

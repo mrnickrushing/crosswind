@@ -28,8 +28,8 @@ namespace Crosswind.Game
         float _refreshIn, _toastT, _bannerT;
         double _shownMoney;
 
-        sealed class ServiceButton { public RectTransform Rt; public Image Bg; public Text Label; public int Flight; public Service Service; }
-        sealed class Pop { public RectTransform Rt; public Text Text; public Vector3 World; public float Age; }
+        sealed class ServiceButton { public RectTransform Rt; public Image Bg, Tail; public Text Label; public int Flight; public Service Service; }
+        sealed class Pop { public RectTransform Rt; public CanvasGroup Group; public Vector3 World; public Vector2 At, Drift; public bool Screen; public float Age, Life = 1.7f; }
 
         static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE" };
         static readonly string[] TabIcons = { "wrench", "plane", "multiplayer", "zoom", "trophy" };
@@ -109,7 +109,7 @@ namespace Crosswind.Game
             _goalFill.rectTransform.anchorMin = Vector2.zero; _goalFill.rectTransform.anchorMax = new Vector2(0, 1); _goalFill.rectTransform.offsetMin = _goalFill.rectTransform.offsetMax = Vector2.zero;
             _goalCount = Ui.Label("Count", _goal, "", 34, Ui.Dim, TextAnchor.MiddleCenter);
             _goalCount.rectTransform.Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 100));
-            _goalClaim = Ui.Button("Claim", _goal, "CLAIM", Ui.Green, () => { if (_sim.ClaimGoal()) { Toast("Reward collected"); Sfx.Play("claim"); _dirty = true; } }, 44);
+            _goalClaim = Ui.Button("Claim", _goal, "CLAIM", Ui.Green, () => { var g = _sim.CurrentGoal; if (_sim.ClaimGoal()) { Reward(g.Money * _sim.Map.IncomeScale, g.Gems); Sfx.Play("claim"); _dirty = true; } }, 44);
             ((RectTransform)_goalClaim.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 104));
 
             // Under the guide: the weather, and what is running (a boost, a rush).
@@ -173,15 +173,7 @@ namespace Crosswind.Game
 
             BuildGuide();
             // Toast and the star banner.
-            _toast = Ui.Img("Toast", _root, new Color(0, 0, 0, 0.82f), true).rectTransform;
-            _toast.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 230), new Vector2(900, 90));
-            _toastText = Ui.Label("Text", _toast, "", 38, Color.white, TextAnchor.MiddleCenter, false);
-            _toastText.rectTransform.Fill(12);
-            _toast.gameObject.SetActive(false);
-            _banner = Ui.Img("Banner", _root, new Color(0.1f, 0.13f, 0.18f, 0.95f), true).rectTransform;
-            _banner.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -460), new Vector2(900, 200));
-            Ui.Label("Text", _banner, "", 60, Ui.Gold).rectTransform.Fill(16);
-            _banner.gameObject.SetActive(false);
+            BuildFeedback();
         }
 
         // ------------------------------------------------------------------ every frame
@@ -229,30 +221,11 @@ namespace Crosswind.Game
             UpdatePops();
             UpdateGuide();
             if ((_refreshIn -= Time.unscaledDeltaTime) <= 0 || _dirty) { _refreshIn = 0.5f; if (_tab >= 0) RefreshSheet(); _dirty = false; }
-            if (_toastT > 0 && (_toastT -= Time.unscaledDeltaTime) <= 0) _toast.gameObject.SetActive(false);
-            if (_bannerT > 0 && (_bannerT -= Time.unscaledDeltaTime) <= 0) _banner.gameObject.SetActive(false);
+            UpdateFeedback();
         }
 
         static void Outline(Text t) { var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.75f); o.effectDistance = new Vector2(2, -2); }
 
-        public void Toast(string text)
-        {
-            if (string.IsNullOrEmpty(text)) return;
-            _toastText.text = text;
-            _toast.gameObject.SetActive(true);
-            _toast.SetAsLastSibling();
-            _toastT = 2.2f;
-        }
-
-        void OnStar(int stars)
-        {
-            _banner.GetComponentInChildren<Text>().text = stars + "-STAR AIRPORT!\n<size=38><color=#FFFFFFB0>New airlines and buildings unlocked</color></size>";
-            _banner.gameObject.SetActive(true);
-            _banner.SetAsLastSibling();
-            Sfx.Play("star");
-            _bannerT = 3.5f;
-            _dirty = true;
-        }
 
         /// <summary>A point in the world as a position on the canvas (z under 0: behind the camera).</summary>
         Vector3 ToCanvas(Vector3 world)
@@ -286,6 +259,7 @@ namespace Crosswind.Game
                         var b = ButtonAt(used++);
                         b.Flight = f.id; b.Service = j.service;
                         b.Bg.color = _sim.CrewFree(j.service) ? ServiceColor(j.service) : Ui.Off;
+                        b.Tail.color = b.Bg.color;
                         b.Label.text = ServiceWord(j.service);
                         b.Rt.anchoredPosition = new Vector2(c.x + (k - (waiting - 1) / 2f) * 150, c.y + 20 + Mathf.Sin(Time.unscaledTime * 5 + f.id) * 6);
                         k++;
@@ -301,36 +275,19 @@ namespace Crosswind.Game
                 var sb = new ServiceButton();
                 var b = Ui.Button("Service", _world, "", Color.white, null, 36);
                 sb.Rt = (RectTransform)b.transform; sb.Bg = b.GetComponent<Image>(); sb.Label = b.GetComponentInChildren<Text>();
-                sb.Rt.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140, 96));
+                sb.Rt.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0), Vector2.zero, new Vector2(156, 92));
+                // A speech bubble: a white rim, a tail pointing down at the aircraft, bold outlined word.
+                var rim = sb.Bg.gameObject.AddComponent<Outline>(); rim.effectColor = Color.white; rim.effectDistance = new Vector2(3, -3);
+                sb.Tail = Ui.Img("Tail", sb.Rt, Color.white);
+                sb.Tail.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 2), new Vector2(30, 30));
+                sb.Tail.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
+                sb.Tail.transform.SetAsFirstSibling();
+                sb.Label.fontSize = 40; Outline(sb.Label);
                 b.onClick.AddListener(() => { if (_sim.Dispatch(sb.Flight, sb.Service)) { _dirty = true; Sfx.Play("dispatch", 0.7f); } else Sfx.Play("error", 0.5f); });
                 _serviceButtons.Add(sb);
             }
             _serviceButtons[i].Rt.gameObject.SetActive(true);
             return _serviceButtons[i];
-        }
-
-        // ------------------------------------------------------------------ pay pop-ups
-
-        void OnPaid(FlightState f, double paid, bool onTime)
-        {
-            if (GameRoot.Speed <= 3) Sfx.Play("coin", 0.35f);
-            var t = Ui.Label("Pay", _world, "+" + Format.Money(paid) + (onTime ? "" : "  <size=30>LATE</size>"), 46, onTime ? Ui.Gold : Ui.Red);
-            t.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(400, 60));
-            var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.8f); o.effectDistance = new Vector2(2, -2);
-            _pops.Add(new Pop { Rt = t.rectTransform, Text = t, World = new Vector3(Layout.RunwayX, 6, Layout.RunwayHalf(_sim) * 0.5f) });
-        }
-
-        void UpdatePops()
-        {
-            for (int i = _pops.Count - 1; i >= 0; i--)
-            {
-                var p = _pops[i];
-                p.Age += Time.unscaledDeltaTime;
-                var c = ToCanvas(p.World);
-                p.Rt.anchoredPosition = new Vector2(c.x, c.y + p.Age * 90);
-                p.Text.color = new Color(p.Text.color.r, p.Text.color.g, p.Text.color.b, Mathf.Clamp01(1.6f - p.Age));
-                if (p.Age > 1.6f) { Destroy(p.Rt.gameObject); _pops.RemoveAt(i); }
-            }
         }
     }
 }

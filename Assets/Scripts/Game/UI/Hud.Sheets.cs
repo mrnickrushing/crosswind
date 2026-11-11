@@ -85,10 +85,10 @@ namespace Crosswind.Game
                 {
                     var r = Content.Routes[c.route]; var plane = Content.Aircraft[r.Class];
                     float mood = s.Relation(r.Airline);
-                    int next = (c.terms + 1) % 3;
+                    int nextTerms = (c.terms + 1) % 3;
                     Entry(r.Destination, Content.Airlines[r.Airline].Name + " · " + Sim.Mood(mood).ToUpper(),
                         plane.Name + "  ·  " + Mathf.RoundToInt(r.FlightsPerHour * Sim.TermsFlights(c.terms)) + " flights an hour  ·  " + Format.Money(s.FlightValue(r) * Sim.TermsPay(c.terms) * s.RelationPay(r.Airline)) + " a flight on time  ·  terms: " + Sim.TermsName[c.terms],
-                        "TERMS\n<size=30>" + Sim.TermsName[next] + "</size>", null, () => { s.SetTerms(r.Id, next); Toast(r.Destination + ": " + Sim.TermsBlurb[next]); }, Ui.Card);
+                        "TERMS\n<size=30>" + Sim.TermsName[nextTerms] + "</size>", null, () => { s.SetTerms(r.Id, nextTerms); Toast(r.Destination + ": " + Sim.TermsBlurb[nextTerms]); }, Ui.Card);
                 }
                 Header("AIRLINES: ON-TIME FLIGHTS PLEASE THEM, LATE ONES COST YOU");
                 foreach (var line in s.State.contracts.Select(c => Content.Routes[c.route].Airline).Distinct())

@@ -166,12 +166,19 @@ namespace Crosswind.Game
                         "TERMS\n<size=30>" + Sim.TermsName[nextTerms] + "</size>", null, () => { s.SetTerms(r.Id, nextTerms); Toast(r.Destination + ": " + Sim.TermsBlurb[nextTerms]); }, Ui.Card);
                 }
                 PlanSection();
-                Header("AIRLINES: ON-TIME FLIGHTS PLEASE THEM, LATE ONES COST YOU");
+                Header("AIRLINES: MEET THEIR PUNCTUALITY DEAL TO BECOME A PARTNER");
                 foreach (var line in s.State.contracts.Select(c => Content.Routes[c.route].Airline).Where(a => a != "own").Distinct())
                 {
                     float mood = s.Relation(line);
-                    Ico("handshake", Models.AirlineColor(line)).Entry(Content.Airlines[line].Name, Sim.Mood(mood).ToUpper() + "  " + Mathf.RoundToInt(mood) + "/100", "\"" + Content.Airlines[line].Motto + "\"  Pays " + Mathf.RoundToInt((float)s.RelationPay(line) * 100) + "% of its fees."
-                        + (mood < 20 ? "  One more bad day and they cancel a route." : mood >= 85 ? "  Your best partner." : ""), null, null, null);
+                    var deal = s.Deal(line); int size = s.DealFlights(line), need = s.DealNeeds(line), partner = s.Partner(line);
+                    bool alive = s.DealAlive(line);
+                    // The punctuality deal in progress: how far along, and whether it can still be met.
+                    string dealLine = "Deal: " + deal.onTime + " on time of " + deal.flights + " so far; " + need + " of " + size + " earns "
+                        + (partner < Sim.MaxPartner ? "\"" + Sim.PartnerName[partner + 1] + "\" (+" + Mathf.RoundToInt((float)Sim.PartnerBonus * 100) + "% pay for good) and a bonus." : "another bonus.")
+                        + (alive ? "" : "  <color=#FF8070>Out of reach this round.</color>");
+                    Ico("handshake", Models.AirlineColor(line)).Bar(deal.flights / (float)size, alive ? Ui.Green : Ui.Red).Entry(Content.Airlines[line].Name,
+                        Sim.PartnerName[partner].ToUpper() + "  ·  " + Sim.Mood(mood).ToUpper() + " " + Mathf.RoundToInt(mood),
+                        "Pays " + Mathf.RoundToInt((float)(s.RelationPay(line) * s.PartnerPay(line)) * 100) + "% of its fees." + (mood < 20 ? "  One more bad day and they cancel a route." : "") + "  " + dealLine, null, null, null);
                 }
                 Header("YOUR AIRLINE  ·  " + s.FleetSize + " AIRCRAFT  ·  EACH FLIGHT PAYS " + Mathf.RoundToInt((float)Sim.OwnPay * 100) + "%");
                 Ico("paint", Palette.Hex(Sim.LiveryHex[Mathf.Clamp(s.State.livery, 0, Sim.LiveryHex.Length - 1)])).Entry("Livery: " + Sim.Liveries[s.State.livery], null, "Your aircraft fly in your colours. New aircraft and the next arrivals wear the new paint.", "CHANGE", null,

@@ -44,6 +44,10 @@ namespace Crosswind.Core
         public bool done;
     }
 
+    /// <summary>An airline's running punctuality deal: flights counted so far, and how many of them left on time.</summary>
+    [Serializable]
+    public sealed class AirlineDeal { public string airline; public int flights, onTime; }
+
     [Serializable]
     public sealed class GoalProgress { public string id; public bool claimed; }
 
@@ -127,6 +131,8 @@ namespace Crosswind.Core
         public int feeLevel = 2;                                     // fee policy, 0 bargain .. 4 premium
         public double loanOwed, loanTotal;                           // what the bank is still owed, and what was owed at the start
         public double[] incomeBy = new double[5];                    // lifetime income here by source: landing, passengers, fuel, shops, cargo
+        public List<AirlineDeal> deals = new List<AirlineDeal>();    // each airline's punctuality deal in progress
+        public List<LevelEntry> partner = new List<LevelEntry>();    // partner level with each airline, 0..3 (kept at this airport)
         public int plansMade;                                        // times the day was planned (by AUTO PLAN or by hand)
         public double freeCrateAt;                                   // real time the next free crate is ready
 
@@ -184,6 +190,10 @@ namespace Crosswind.Core
             crew.RemoveAll(c => c == null || Sim.CrewById(c.id) == null);
             if (duty == null) duty = new List<string>();
             duty.RemoveAll(d => !crew.Exists(c => c.id == d));
+            if (deals == null) deals = new List<AirlineDeal>();
+            deals.RemoveAll(d => d == null || d.airline == null || !Content.Airlines.ContainsKey(d.airline));
+            if (partner == null) partner = new List<LevelEntry>();
+            partner.RemoveAll(d => d == null || d.id == null || !Content.Airlines.ContainsKey(d.id));
             if (seed == 0) seed = 12345;
         }
     }

@@ -79,5 +79,55 @@ namespace Crosswind.Tests
             Assert.AreEqual(s.FlightValue(Content.Routes["own_a"]) * Sim.OwnPay, paid, paid * 0.01);
             s.SetLivery(8); Assert.AreEqual(2, s.State.livery);
         }
+
+        [Test]
+        public void MeetingADealMakesYouAPartnerAndPaysABonus()
+        {
+            var s = Fresh();
+            s.State.money = 1e6; s.Hire("fuel");
+            Assert.AreEqual(0, s.Partner("puffin"));
+            Assert.AreEqual(20, s.DealFlights("puffin"));
+            Assert.AreEqual(17, s.DealNeeds("puffin"));
+            string who = null; bool met = false; double bonus = 0;
+            s.DealDone += (a, ok, b) => { who = a; met = ok; bonus = b; };
+            double payBefore = s.PartnerPay("puffin");
+            for (int i = 0; i < 40000 && who == null; i++) s.Tick(0.25f);
+            Assert.AreEqual("puffin", who);
+            Assert.IsTrue(met, "a managed fuel depot turns them all on time");
+            Assert.Greater(bonus, 0);
+            Assert.AreEqual(1, s.Partner("puffin"));
+            Assert.Greater(s.PartnerPay("puffin"), payBefore);
+            Assert.AreEqual(0, s.Deal("puffin").flights, "the next deal starts from nothing");
+            Assert.AreEqual(30, s.DealFlights("puffin"), "and runs longer");
+        }
+
+        [Test]
+        public void MissingADealCostsGoodwillAndNoLevel()
+        {
+            var s = Fresh();
+            s.State.money = 1e6;
+            string who = null; bool met = true;
+            s.DealDone += (a, ok, b) => { who = a; met = ok; };
+            // Every flight is left standing a minute before anyone sends the fuel.
+            for (int i = 0; i < 80000 && who == null; i++)
+            {
+                foreach (var (f, j) in s.Waiting.ToList()) if (s.State.time - f.parkedAt > 60) s.Dispatch(f.id, j.service);
+                s.Tick(0.25f);
+            }
+            Assert.AreEqual("puffin", who);
+            Assert.IsFalse(met);
+            Assert.AreEqual(0, s.Partner("puffin"));
+        }
+
+        [Test]
+        public void ADealPastSavingSaysSo()
+        {
+            var s = Fresh();
+            var d = s.Deal("puffin");
+            d.flights = 10; d.onTime = 6;       // 10 left, 17 needed: 16 at best
+            Assert.IsFalse(s.DealAlive("puffin"));
+            d.onTime = 7;
+            Assert.IsTrue(s.DealAlive("puffin"));
+        }
     }
 }

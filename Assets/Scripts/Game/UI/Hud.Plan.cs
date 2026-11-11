@@ -54,7 +54,7 @@ namespace Crosswind.Game
             var auto = Ui.Button("Auto", row, "AUTO PLAN", Ui.Green, () =>
             {
                 int moved = s.AutoPlan();
-                Toast(moved > 0 ? "Planned the day: " + moved + (moved == 1 ? " route moved" : " routes moved") : "The day is already planned as well as it fits");
+                Toast(moved > 0 ? "Planned the day: " + moved + (moved == 1 ? " route moved" : " routes moved") : (s.State.contracts.Exists(c => c.slot > 0) ? "The day is already planned as well as it fits" : "No slot has room yet: more stands or a faster runway make room"));
                 Sfx.Play("build", 0.7f); _dirty = true;
             }, 36);
             ((RectTransform)auto.transform).Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-18, -14), new Vector2(290, 72));

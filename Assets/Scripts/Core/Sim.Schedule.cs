@@ -55,6 +55,7 @@ namespace Crosswind.Core
             var c = State.contracts.Find(x => x.route == route);
             if (c.slot == slot) return false;
             c.slot = slot;
+            State.plansMade++;
             c.nextArrival = Math.Min(c.nextArrival, State.time + 3);     // the new schedule starts now
             Changed?.Invoke();
             return true;
@@ -126,6 +127,7 @@ namespace Crosswind.Core
         public int AutoPlan()
         {
             if (!PlannerOpen) return 0;
+            State.plansMade++;
             var before = State.contracts.Select(c => c.slot).ToList();
             foreach (var c in State.contracts) c.slot = 0;
             float cap = HourlyCapacity();
@@ -146,7 +148,7 @@ namespace Crosswind.Core
             }
             int moved = 0;
             for (int i = 0; i < before.Count; i++) if (before[i] != State.contracts[i].slot) moved++;
-            if (moved > 0) Changed?.Invoke();
+            Changed?.Invoke();
             return moved;
         }
     }

@@ -119,6 +119,7 @@ namespace Crosswind.Core
         public List<LevelEntry> crew = new List<LevelEntry>();       // the team: id and copies held
         public List<string> duty = new List<string>();               // who is on duty, in order
         public int crates = 1, cratesOpened, sinceEpic;               // unopened crates (one to start), and the count toward a sure Epic
+        public int plansMade;                                        // times the day was planned (by AUTO PLAN or by hand)
         public double freeCrateAt;                                   // real time the next free crate is ready
 
         public static GameState New()

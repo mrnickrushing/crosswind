@@ -52,7 +52,7 @@ namespace Crosswind.Game
             foreach (var id in Content.FacilityOrder) if (s.HireBlocked(id) == null) s.Hire(id);
             if (s.FreeCrateReady) s.TakeFreeCrate();
             while (s.State.crates > 0) s.OpenCrate();
-            if (s.PlannerOpen && s.State.contracts.Exists(c => c.slot == 0) && (int)(s.State.time / 60) % 5 == 0) s.AutoPlan();
+            if (s.PlannerOpen && (!s.State.contracts.Exists(c => c.slot > 0) || (int)(s.State.time / 60) % 5 == 0)) s.AutoPlan();
             if (s.State.research == null)
             {
                 var next = Content.Research.Where(r => s.ResearchBlocked(r.Id) == null).OrderBy(r => r.Cost).FirstOrDefault();

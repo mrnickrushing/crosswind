@@ -29,6 +29,7 @@ namespace Crosswind.Core
             G("three_flights", "Handle 3 flights", 3, s => s.State.flightsHandled, 150);
             G("second_stand", "Build a second aircraft stand", 2, s => s.Level("stands"), 200);
             G("second_route", "Sign a second route (AIRLINES)", 2, s => s.State.contracts.Count, 300);
+            G("first_crate", "Open your team crate: someone is waiting inside (STAFF)", 1, s => s.State.cratesOpened, 200);
             G("fuel_2", "Upgrade the fuel depot to level 2", 2, s => s.Level("fuel"), 300);
             G("fuel_manager", "Hire a fuel manager: the depot runs itself", 1, s => s.State.managers.Contains("fuel") ? 1 : 0, 500, 5);
             G("two_stars", "Reach a 2-star airport", 2, s => s.Stars, 800, 5);
@@ -38,6 +39,7 @@ namespace Crosswind.Core
             G("fifty_flights", "Handle 50 flights", 50, s => s.State.flightsHandled, 4000);
             G("shops", "Open the shops and cafes", 1, s => s.Level("shops"), 3000);
             G("three_stars", "Reach a 3-star airport", 3, s => s.Stars, 10000, 10);
+            G("plan_day", "Open the day planner and tap AUTO PLAN (AIRLINES)", 1, s => s.State.plansMade > 0 || s.State.contracts.Exists(c => c.slot > 0) ? 1 : 0, 6000, 5);
             G("baggage_manager", "Hire a baggage manager", 1, s => s.State.managers.Contains("baggage") ? 1 : 0, 8000, 5);
             G("runway_6", "Build a level 6 runway for the Albatross 160", 6, s => s.Level("runway"), 40000);
             G("jet", "Sign an Albatross 160 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.C) ? 1 : 0, 80000, 15);

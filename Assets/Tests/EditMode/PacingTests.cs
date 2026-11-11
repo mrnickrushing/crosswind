@@ -35,6 +35,8 @@ namespace Crosswind.Tests
                 foreach (var m in s.State.managers.ToList()) if (s.TrainBlocked(m) == null && s.State.money > s.TrainCost(m) * 4) s.Train(m);
                 foreach (var r in s.Offers.ToList()) s.Sign(r.Id);
                 foreach (var id in Content.FacilityOrder) if (s.HireBlocked(id) == null) s.Hire(id);
+                while (s.State.crates > 0) s.OpenCrate();
+                if (s.PlannerOpen && (s.State.plansMade == 0 || (int)(t / 60) % 10 == 0)) s.AutoPlan();
                 // What a contract on offer is waiting for comes first, then the cheapest thing.
                 var wanted = Content.Routes.Values.Where(r => !s.Signed(r.Id) && s.Stars >= r.Stars)
                     .SelectMany(r => r.Needs.Select(Content.ServiceFacility).Where(f => s.Level(f) == 0).Concat(s.Level("runway") < Content.Aircraft[r.Class].RunwayLevel ? new[] { "runway" } : new string[0])).Distinct().ToList();

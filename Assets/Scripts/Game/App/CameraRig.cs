@@ -11,7 +11,7 @@ namespace Crosswind.Game
         /// <summary>The point on the ground the camera looks at, and how far back it stands.</summary>
         public Vector3 Focus = new Vector3(6, 0, -40);
         public float Distance = 230f;
-        const float Pitch = 40f, Yaw = -42f, MinDistance = 90f, MaxDistance = 700f;
+        const float Pitch = 40f, Yaw = 128f, MinDistance = 90f, MaxDistance = 700f;
         Vector3 _focusV;
         float _shown;
 

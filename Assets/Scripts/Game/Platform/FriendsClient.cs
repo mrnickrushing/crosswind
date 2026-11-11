@@ -249,6 +249,7 @@ namespace Crosswind.Game
         sealed class Runner : MonoBehaviour { }
 
         // ---- JSON shapes (JsonUtility: public fields named as on the wire) ----
+#pragma warning disable 0649   // filled in by JsonUtility
 
         [Serializable] sealed class RegisterBody { public string account; public string name; public string map; public int stars; public int flights; }
         [Serializable] sealed class ProfileBody { public string name; public string map; public int stars; public int flights; }
@@ -275,5 +276,6 @@ namespace Crosswind.Game
             public FriendDto friend;
             public FriendDto[] friends;
         }
+#pragma warning restore 0649
     }
 }

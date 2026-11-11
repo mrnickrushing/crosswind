@@ -94,7 +94,7 @@ namespace Crosswind.Core
             }
             // Airside.
             Fac("runway", "Runway", "Airside", 500, "Longer and harder surfaces take bigger aircraft, and each level clears the runway faster.", start: 1, growth: 2.1f, max: 20);
-            Fac("stands", "Aircraft Stands", "Airside", 150, "One more aircraft on the ground at a time.", start: 1, growth: 1.75f, max: 40);
+            Fac("stands", "Aircraft Stands", "Airside", 150, "One more aircraft at the terminal, six at most. After that each level equips the stands: every turnaround goes faster.", start: 1, growth: 1.75f, max: 40);
             Fac("taxiways", "Taxiways", "Airside", 220, "Shorter, wider routes between the runway and the stands.", growth: 1.7f, max: 25);
             Fac("tower", "Control Tower", "Airside", 800, "More aircraft on approach at once, and a second runway movement at higher levels.", start: 1, stars: 2, growth: 2.2f, max: 15);
             // Services: each level adds speed, every third level a crew.

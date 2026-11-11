@@ -93,7 +93,7 @@ namespace Crosswind.Game
                 if (_tab < 0 && GameRoot.Speed <= 3)
                 {
                     var p = Float(Chip(_root, "+" + Format.Money(_ratingOwed) + " rating", Ui.Gold, "star", 34), 1.5f);
-                    p.Screen = true; p.At = CanvasPos((RectTransform)_starFill.transform.parent) + new Vector2(200, -30); p.Drift = new Vector2(0, 40);
+                    p.Screen = true; p.At = CanvasPos((RectTransform)_starFill.transform.parent) + new Vector2(210, 34); p.Drift = new Vector2(40, 0);
                 }
                 _starPulse = 0.6f; _ratingOwed = 0;
             }

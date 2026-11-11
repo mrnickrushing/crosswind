@@ -52,7 +52,7 @@ namespace Crosswind.Core
             G("managers_3", "Have 3 managers", 3, s => s.State.managers.Count, 150000, 10);
             G("flights_500", "Handle 500 flights", 500, s => s.State.flightsHandled, 400000);
             G("parking", "Open the car park and transit", 1, s => s.Level("parking"), 100000);
-            G("stands_8", "Have 8 aircraft stands", 8, s => s.Level("stands"), 600000, 10);
+            G("stands_8", "Upgrade the aircraft stands to level 8", 8, s => s.Level("stands"), 600000, 10);
             G("five_stars", "Reach a 5-star airport", 5, s => s.Stars, 1500000, 25);
             G("runway_10", "Build a level 10 runway for the Condor 300", 10, s => s.Level("runway"), 3000000);
             G("widebody", "Sign a Condor 300 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.D) ? 1 : 0, 6000000, 20);

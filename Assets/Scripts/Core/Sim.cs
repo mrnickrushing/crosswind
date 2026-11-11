@@ -69,18 +69,25 @@ namespace Crosswind.Core
             }
         }
 
-        public int StandCount { get { return Level("stands"); } }
+        /// <summary>The apron is one row at the terminal: six stands at most.</summary>
+        public const int MaxStands = 6;
+        public int StandCount { get { return Math.Min(MaxStands, Level("stands")); } }
+        /// <summary>
+        /// Past six stands, an upgrade equips the ones there are (more ground power, a second bridge, a tug on call):
+        /// everything on the ground goes faster, as much as the extra stand would have added.
+        /// </summary>
+        public float StandBoost { get { return 1 + Math.Max(0, Level("stands") - MaxStands) / (float)MaxStands; } }
         /// <summary>Aircraft allowed on approach and on the ground together.</summary>
         public int TowerSlots { get { return 2 + Level("tower") * 2; } }
         /// <summary>Movements the runway handles at once (a second one from tower level 8: a parallel runway).</summary>
         public int RunwayLanes { get { return Level("tower") >= 8 ? 2 : 1; } }
         public float RunwaySpeed { get { return (1 + (Level("runway") - 1) * 0.06f) * (1 + Fx(Effect.RunwaySpeed)) * WeatherFactor; } }
-        public float TaxiSpeed { get { return (1 + Level("taxiways") * 0.08f) * (1 + Fx(Effect.TaxiSpeed)) * (0.5f + 0.5f * WeatherFactor); } }
+        public float TaxiSpeed { get { return (1 + Level("taxiways") * 0.08f) * (1 + Fx(Effect.TaxiSpeed)) * (0.5f + 0.5f * WeatherFactor) * StandBoost; } }
         public int Crews(Service s) { int l = Level(Content.ServiceFacility(s)); return l <= 0 ? 0 : 1 + (l - 1) / 3; }
         public float CrewSpeed(Service s)
         {
             int l = Level(Content.ServiceFacility(s));
-            return l <= 0 ? 0 : (1 + (l - 1) * 0.1f) * (1 + Fx(Effect.CrewSpeed)) * (1 + 0.1f * ManagerLevel(Content.ServiceFacility(s)));
+            return l <= 0 ? 0 : (1 + (l - 1) * 0.1f) * (1 + Fx(Effect.CrewSpeed)) * (1 + 0.1f * ManagerLevel(Content.ServiceFacility(s))) * StandBoost;
         }
         public bool Automated(Service s) { return State.managers.Contains(Content.ServiceFacility(s)); }
 
@@ -334,7 +341,7 @@ namespace Crosswind.Core
         float BoardTime(AircraftDef plane)
         {
             float need = plane.Seats / Math.Max(1f, TerminalFlow) * 60f / 10f;   // seconds for the terminal to move them
-            return Math.Max(plane.BoardSeconds, need) / (1 + Fx(Effect.BoardSpeed));
+            return Math.Max(plane.BoardSeconds, need) / (1 + Fx(Effect.BoardSpeed)) / StandBoost;
         }
 
         // ------------------------------------------------------------------ services

@@ -6,13 +6,14 @@ namespace Crosswind.Game
 {
     /// <summary>
     /// Where everything stands. The runway runs south to north on the west side; a taxiway runs beside it; the stands
-    /// are columns of eight east of that, facing the terminal, which sits east of the last column. Aircraft land
+    /// are one row of up to six east of that, nose in to the terminal, which sits just east of them. Aircraft land
     /// heading north, turn off, taxi south or north to their stand, and leave by the south end.
     /// </summary>
     public static class Layout
     {
-        public const float RunwayX = -30f, TaxiX = -12f, StandX0 = 6f, StandGapZ = 13f, ColumnGap = 20f;
-        public const int PerColumn = 8;
+        public const float RunwayX = -30f, TaxiX = -12f, StandX0 = 6f, StandGapZ = 17f, ColumnGap = 20f;
+        /// <summary>One row of stands along the terminal, nose in (six at most: see Sim.MaxStands).</summary>
+        public const int PerColumn = Sim.MaxStands;
 
         public static float RunwayHalf(Sim s) { return Mathf.Min(120f, 46f + s.Level("runway") * 4f); }
         public static float RunwayWidth(Sim s) { return 7f + Mathf.Min(8, s.Level("runway")) * 0.6f; }
@@ -20,7 +21,7 @@ namespace Crosswind.Game
 
         public static Vector3 Stand(int i)
         {
-            return new Vector3(StandX0 + (i / PerColumn) * ColumnGap, 0, -45.5f + (i % PerColumn) * StandGapZ);
+            return new Vector3(StandX0 + (i / PerColumn) * ColumnGap, 0, -42.5f + (i % PerColumn) * StandGapZ);
         }
 
         /// <summary>The terminal's west face (x) for this many columns of stands.</summary>

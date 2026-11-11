@@ -25,7 +25,8 @@ grep "\[Crosswind\] iOS build" "$LOG" | tail -1 | grep -q "Succeeded"
 # The build rewrites these; the project's own copies are the ones to keep.
 (cd "$ROOT" && git checkout -q Assets/Settings ProjectSettings/ProjectSettings.asset ProjectSettings/TimeManager.asset 2>/dev/null || true; rm -rf Assets/Resources/PerformanceTestRun*)
 [ "${1:-}" = "--local" ] && exit 0
-ZIP="${TMPDIR:-/tmp}/crosswind-ios-xcode.zip"
+mkdir -p "${TMPDIR:-/tmp}/crosswind-export"
+ZIP="${TMPDIR:-/tmp}/crosswind-export/ios-xcode.zip"   # the asset keeps this file name
 rm -f "$ZIP"
 (cd "$ROOT" && zip -qry "$ZIP" ios -x "ios/*_DoNotShip/*")
 ls -lh "$ZIP"

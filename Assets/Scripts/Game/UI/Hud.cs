@@ -46,7 +46,9 @@ namespace Crosswind.Game
             h._sim.Toast += h.Toast;
             h._sim.FlightPaid += h.OnPaid;
             h._sim.StarGained += h.OnStar;
-            h._sim.RouteLost += r => h._dirty = true;
+            h._sim.RouteLost += r => { h._dirty = true; Sfx.Play("error"); };
+            h._sim.OpportunityAppeared += o => Sfx.Play("chime", 0.6f);
+            h._sim.WeatherChanged += w => { if (w != Weather.Clear) h.Toast(w + ": the runway slows down"); };
             h._shownMoney = h._sim.State.money;
             h.OfferAway();
             return h;
@@ -104,7 +106,7 @@ namespace Crosswind.Game
             _goalFill.rectTransform.anchorMin = Vector2.zero; _goalFill.rectTransform.anchorMax = new Vector2(0, 1); _goalFill.rectTransform.offsetMin = _goalFill.rectTransform.offsetMax = Vector2.zero;
             _goalCount = Ui.Label("Count", _goal, "", 34, Ui.Dim, TextAnchor.MiddleCenter);
             _goalCount.rectTransform.Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 100));
-            _goalClaim = Ui.Button("Claim", _goal, "CLAIM", Ui.Green, () => { if (_sim.ClaimGoal()) { Toast("Reward collected"); _dirty = true; } }, 44);
+            _goalClaim = Ui.Button("Claim", _goal, "CLAIM", Ui.Green, () => { if (_sim.ClaimGoal()) { Toast("Reward collected"); Sfx.Play("claim"); _dirty = true; } }, 44);
             ((RectTransform)_goalClaim.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 104));
 
             // Under the guide: the weather, and what is running (a boost, a rush).
@@ -115,7 +117,7 @@ namespace Crosswind.Game
             _chips.rectTransform.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -440), new Vector2(620, 50));
             Outline(_chips);
             // An opportunity: a big button on the right that counts down.
-            var opp = Ui.Button("Opportunity", _root, "", Ui.Gold, () => { if (_sim.TakeOpportunity()) _dirty = true; }, 38);
+            var opp = Ui.Button("Opportunity", _root, "", Ui.Gold, () => { if (_sim.TakeOpportunity()) { _dirty = true; Sfx.Play("confirm"); } }, 38);
             _opp = (RectTransform)opp.transform;
             _opp.Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-24, 240), new Vector2(330, 150));
             _oppText = opp.GetComponentInChildren<Text>(); _oppText.color = Ui.Ink;
@@ -229,6 +231,7 @@ namespace Crosswind.Game
             _banner.GetComponentInChildren<Text>().text = stars + "-STAR AIRPORT!\n<size=38><color=#FFFFFFB0>New airlines and buildings unlocked</color></size>";
             _banner.gameObject.SetActive(true);
             _banner.SetAsLastSibling();
+            Sfx.Play("star");
             _bannerT = 3.5f;
             _dirty = true;
         }
@@ -281,7 +284,7 @@ namespace Crosswind.Game
                 var b = Ui.Button("Service", _world, "", Color.white, null, 36);
                 sb.Rt = (RectTransform)b.transform; sb.Bg = b.GetComponent<Image>(); sb.Label = b.GetComponentInChildren<Text>();
                 sb.Rt.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140, 96));
-                b.onClick.AddListener(() => { if (_sim.Dispatch(sb.Flight, sb.Service)) _dirty = true; });
+                b.onClick.AddListener(() => { if (_sim.Dispatch(sb.Flight, sb.Service)) { _dirty = true; Sfx.Play("dispatch", 0.7f); } else Sfx.Play("error", 0.5f); });
                 _serviceButtons.Add(sb);
             }
             _serviceButtons[i].Rt.gameObject.SetActive(true);
@@ -292,6 +295,7 @@ namespace Crosswind.Game
 
         void OnPaid(FlightState f, double paid, bool onTime)
         {
+            if (GameRoot.Speed <= 3) Sfx.Play("coin", 0.35f);
             var t = Ui.Label("Pay", _world, "+" + Format.Money(paid) + (onTime ? "" : "  <size=30>LATE</size>"), 46, onTime ? Ui.Gold : Ui.Red);
             t.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(400, 60));
             var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.8f); o.effectDistance = new Vector2(2, -2);

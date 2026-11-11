@@ -99,7 +99,7 @@ namespace Crosswind.Game
             var b = img.gameObject.AddComponent<Button>();
             b.targetGraphic = img;
             var colors = b.colors; colors.pressedColor = new Color(0.8f, 0.8f, 0.8f); colors.fadeDuration = 0.05f; b.colors = colors;
-            if (onClick != null) b.onClick.AddListener(() => onClick());
+            if (onClick != null) b.onClick.AddListener(() => { Sfx.Play("click", 0.5f); onClick(); });
             if (label != null) Label("Label", img.transform, label, size, Color.white).rectTransform.Fill(6);
             return b;
         }

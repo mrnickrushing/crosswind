@@ -36,6 +36,7 @@ namespace Crosswind.Game
         {
             if (Flight.phase == _phase) return;
             _phase = Flight.phase;
+            if ((_phase == Phase.Landing || _phase == Phase.Takeoff) && GameRoot.Speed <= 3) Sfx.Aircraft(Route.Class);
             _duration = Mathf.Max(0.01f, Flight.timer);
             _path = _phase == Phase.TaxiIn ? Layout.TaxiIn(_sim, Flight.stand) : _phase == Phase.TaxiOut ? Layout.TaxiOut(_sim, StandOrLast()) : null;
             if (Flight.stand >= 0) _lastStand = Flight.stand;

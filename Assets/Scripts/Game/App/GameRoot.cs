@@ -54,6 +54,7 @@ namespace Crosswind.Game
             RenderSettings.fogColor = new Color(0.72f, 0.82f, 0.9f);
             RenderSettings.fogStartDistance = 420; RenderSettings.fogEndDistance = 1100;
 
+            Sfx.Init(transform);
             var rig = CameraRig.Create();
             Look.Create(rig.Cam, sun);
             AirportView.Create(transform);

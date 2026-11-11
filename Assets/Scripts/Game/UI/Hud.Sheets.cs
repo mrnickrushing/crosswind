@@ -14,6 +14,7 @@ namespace Crosswind.Game
             _tab = tab;
             _sheet.gameObject.SetActive(tab >= 0);
             for (int i = 0; i < _tabs.Count; i++) _tabs[i].GetComponent<Image>().color = i == tab ? Ui.Blue : Ui.Card;
+            Sfx.Play(tab >= 0 ? "open" : "close", 0.5f);
             if (tab >= 0) { _sheetList.anchoredPosition = Vector2.zero; RefreshSheet(); }
         }
 
@@ -48,7 +49,7 @@ namespace Crosswind.Game
             b.resizeTextForBestFit = true; b.resizeTextMinSize = 22; b.resizeTextMaxSize = 30; b.verticalOverflow = VerticalWrapMode.Truncate;
             if (button == null) return;
             bool ok = blocked == null;
-            var btn = Ui.Button("Do", row, null, ok ? (accent ?? Ui.Green) : Ui.Off, () => { if (ok) { act(); _dirty = true; } else Toast(blocked); }, 40);
+            var btn = Ui.Button("Do", row, null, ok ? (accent ?? Ui.Green) : Ui.Off, () => { if (ok) { act(); Sfx.Play("build", 0.7f); _dirty = true; } else { Toast(blocked); Sfx.Play("error", 0.5f); } }, 40);
             ((RectTransform)btn.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-18, 0), new Vector2(264, 124));
             var l = Ui.Label("L", btn.transform, ok ? button : button + "\n<size=24>" + blocked + "</size>", 40, Color.white);
             l.rectTransform.Fill(8); l.resizeTextForBestFit = true; l.resizeTextMinSize = 20; l.resizeTextMaxSize = 40;

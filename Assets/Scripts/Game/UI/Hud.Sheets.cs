@@ -240,6 +240,7 @@ namespace Crosswind.Game
             Entry("Reminders", Reminders.On ? "ON" : "OFF", "A notification when the builders or research finish, a free crate is ready, or the airport has earned all it can.", Reminders.On ? "TURN OFF" : "TURN ON", null, () => { Reminders.On = !Reminders.On; }, Ui.Card);
             Entry("iCloud save", CloudSave.Available ? "ON" : "OFF", CloudSave.Available ? "Your airport is kept in your own iCloud and follows you to a new phone." + (CloudSave.LastPushed > 0 ? " Last saved " + Format.Time(System.Math.Max(0, SaveSystem.Now - CloudSave.LastPushed)) + " ago." : "")
                 : "Sign in to iCloud in the iPhone's Settings to keep your airport safe and move it to a new phone.", null, null, null);
+            Entry("Erase everything", null, "Deletes your airports, team and progress from this device and from your iCloud, and gives the statistics a new anonymous id. This can't be undone.", "ERASE", null, ConfirmErase, Ui.Red);
             Header("ACHIEVEMENTS");
             foreach (var a in Sim.Achievements.OrderBy(a => s.AchievementClaimed(a) ? 2 : s.AchievementDone(a) ? 0 : 1))
             {
@@ -270,6 +271,27 @@ namespace Crosswind.Game
             }, 46);
             ((RectTransform)yes.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(210, 50), new Vector2(400, 120));
             var no = Ui.Button("No", box, "STAY", Ui.Off, () => { Destroy(_confirm.gameObject); _confirm = null; }, 46);
+            ((RectTransform)no.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-210, 50), new Vector2(400, 120));
+        }
+
+        void ConfirmErase()
+        {
+            if (_confirm != null) Destroy(_confirm.gameObject);
+            _confirm = Ui.Img("Confirm", _root, new Color(0, 0, 0, 0.7f)).rectTransform;
+            _confirm.Fill(); _confirm.GetComponent<Image>().raycastTarget = true;
+            var box = Ui.Img("Box", _confirm, Ui.Panel, true).rectTransform;
+            box.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(920, 620));
+            Ui.Label("T", box, "ERASE EVERYTHING?", 58, Color.white).rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -40), new Vector2(840, 80));
+            Ui.Label("B", box, "Every airport, your team, gems, Wings and research are deleted from this device and from your iCloud.\n\nYou start again with a grass strip. This can't be undone.", 36, Ui.Dim, TextAnchor.UpperCenter, false)
+                .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(820, 280));
+            var yes = Ui.Button("Yes", box, "ERASE", Ui.Red, () =>
+            {
+                Destroy(_confirm.gameObject); _confirm = null;
+                Telemetry.Forget();
+                GameRoot.Instance.Restart();
+            }, 46);
+            ((RectTransform)yes.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(210, 50), new Vector2(400, 120));
+            var no = Ui.Button("No", box, "KEEP IT", Ui.Green, () => { Destroy(_confirm.gameObject); _confirm = null; }, 46);
             ((RectTransform)no.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-210, 50), new Vector2(400, 120));
         }
 

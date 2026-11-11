@@ -71,7 +71,7 @@ namespace Crosswind.Core
         public const float OnTimeSlack = 1.6f;           // an on-time turnaround takes at most this many times the ideal
 
         /// <summary>Rating XP needed to reach each star level (index 1 = one star, held from the start).</summary>
-        public static readonly double[] StarXp = { 0, 0, 60, 450, 2200, 10000, 50000, 250000, 1.5e6, 8e6, 5e7 };
+        public static readonly double[] StarXp = { 0, 0, 60, 450, 2200, 10000, 50000, 200000, 800000, 3e6, 1e7 };
         public static int MaxStars { get { return StarXp.Length - 1; } }
 
         static Content()

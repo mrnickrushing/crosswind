@@ -78,7 +78,7 @@ namespace Crosswind.Core
             Count("flights", 1);
             if (onTime) Count("ontime", 1);
             if (onTime) State.onTime++; else State.late++;
-            AddRating((onTime ? 2 : 0.5) * (1 + (int)r.Class * 2));
+            AddRating((onTime ? 2 : 0.5) * Math.Pow(3.2, (int)r.Class));       // bigger aircraft make the airport's name
             FlightPaid?.Invoke(f, paid, onTime);
             Changed?.Invoke();
         }

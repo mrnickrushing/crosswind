@@ -152,7 +152,7 @@ namespace Crosswind.Core
         void FinishBuild(string facility)
         {
             SetLevel(facility, Level(facility) + 1);
-            AddRating(2 + Level(facility));
+            AddRating(2 + Level(facility) + Math.Max(0, Math.Log10(Math.Max(1, Cost(facility) / Map.CostScale)) - 3) * 12);
             BuildDone?.Invoke(facility);
         }
 

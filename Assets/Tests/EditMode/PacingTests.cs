@@ -49,6 +49,17 @@ namespace Crosswind.Tests
             return log;
         }
 
+        [Test, Explicit("over a minute: run after tuning (--filter Name~ThreeDays)")]
+        public void ThreeDaysOfPlayReachTheBigJets()
+        {
+            var s = new Sim(GameState.New());
+            var log = Greedy(s, 72 * 3600, 4f);
+            foreach (var l in log.Where(x => x.Contains("stars"))) TestContext.WriteLine(l);
+            TestContext.WriteLine("after 72h: " + s.Stars + " stars, rate/min " + Format.Money(s.State.incomeRate * 60) + ", " + s.State.flightsHandled + " flights, goal " + s.State.goalIndex + "/" + Goals.All.Count
+                + ", research " + s.State.researched.Count + ", runway " + s.Level("runway") + ", fleet " + s.FleetSize + ", wings on sale " + s.WingsOnSale + ", biggest " + s.MaxClass);
+            Assert.GreaterOrEqual(s.Stars, 7);
+        }
+
         [Test]
         public void ALongSessionReachesTheSecondAirport()
         {

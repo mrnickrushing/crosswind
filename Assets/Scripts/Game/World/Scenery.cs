@@ -53,7 +53,7 @@ namespace Crosswind.Game
         /// A town building seen from the air: walls in concrete, brick or glass with a band of windows on every floor,
         /// a parapet round a flat roof and the plant that sits on it. Tall ones are glass towers with a crown.
         /// </summary>
-        public static void Building(MeshBuilder mb, Vector3 at, float w, float l, float h, System.Random rng)
+        public static void Building(MeshBuilder mb, Vector3 at, float w, float l, float h, System.Random rng, bool detail = true)
         {
             var wall = Walls[rng.Next(Walls.Length)]; var roof = Roofs[rng.Next(Roofs.Length)];
             Color glass = rng.Next(2) == 0 ? Palette.Hex(0x35526E) : Palette.Hex(0x2E4A52);
@@ -66,8 +66,22 @@ namespace Crosswind.Game
             // Floors: a ribbon of windows on each (on a glass tower, the pale floor edges instead).
             float floor = tower ? 4.2f : 3.4f;
             mb.Smoothness = tower ? 0.3f : 0.85f;
+            // (Far-off buildings get every other ribbon: they are a texture at that distance.)
+            if (!detail) floor *= 2;
             for (float y = (h > 20 ? 6.6f : 1.9f); y < h - 1.2f; y += floor)
-                mb.Box(at + Vector3.up * y, new Vector3(w + 0.12f, tower ? 0.35f : 1.5f, l + 0.12f), glass);
+            {
+                // After dark some floors are lit and some are not.
+                bool lit = !tower && rng.Next(5) < 2;
+                mb.Glow = lit;
+                mb.Box(at + Vector3.up * y, new Vector3(w + 0.12f, tower ? 0.35f : 1.5f, l + 0.12f), lit ? Palette.Hex(0xC9A86A) : glass);
+            }
+            mb.Glow = false;
+            if (!detail)
+            {
+                mb.Smoothness = 0.2f;
+                mb.Box(at + new Vector3(w * 0.15f, h + 1.1f, -l * 0.1f), new Vector3(w * 0.3f, 2.2f, l * 0.3f), Palette.Hex(0x8A8E94), roof);
+                return;
+            }
             // Piers up the corners of the masonry ones, so the ribbons read as windows between walls.
             if (!tower)
             {
@@ -251,7 +265,7 @@ namespace Crosswind.Game
                         return;
                     }
                     g.Rect("Concrete", cx, cz, bw, bl, -0.06f, 0, new Color(0.8f, 0.8f, 0.8f));     // the pavement
-                    int nx = Mathf.Max(1, Mathf.RoundToInt(bw / 22f)), nz = Mathf.Max(1, Mathf.RoundToInt(bl / 22f));
+                    int nx = Mathf.Max(1, Mathf.RoundToInt(bw / 30f)), nz = Mathf.Max(1, Mathf.RoundToInt(bl / 30f));
                     for (int ix = 0; ix < nx; ix++)
                         for (int iz = 0; iz < nz; iz++)
                         {
@@ -259,7 +273,7 @@ namespace Crosswind.Game
                             float px = fx + street * 0.5f + (ix + 0.5f) * bw / nx, pz = fz + street * 0.5f + (iz + 0.5f) * bl / nz;
                             float h = R(rng, 7, 16) + tall * R(rng, 0, 70) * (rng.Next(4) == 0 ? 1 : 0.35f);
                             if (h < 9 && rng.Next(2) == 0) House(mb, new Vector3(px, 0, pz), Mathf.Min(w, 12), Mathf.Min(l, 14), rng);
-                            else Building(mb, new Vector3(px, 0, pz), w, l, h, rng);
+                            else Building(mb, new Vector3(px, 0, pz), w, l, h, rng, away < 120);
                         }
                 });
             }

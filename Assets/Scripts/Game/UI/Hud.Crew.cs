@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Crosswind.Core;
 using UnityEngine;
@@ -27,7 +28,13 @@ namespace Crosswind.Game
             ring.rectTransform.Place(anchor, new Vector2(0.5f, 0.5f), pos, new Vector2(size, size));
             var inner = Ui.Img("Face", ring.transform, Ui.Ink); inner.sprite = Ui.Circle;
             inner.rectTransform.Fill(size * 0.07f);
-            Ui.Label("I", inner.transform, known ? Initials(d.Name) : "?", Mathf.RoundToInt(size * 0.4f), known ? Color.white : Ui.Dim).rectTransform.Fill();
+            var face = known ? Portraits.Of(Sim.Crew.IndexOf(d)) : null;
+            if (face == null) { Ui.Label("I", inner.transform, known ? Initials(d.Name) : "?", Mathf.RoundToInt(size * 0.4f), known ? Color.white : Ui.Dim).rectTransform.Fill(); return; }
+            // Their portrait, cut to the circle, on their rarity's colour.
+            inner.color = Color.Lerp(RarityColor[(int)d.Rarity], Ui.Ink, 0.55f);
+            inner.gameObject.AddComponent<Mask>().showMaskGraphic = true;
+            var pic = Ui.Img("Portrait", inner.transform, Color.white); pic.sprite = face;
+            pic.rectTransform.Fill(-size * 0.04f);
         }
 
         void CrewSection()
@@ -123,5 +130,60 @@ namespace Crosswind.Game
     {
         public float Speed = 20;
         void Update() { transform.Rotate(0, 0, Speed * Time.unscaledDeltaTime); }
+    }
+
+    /// <summary>
+    /// Portraits of the team, rendered once each from the game's own character models (head and shoulders, on a clear
+    /// background) so every face in the STAFF sheet and on a crate card is a person, not initials.
+    /// </summary>
+    public static class Portraits
+    {
+        const int Size = 256, Layer = 31, Kinds = 12;
+        public static float Up = 0.3f, Zoom = 0.74f;      // framing: how far above the middle to aim, and how much of the height to show
+        static readonly Dictionary<int, Sprite> _made = new Dictionary<int, Sprite>();
+        static Camera _cam;
+
+        public static Sprite Of(int who)
+        {
+            Sprite s;
+            if (_made.TryGetValue(who, out s)) return s;
+            // Sixteen people from twelve models: the last four share a model with someone of another rarity, turned the other way.
+            var mesh = Resources.Load<Mesh>("Models/person_" + (who * 5 % Kinds) + "_idle");
+            if (mesh == null) return _made[who] = null;
+            if (_cam == null)
+            {
+                var c = new GameObject("Portrait camera");
+                Object.DontDestroyOnLoad(c);
+                _cam = c.AddComponent<Camera>();
+                _cam.enabled = false;
+                _cam.clearFlags = CameraClearFlags.SolidColor; _cam.backgroundColor = new Color(0, 0, 0, 0);
+                _cam.cullingMask = 1 << Layer; _cam.orthographic = true; _cam.nearClipPlane = 0.05f; _cam.farClipPlane = 20;
+            }
+            var go = new GameObject("Sitter");
+            go.layer = Layer;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = Materials.Kit;
+            var at = new Vector3(0, -500, 0);
+            go.transform.position = at;
+            var b = mesh.bounds;
+            var rot = Quaternion.Euler(6, who >= Kinds ? -24 : 24, 0);
+            _cam.transform.rotation = rot;
+            _cam.transform.position = at + new Vector3(0, b.center.y + b.extents.y * Up, 0) + rot * Vector3.forward * 4; _cam.transform.rotation = Quaternion.LookRotation(-(rot * Vector3.forward));
+            _cam.orthographicSize = b.extents.y * Zoom;
+            var rt = RenderTexture.GetTemporary(Size, Size, 24, RenderTextureFormat.ARGB32);
+            rt.antiAliasing = 4;
+            _cam.targetTexture = rt;
+            _cam.Render();
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
+            tex.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prev;
+            _cam.targetTexture = null;
+            RenderTexture.ReleaseTemporary(rt);
+            Object.Destroy(go);
+            return _made[who] = Sprite.Create(tex, new Rect(0, 0, Size, Size), new Vector2(0.5f, 0.5f), 100);
+        }
     }
 }

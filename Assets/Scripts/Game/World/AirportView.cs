@@ -34,6 +34,7 @@ namespace Crosswind.Game
             v.Rebuild();
             Life.Create(go.transform);
             WeatherFx.Create(go.transform);
+            Interior.Create(go.transform);
             foreach (var f in v._sim.State.flights) v.OnFlight(f);
             return v;
         }
@@ -93,7 +94,7 @@ namespace Crosswind.Game
 
             // Runway: grass strip, gravel, asphalt, then concrete with full markings.
             Color surface = rl <= 1 ? Palette.GrassWorn : rl <= 2 ? Palette.Gravel : rl <= 9 ? Palette.Asphalt : Palette.AsphaltPale;
-            if (rl >= 3) { g.Rect("Asphalt", Layout.RunwayX, 0, w, half * 2, 0.03f); g.Rect("Tarmac", Layout.RunwayX, 0, w + 3, half * 2 + 6, 0.015f, 0, new Color(0.8f, 0.8f, 0.8f)); }
+            if (rl >= 3) { g.Rect("Asphalt", Layout.RunwayX, 0, w, half * 2, 0.03f); g.Rect("Tarmac", Layout.RunwayX, 0, w + 3, half * 2 + 6, 0.015f, 0, new Color(1.25f, 1.25f, 1.25f)); }
             else mb.Box(new Vector3(Layout.RunwayX, 0.0f, 0), new Vector3(w, 0.06f, half * 2), surface);
             if (rl >= 3)
             {
@@ -242,7 +243,7 @@ namespace Crosswind.Game
                     foreach (float side in new[] { -1f, 1f })
                         mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 0.12f), tH * 0.52f, z), new Vector3(0.18f, tH * 0.74f, 0.22f), Palette.White);
                 // The roof: a pale membrane (textured), a parapet round its edge, plant on top.
-                g.Rect("Tarmac", c.x, c.z, tDepth + 2.2f, tLen + 1.4f, tH + 0.52f, 0, new Color(2.3f, 2.3f, 2.35f));
+                g.Rect("Tarmac", c.x, c.z, tDepth + 2.2f, tLen + 1.4f, tH + 0.52f, 0, new Color(0.8f, 0.82f, 0.86f));
                 foreach (float side in new[] { -1f, 1f })
                 {
                     mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 1.1f), tH + 0.75f, c.z), new Vector3(0.25f, 0.5f, tLen + 1.6f), Palette.White);

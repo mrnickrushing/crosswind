@@ -221,7 +221,7 @@ namespace Crosswind.Tests
             while (s.BuildSeconds("tower") <= 0) s.Upgrade("tower");
             while (s.BuildSeconds("ils") <= 0) s.Upgrade("ils");
             Assert.IsTrue(s.Upgrade("runway")); Assert.IsTrue(s.Upgrade("tower"));
-            StringAssert.Contains("crews are busy", s.UpgradeBlocked("ils"));
+            StringAssert.Contains("crew is busy", s.UpgradeBlocked("ils"));
             int gems = s.State.gems;
             Assert.IsTrue(s.SkipBuild("tower"));
             Assert.Less(s.State.gems, gems);
@@ -258,6 +258,25 @@ namespace Crosswind.Tests
             Assert.Greater(s.Needs[1].Value, before[1].Value);
             Assert.Greater(s.Satisfaction, sat);
             foreach (var n in s.Needs) { Assert.That(n.Value, Is.InRange(0f, 1f)); Assert.IsNotEmpty(n.Advice); }
+        }
+
+        [Test]
+        public void PurchasesAreGrantedOncePerTransactionAndOneTimeOnesOnce()
+        {
+            var s = Fresh();
+            Assert.IsTrue(s.Grant("crosswind.gems.small", "t1"));
+            Assert.AreEqual(80, s.State.gems);
+            Assert.IsFalse(s.Grant("crosswind.gems.small", "t1"), "the same transaction again");
+            Assert.IsTrue(s.Grant("crosswind.gems.small", "t2"));
+            Assert.AreEqual(160, s.State.gems);
+            double before = s.FlightValue(Content.Routes["puffin_isles"]);
+            Assert.IsTrue(s.Grant("crosswind.double", "t3"));
+            Assert.AreEqual(before * 2, s.FlightValue(Content.Routes["puffin_isles"]), 1e-6);
+            Assert.IsFalse(s.Grant("crosswind.double", "t4"), "already owned (a restore)");
+            Assert.AreEqual(2, s.Builders);
+            s.Grant("crosswind.starter", "t5");
+            Assert.AreEqual(3, s.Builders);
+            Assert.IsFalse(s.Grant("nothing", "t6"));
         }
     }
 }

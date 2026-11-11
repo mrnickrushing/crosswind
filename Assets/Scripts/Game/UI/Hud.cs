@@ -117,6 +117,11 @@ namespace Crosswind.Game
             _chips = Ui.Label("Chips", _root, "", 34, Ui.Gold, TextAnchor.MiddleRight);
             _chips.rectTransform.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -440), new Vector2(620, 50));
             Outline(_chips);
+            // INSIDE / OUTSIDE: look into the terminal, or back over the airfield.
+            var inside = Ui.Button("Inside", _root, "INSIDE", Ui.Blue, null, 36);
+            ((RectTransform)inside.transform).Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(24, 214), new Vector2(230, 96));
+            var insideText = inside.GetComponentInChildren<Text>();
+            inside.onClick.AddListener(() => { Sfx.Play("open", 0.5f); CameraRig.Instance.SetInside(!CameraRig.Inside); insideText.text = CameraRig.Inside ? "OUTSIDE" : "INSIDE"; });
             // An opportunity: a big button on the right that counts down.
             var opp = Ui.Button("Opportunity", _root, "", Ui.Gold, () => { if (_sim.TakeOpportunity()) { _dirty = true; Sfx.Play("confirm"); } }, 38);
             _opp = (RectTransform)opp.transform;
@@ -159,6 +164,7 @@ namespace Crosswind.Game
             scroll.content = _sheetList; scroll.viewport = view; scroll.horizontal = false; scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 40;
             _sheet.gameObject.SetActive(false);
 
+            BuildGuide();
             // Toast and the star banner.
             _toast = Ui.Img("Toast", _root, new Color(0, 0, 0, 0.82f), true).rectTransform;
             _toast.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 230), new Vector2(900, 90));
@@ -211,6 +217,7 @@ namespace Crosswind.Game
             _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateServiceButtons();
             UpdatePops();
+            UpdateGuide();
             if ((_refreshIn -= Time.unscaledDeltaTime) <= 0 || _dirty) { _refreshIn = 0.5f; if (_tab >= 0) RefreshSheet(); _dirty = false; }
             if (_toastT > 0 && (_toastT -= Time.unscaledDeltaTime) <= 0) _toast.gameObject.SetActive(false);
             if (_bannerT > 0 && (_bannerT -= Time.unscaledDeltaTime) <= 0) _banner.gameObject.SetActive(false);
@@ -255,7 +262,7 @@ namespace Crosswind.Game
         void UpdateServiceButtons()
         {
             int used = 0;
-            if (AirportView.Instance != null)
+            if (AirportView.Instance != null && !CameraRig.Inside)
                 foreach (var plane in AirportView.Instance.Planes)
                 {
                     var f = plane.Flight;

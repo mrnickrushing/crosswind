@@ -9,11 +9,24 @@ namespace Crosswind.Game
         public Camera Cam { get; private set; }
 
         /// <summary>The point on the ground the camera looks at, and how far back it stands.</summary>
-        public Vector3 Focus = new Vector3(6, 0, -30);
-        public float Distance = 300f;
+        public Vector3 Focus = new Vector3(6, 0, -40);
+        public float Distance = 230f;
         const float Pitch = 40f, Yaw = -42f, MinDistance = 90f, MaxDistance = 700f;
         Vector3 _focusV;
         float _shown;
+
+        /// <summary>Looking inside the terminal (the camera sits over <see cref="Interior.Origin"/>) or over the airfield.</summary>
+        public static bool Inside { get; private set; }
+        Vector3 _outFocus; float _outDistance;
+
+        public void SetInside(bool inside)
+        {
+            if (inside == Inside) return;
+            Inside = inside;
+            if (inside) { _outFocus = Focus; _outDistance = Distance; Focus = Interior.Origin + new Vector3(0, 0, -6); Distance = 235; }
+            else { Focus = _outFocus; Distance = _outDistance; }
+            _shown = Distance;
+        }
 
         public static CameraRig Create()
         {
@@ -39,12 +52,19 @@ namespace Crosswind.Game
             var right = Quaternion.Euler(0, Yaw, 0) * Vector3.right;
             var fwd = Quaternion.Euler(0, Yaw, 0) * Vector3.forward;
             Focus -= right * pixels.x * perPixel + fwd * pixels.y * perPixel / Mathf.Sin(Pitch * Mathf.Deg2Rad);
+            if (Inside)
+            {
+                float half = Interior.Instance != null ? Interior.Instance.Length * 0.5f : 40;
+                Focus.x = Mathf.Clamp(Focus.x, Interior.Origin.x - 34, Interior.Origin.x + 34);
+                Focus.z = Mathf.Clamp(Focus.z, -half, half);
+                return;
+            }
             Focus.x = Mathf.Clamp(Focus.x, -90, 110);
             Focus.z = Mathf.Clamp(Focus.z, -140, 140);
         }
 
         /// <summary>Zoom by a factor (over 1 = closer).</summary>
-        public void Zoom(float factor) { Distance = Mathf.Clamp(Distance / Mathf.Max(0.01f, factor), MinDistance, MaxDistance); }
+        public void Zoom(float factor) { Distance = Mathf.Clamp(Distance / Mathf.Max(0.01f, factor), Inside ? 45f : MinDistance, Inside ? 260f : MaxDistance); }
 
         void LateUpdate()
         {

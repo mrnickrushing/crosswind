@@ -37,6 +37,15 @@ and in the game); never paid AI art without asking.
   them with `Models.Kit(id, parent, at, yaw, size)`. Sketchfab aircraft are CC BY: keep `CREDITS.md` current.
   `App/Look` is the post-processing and weather grading; `World/Life` the passengers and traffic; `World/WeatherFx`
   rain and snow; `App/Sfx` sound (interface clips + synthesised aircraft).
+- Look: isometric `CameraRig` (pitch 40, yaw -42, FOV 22); `Ground` lays textured quads with world-space UVs
+  (`Materials.Surface(name, tint)`: Asphalt, Tarmac, Concrete, Grass from `Tools/art/surfaces.py`; tints are separate
+  materials because URP Lit ignores vertex colours); HDRI sky in `Resources/Sky`; SSAO added to the renderers by
+  `Crosswind.EditorTools.UrpSetup.Run()`. `World/Aircraft` builds every aircraft in code with a livery per airline
+  (the imported Sketchfab planes are no longer drawn). `World/Interior` is the terminal cutaway at
+  `Interior.Origin` (INSIDE button, `CameraRig.SetInside`): furniture by level, a crowd drawn with
+  `Graphics.DrawMeshInstanced`. `UI/Hud.Guide` is the first-minute pointer and the tap-an-aircraft card.
+  `App/Store` stubs purchases in the Editor and development builds (`Sim.Grant` is the real grant, once per
+  transaction); the App Store products in `Sim.Products` still have to be created and wired to RevenueCat.
 - `Game/Debug/PlayBot` (Editor): `PlayBot.Begin(30)` plays the real game greedily at 30x; `PlayBot.Report()`.
 - In the Editor: `Crosswind.Game.GameRoot.Speed` fast-forwards the simulation; delete
   `~/.config/unity3d/Rushing Technologies/Crosswind/crosswind_save.json` for a new game.

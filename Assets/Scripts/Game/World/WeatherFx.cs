@@ -33,7 +33,7 @@ namespace Crosswind.Game
             var cam = CameraRig.Instance;
             if (cam == null) return;
             transform.position = cam.Focus + Vector3.up * 70;
-            var w = GameRoot.Sim.Weather;
+            var w = CameraRig.Inside ? Weather.Clear : GameRoot.Sim.Weather;
             if (w == _shown) return;
             _shown = w;
             var main = _ps.main; var em = _ps.emission;

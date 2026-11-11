@@ -115,13 +115,13 @@ namespace Crosswind.Core
             if (facility == "runway" && Level(facility) >= Map.MaxRunway) return "No room for a longer runway at " + Map.Name;
             if (Stars < d.Stars) return "Needs a " + d.Stars + "-star airport";
             if (Building(facility) != null) return "Being built";
-            if (State.builds.Count >= Builders && BuildSeconds(facility) > 0) return "Both building crews are busy";
+            if (State.builds.Count >= Builders && BuildSeconds(facility) > 0) return "Every building crew is busy";
             if (State.money < Cost(facility)) return "Need " + Format.Money(Cost(facility) - State.money) + " more";
             return null;
         }
 
         /// <summary>How many builds can run at once.</summary>
-        public const int Builders = 2;
+        public int Builders { get { return Owns("crosswind.starter") ? 3 : 2; } }
         /// <summary>Tests set this to 0 to build at once.</summary>
         public float BuildTimeScale = 1;
 

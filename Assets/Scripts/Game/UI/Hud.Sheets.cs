@@ -68,7 +68,7 @@ namespace Crosswind.Game
             {
                 if (s.State.builds.Count > 0)
                 {
-                    Header("BUILDING (" + s.State.builds.Count + " OF " + Sim.Builders + " CREWS)");
+                    Header("BUILDING (" + s.State.builds.Count + " OF " + s.Builders + " CREWS)");
                     foreach (var job in s.State.builds.ToList())
                     {
                         var jd = Content.Facilities[job.facility];
@@ -209,6 +209,13 @@ namespace Crosswind.Game
                     "MOVE", s.SellBlocked(m.Id), () => ConfirmSell(m), Ui.Gold);
             }
 
+            Header("SHOP" + (Store.Available ? "" : " (OPENS WITH THE APP STORE RELEASE)"));
+            foreach (var prod in Sim.Products)
+            {
+                bool owned = prod.Once && s.Owns(prod.Id);
+                Entry(prod.Name, owned ? "OWNED" : null, prod.Blurb, owned ? null : "BUY\n<size=34>" + Store.Price(prod) + "</size>", null,
+                    () => Store.Buy(prod, (ok, msg) => { Toast(msg); if (ok) Sfx.Play("confirm"); _dirty = true; }), Ui.Gold);
+            }
             Header("SETTINGS");
             Entry("Sound", Sfx.Muted ? "OFF" : "ON", "Interface sounds and the airfield.", Sfx.Muted ? "TURN ON" : "TURN OFF", null, () => { Sfx.Muted = !Sfx.Muted; }, Ui.Card);
             Header("ACHIEVEMENTS");

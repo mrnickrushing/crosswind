@@ -152,8 +152,14 @@ namespace Crosswind.Game
     {
         readonly Dictionary<int, Vector2> _touches = new Dictionary<int, Vector2>();
 
-        public void OnPointerDown(PointerEventData e) { _touches[e.pointerId] = e.position; }
-        public void OnPointerUp(PointerEventData e) { _touches.Remove(e.pointerId); }
+        Vector2 _downAt; float _downTime;
+        public void OnPointerDown(PointerEventData e) { _touches[e.pointerId] = e.position; _downAt = e.position; _downTime = Time.unscaledTime; }
+        public void OnPointerUp(PointerEventData e)
+        {
+            _touches.Remove(e.pointerId);
+            // A touch that barely moved and didn't linger is a tap on the world.
+            if (_touches.Count == 0 && (e.position - _downAt).sqrMagnitude < 20 * 20 && Time.unscaledTime - _downTime < 0.4f && Hud.Instance != null) Hud.Instance.TapWorld(e.position);
+        }
 
         public void OnDrag(PointerEventData e)
         {

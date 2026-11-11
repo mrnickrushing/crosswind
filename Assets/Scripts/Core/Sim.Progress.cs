@@ -30,7 +30,7 @@ namespace Crosswind.Core
         /// <summary>Everything that multiplies what the airport earns: the map, research, Wings, and a running boost.</summary>
         public double IncomeScale
         {
-            get { return Map.IncomeScale * (1 + Fx(Effect.Income)) * (1 + State.wings * Content.WingBonus) * (Boosted ? Content.BoostScale : 1); }
+            get { return Map.IncomeScale * (1 + Fx(Effect.Income)) * (1 + State.wings * Content.WingBonus) * (Boosted ? Content.BoostScale : 1) * (Owns("crosswind.double") ? 2 : 1); }
         }
 
         /// <summary>The car park and transit: money every second, flights or not.</summary>

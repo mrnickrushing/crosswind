@@ -91,6 +91,9 @@ namespace Crosswind.Core
         public double boostUntil;
         public double freeBoostAt;                                  // real time the next free boost is ready                                   // real time the 2x income boost ends
         public List<string> achievements = new List<string>();     // claimed
+        public List<string> owned = new List<string>();            // one-time purchases
+        public List<string> transactions = new List<string>();     // store transactions already granted
+        public bool tutorialDone;
 
         public List<LevelEntry> relations = new List<LevelEntry>();   // each airline's satisfaction with you, 0..100 (starts at 50)
 
@@ -141,6 +144,8 @@ namespace Crosswind.Core
             if (research != null && (string.IsNullOrEmpty(research.id) || Content.ResearchById(research.id) == null)) research = null;
             if (managerLevels == null) managerLevels = new List<LevelEntry>();
             if (achievements == null) achievements = new List<string>();
+            if (owned == null) owned = new List<string>();
+            if (transactions == null) transactions = new List<string>();
             if (relations == null) relations = new List<LevelEntry>();
             if (opportunity != null && string.IsNullOrEmpty(opportunity.kind)) opportunity = null;
             if (tasks == null) tasks = new List<TaskState>();

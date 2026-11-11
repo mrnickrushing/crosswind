@@ -34,6 +34,17 @@ namespace Crosswind.Game
         public static float Tile(string surface) { return surface == "Grass" ? 9f : surface == "Concrete" ? 13f : surface == "Asphalt" ? 7f : 8f; }
 
         /// <summary>A textured ground material (Resources/Textures/{name}.jpg + {name}Normal.jpg), lit, matte.</summary>
+        public static Material Surface(string name, Color tint)
+        {
+            if (tint == Color.white) return Surface(name);
+            string key = name + tint;
+            Material m;
+            if (_surfaces.TryGetValue(key, out m)) return m;
+            m = new Material(Surface(name)) { name = key };
+            m.SetColor("_BaseColor", m.GetColor("_BaseColor") * tint);
+            return _surfaces[key] = m;
+        }
+
         public static Material Surface(string name)
         {
             Material m;
@@ -69,14 +80,17 @@ namespace Crosswind.Game
     /// </summary>
     public sealed class Ground
     {
-        sealed class Part { public readonly List<Vector3> V = new List<Vector3>(); public readonly List<Vector2> Uv = new List<Vector2>(); public readonly List<int> T = new List<int>(); public readonly List<Color> C = new List<Color>(); }
+        sealed class Part { public string Surface; public Color Tint; public readonly List<Vector3> V = new List<Vector3>(); public readonly List<Vector2> Uv = new List<Vector2>(); public readonly List<int> T = new List<int>(); public readonly List<Color> C = new List<Color>(); }
         readonly Dictionary<string, Part> _parts = new Dictionary<string, Part>();
 
         /// <summary>A rectangle of a surface, centred at (x, z), at height y, optionally turned and tinted.</summary>
         public void Rect(string surface, float x, float z, float width, float length, float y = 0.02f, float yaw = 0, Color? tint = null)
         {
+            // A tint is its own material (the lit shader doesn't read vertex colours), so pieces batch by surface and tint.
+            var tc = tint ?? Color.white;
+            string key = surface + "|" + tc.r.ToString("0.00") + "," + tc.g.ToString("0.00") + "," + tc.b.ToString("0.00");
             Part p;
-            if (!_parts.TryGetValue(surface, out p)) _parts[surface] = p = new Part();
+            if (!_parts.TryGetValue(key, out p)) { _parts[key] = p = new Part(); p.Surface = surface; p.Tint = tc; }
             float tile = Materials.Tile(surface);
             var rot = Quaternion.Euler(0, yaw, 0);
             int i0 = p.V.Count;
@@ -99,7 +113,7 @@ namespace Crosswind.Game
                 m.RecalculateNormals(); m.RecalculateTangents(); m.RecalculateBounds();
                 go.AddComponent<MeshFilter>().sharedMesh = m;
                 var mr = go.AddComponent<MeshRenderer>();
-                mr.sharedMaterial = Materials.Surface(kv.Key);
+                mr.sharedMaterial = Materials.Surface(kv.Value.Surface, kv.Value.Tint);
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
         }

@@ -40,10 +40,14 @@ namespace Crosswind.Game
                     _idle[i] = Resources.Load<Mesh>("Models/person_" + i + "_idle");
                 }
             }
-            string[] models = { "sedan", "taxi", "suv", "van", "hatchback", "delivery", "truck", "sedan", "pickup", "coupe" };
+            // Road traffic: cars from the free kit, and our own shuttle bus and lorries.
+            string[] models = { "sedan", "taxi", "suv", "bus", "hatchback", "lorry", "lorry2", "sedan", "pickup", "coupe" };
             for (int i = 0; i < models.Length; i++)
             {
-                var c = Models.Kit(models[i], go.transform, Vector3.zero, 0, models[i] == "truck" || models[i] == "delivery" ? 5.5f : 4.2f);
+                var c = models[i] == "bus" ? Gse.Bus().ToObject("Bus", go.transform)
+                    : models[i] == "lorry" ? Gse.Lorry(Palette.Hex(0xD7DBDF)).ToObject("Lorry", go.transform)
+                    : models[i] == "lorry2" ? Gse.Lorry(Palette.Hex(0x3E7A4A)).ToObject("Lorry", go.transform)
+                    : Models.Kit(models[i], go.transform, Vector3.zero, 0, 4.2f);
                 if (c == null) continue;
                 l._cars.Add(new Car { Go = c, Z = -200 + i * 53, Speed = 14 + i % 3 * 4, Dir = i % 2 == 0 ? 1 : -1 });
             }

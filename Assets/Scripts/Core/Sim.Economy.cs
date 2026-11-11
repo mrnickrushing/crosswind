@@ -55,6 +55,8 @@ namespace Crosswind.Core
             bool onTime = State.time - f.parkedAt - f.held <= OnTimeTarget(r) * TermsPatience(terms);
             var parts = new double[5];
             double value = FlightValue(r, onTime, parts);
+            // Dry tanks: an outside supplier fuels the aircraft and keeps most of the margin.
+            if (!DrawFuel(r)) { value -= parts[2] * (1 - DryMargin) * IncomeScale; parts[2] *= DryMargin; }
             double paid = value * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay : RelationPay(r.Airline) * FeePay * PartnerPay(r.Airline));
             if (r.Airline != "own") Relate(r.Airline, (onTime ? 0.4f : -2.5f) + FeeMoodPerFlight);
             if (r.Airline != "own") CountDeal(r, onTime, paid);

@@ -35,6 +35,8 @@ namespace Crosswind.Core
             foreach (var c in State.contracts)
                 foreach (var n in Content.Routes[c.route].Needs)
                     if (Level(Content.ServiceFacility(n)) == 0) SetLevel(Content.ServiceFacility(n), 1);
+            // A new airport, or one from before the fuel market, opens with full tanks.
+            if (State.fuelStock < 0) State.fuelStock = FuelCapacity;
             // And one from before wide-bodies needed their own stand keeps the stands it was already using for them.
             if (HeavyStands == 0 && State.contracts.Exists(c => Heavy(Content.Routes[c.route].Class))) SetLevel("heavy", Math.Min(StandCount, 2));
         }

@@ -268,7 +268,7 @@ namespace Crosswind.Game
                     if (s.Level("gates") < 3)
                         for (int k = 0; k < 5; k++) mb.Box(new Vector3(p.x + 1.6f + k * 0.32f, 0.2f + k * 0.2f, p.z + 4.9f), new Vector3(0.34f, 0.4f + k * 0.4f, 1.0f), Palette.Hex(0xE4E7EA), Palette.Hex(0x9AA0A6));
                     for (int k = 0; k < 4; k++)
-                        Models.Kit("cone", kitEarly, new Vector3(p.x - 1 + (k % 2) * 3.4f, 0.04f, p.z + (k < 2 ? -5.2f : 5.2f) + (float)prng.NextDouble() * 0.3f), prng.Next(360), 0.75f);
+                        Gse.Cone(mb, new Vector3(p.x - 1 + (k % 2) * 3.4f, 0.04f, p.z + (k < 2 ? -5.2f : 5.2f) + (float)prng.NextDouble() * 0.3f));
                 }
             }
             if (paved)
@@ -336,7 +336,7 @@ namespace Crosswind.Game
                     mb.Sphere(new Vector3(termX - 0.2f, 0.75f, fz), new Vector3(0.6f, 0.4f, 0.6f), 6, Palette.Hex(0xE2557A));
                 }
                 Models.Kit("sedan", kitEarly, new Vector3(termX + 6.5f, 0.05f, -52), 20, 4.2f);
-                Models.Kit("truck", kitEarly, new Vector3(Layout.TaxiX + 9, 0.05f, -57), 100, 5f);
+                mb.Push().Translate(Layout.TaxiX + 9, 0.05f, -57).RotateY(100); mb.Append(Gse.Build(Service.Fuel)); mb.Pop(); mb.Smoothness = 0.3f;
             }
             else
             {

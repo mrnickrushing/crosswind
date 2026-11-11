@@ -131,8 +131,7 @@ automates it, which is the genre's classic idle hand-off: you stop doing the job
 
 ## Art
 
-Free assets only (CC0 first, CC BY credited in CREDITS.md and in the game): Quaternius people and cars, a few
-Kenney road vehicles, Poly Haven and ambientCG textures, Font Awesome icons. Aircraft, ground support vehicles, the
+Free assets only (CC0 first, CC BY credited in CREDITS.md and in the game): Quaternius people and cars, Poly Haven and ambientCG textures, Font Awesome icons. Aircraft, ground support vehicles, the
 terminal and its furniture, bridges, depots, hangar, cargo terminal and tower are our own, modelled in code. The world is built
 from code at runtime on a grid, as in Last Tide. Camera: a three-quarter view over the airport, pinch to zoom, drag
 to pan, tap to select.

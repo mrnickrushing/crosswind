@@ -135,6 +135,21 @@ namespace Crosswind.Game
                 Header("PASSENGERS: " + Mathf.RoundToInt(s.Satisfaction * 100) + "% SATISFIED (THEY SPEND MORE WHEN HAPPY)");
                 foreach (var need in s.Needs)
                     Ico(WantIcon(need.Want, need.Queue), ScoreTint(need.Value)).Bar(need.Value, ScoreTint(need.Value)).Entry(need.Name, Mathf.RoundToInt(need.Value * 100) + "%", need.Value >= 0.999f ? "Passengers have no complaints here." : need.Advice + ".", null, null, null);
+                if (s.Level("fuel") > 0)
+                {
+                    // The fuel market: today's price against par, where it is heading, and the tanks.
+                    float price = s.FuelPrice, next = s.FuelForecast, fill = s.FuelFill;
+                    string pct = (price < 1 ? Mathf.RoundToInt((1 - price) * 100) + "% BELOW PAR" : price > 1.005f ? Mathf.RoundToInt((price - 1) * 100) + "% ABOVE PAR" : "AT PAR");
+                    string trend = next < price - 0.03f ? "cheaper tomorrow" : next > price + 0.03f ? "dearer tomorrow" : "steady tomorrow";
+                    Header("FUEL MARKET  ·  " + pct);
+                    var tint = fill < Sim.LowFuel ? Ui.Red : price <= 0.95f ? Ui.Green : Palette.Fuel;
+                    string fb = s.BuyFuelBlocked();
+                    Ico("fuel", tint).Bar(fill, fill < Sim.LowFuel ? Ui.Red : Ui.Green).Entry("Tank farm", Mathf.RoundToInt(fill * 100) + "% FULL  ·  " + trend.ToUpper(),
+                        (fill <= 0.001f ? "Dry: a supplier fuels your flights and keeps most of the margin." : "Flights refuel from your tanks. Fill up on a cheap day and keep the difference.")
+                        + (s.State.fuelSaved > 1 ? " Saved so far: " + Format.Money(s.State.fuelSaved) + "." : ""),
+                        fb == "Tanks full" ? "FULL" : "FILL\n<size=34>" + Format.Money(System.Math.Min(s.FuelCost(), s.State.money)) + "</size>", fb == "Tanks full" ? null : fb,
+                        () => { if (s.BuyFuel()) { Sfx.Play("confirm"); Toast("Tanks filled at " + pct.ToLower()); } }, price <= 0.95f ? Ui.Green : (Color?)null);
+                }
                 foreach (var group in new[] { "Airside", "Services", "Terminal" })
                 {
                     Header(group.ToUpper());
@@ -308,7 +323,7 @@ namespace Crosswind.Game
                 : "Sign in to iCloud in the iPhone's Settings to keep your airport safe and move it to a new phone.", null, null, null);
             Ico("trash", TintRed).Entry("Erase everything", null, "Deletes your airports, team and progress from this device and from your iCloud, and gives the statistics a new anonymous id. This can't be undone.", "ERASE", null, ConfirmErase, Ui.Red);
             Header("CREDITS");
-            Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Vans, lorries and cones by Kenney. Ground and floor textures from Poly Haven and ambientCG. Aircraft, airport vehicles and buildings are our own.", null, null, null);
+            Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Ground and floor textures from Poly Haven and ambientCG. Aircraft, airport vehicles and buildings are our own.", null, null, null);
             Ico("pen").Entry("Icons and lettering", null, "Menu icons from Font Awesome Free (CC BY 4.0, fontawesome.com). Lettering in Barlow by Jeremy Tribby (SIL Open Font License).", null, null, null);
             Ico("star", TintGold).Entry("Crosswind", "RUSHING TECHNOLOGIES", "Thank you for playing.", null, null, null);
             Header("ACHIEVEMENTS");

@@ -49,6 +49,7 @@ namespace Crosswind.Game
             h._sim.StarGained += h.OnStar;
             h._sim.RouteLost += r => { h._dirty = true; Sfx.Play("error"); };
             h._sim.BuildDone += f => { h._dirty = true; if (GameRoot.Speed <= 3) Sfx.Play("build"); };
+            h._sim.FuelLow += () => { h.Toast(h._sim.State.managers.Contains("fuel") ? "Fuel is low and the price is high: your manager is waiting" : "Fuel is running low: fill the tanks in BUILD"); h._dirty = true; };
             h._sim.OpportunityAppeared += o => Sfx.Play("chime", 0.6f);
             h._sim.WeatherChanged += w => { if (w != Weather.Clear) h.Toast(w + ": the runway slows down"); };
             h._shownMoney = h._sim.State.money;

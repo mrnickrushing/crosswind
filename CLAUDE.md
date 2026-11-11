@@ -90,6 +90,11 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
 - Airside buildings are code too: `World/Works.cs` (`Depot` per department with its yard, `Hangar`, `Cargo`) and
   `AirportView.Bridge` (boarding bridges; `HasBridge(stand)` stops `Life` walking passengers over the apron). The
   camera sees north (+Z) and west (-X) faces, so fronts point that way (hangar and cargo are turned with RotateY(90)).
+- Fuel market (`Core/Sim.Fuel.cs`, `FuelTests`): `FuelPriceOn(day)` (0.65..1.4, par 1, one price per 12-minute
+  day), tanks measured in money at par (`FuelCapacity` grows with the fuel depot and the biggest aircraft class),
+  `BuyFuel(to)` pays stock x price, each fuelled departure draws `FuelDraw` and is paid it back (`DrawFuel` in `Pay`);
+  dry tanks leave `DryMargin` of the fuel margin. A fuel manager reorders to 60% under 25% when the price is <= 1.08.
+  `FlightValue` and the idle rate are unchanged (neutral at par). UI: FUEL MARKET at the top of BUILD.
 - Wide-body stands (facility `heavy`, 5 stars, max 6): class D and E (`Sim.Heavy`) park only on the first
   `HeavyStands` stands of the row; smaller aircraft fill the ordinary ones first and leave a wide-body stand at once
   when one is circling (`WideBodyWaiting`). `Sim.Missing(route)` lists the facilities a route still waits for (the
@@ -105,4 +110,4 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   In-game credits are rows under EMPIRE; anything CC BY must be listed there and in `CREDITS.md`.
 - Music is synthesized by `Tools/art/music.py` (numpy; nothing licensed) into `Resources/Audio/Music/day|night.ogg`
   (streamed, see `ArtImport`); `Sfx.TickMusic` cross-fades them with `Sim.Night`; Settings has a Music switch.
-- Road cars are Quaternius (CC0, `Tools/art/cars.py`); service trucks, vans and depots are still Kenney.
+- Road cars are Quaternius (CC0, `Tools/art/cars.py`); the bus, lorries and cones are code (`Gse.Bus`, `Lorry`, `Cone`). No Kenney models are left in the build.

@@ -6,10 +6,6 @@ Crosswind uses free 3D models, textures, icons and fonts. Thank you to their aut
 
 - Barlow Condensed and Barlow Semi Condensed by Jeremy Tribby, SIL Open Font License 1.1 (`Assets/Resources/Fonts/Barlow-OFL.txt`).
 
-## Vehicles (Kenney, CC0: https://kenney.nl)
-
-Car Kit (van, delivery lorry, truck) and a traffic cone. Public domain; listed with thanks.
-
 ## People
 
 Passengers, staff portraits and ground crew: characters by **Quaternius** (CC0, via poly.pizza): Woman in Dress, Man in Long Sleeves, Man (two), Man in Suit, Woman in Tank Top, Animated Woman, Woman Casual, Woman, Casual Character, Business Man, Hoodie Character, Worker. Posed and slimmed by `Tools/art/models.py`.

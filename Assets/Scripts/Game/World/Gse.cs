@@ -247,5 +247,55 @@ namespace Crosswind.Game
             Chevrons(mb, 1.92f, 0.95f, 1.4f, 0.26f);
             Axle(mb, 0.66f, -1.45f, 0.36f, 0.24f); Axle(mb, 0.66f, 1.3f, 0.36f, 0.26f);
         }
+
+        /// <summary>A traffic cone, about 0.75 m tall, foot on y = 0.</summary>
+        public static void Cone(MeshBuilder mb, Vector3 at)
+        {
+            float sm = mb.Smoothness; mb.Mat(0.35f);
+            mb.Box(at + Vector3.up * 0.03f, new Vector3(0.46f, 0.06f, 0.46f), Dark);
+            mb.Cylinder(at + Vector3.up * 0.06f, at + Vector3.up * 0.72f, 0.17f, 0.04f, 10, Palette.Hex(0xF26A1B));
+            mb.Cylinder(at + Vector3.up * 0.3f, at + Vector3.up * 0.44f, 0.122f, 0.094f, 10, White, false);
+            mb.Mat(sm);
+        }
+
+        /// <summary>The airport shuttle bus for the road past the terminal (faces -Z, about 5.5 m).</summary>
+        public static MeshBuilder Bus()
+        {
+            var mb = new MeshBuilder { Smoothness = 0.45f };
+            var c = Palette.Hex(0x2F6FB5);
+            mb.Box(new Vector3(0, 1.05f, 0), new Vector3(1.7f, 1.5f, 5.4f), White);
+            mb.Box(new Vector3(0, 0.55f, 0), new Vector3(1.72f, 0.5f, 5.42f), c);
+            mb.Box(new Vector3(0, 1.84f, 0), new Vector3(1.6f, 0.1f, 5.2f), Palette.Hex(0xD0D4D8));
+            mb.Box(new Vector3(0, 1.95f, 0.8f), new Vector3(1.0f, 0.18f, 1.6f), Palette.Hex(0xC4C9CE));
+            mb.Mat(0.92f);
+            mb.Box(new Vector3(0, 1.3f, -2.705f), new Vector3(1.5f, 0.8f, 0.03f), Glass);
+            foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(e * 0.86f, 1.35f, 0.1f), new Vector3(0.03f, 0.6f, 4.6f), Glass);
+            mb.Box(new Vector3(0, 1.35f, 2.705f), new Vector3(1.3f, 0.5f, 0.03f), Glass);
+            mb.Mat(0.45f);
+            for (float z = -1.6f; z <= 2.2f; z += 0.95f) foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(e * 0.87f, 1.35f, z), new Vector3(0.03f, 0.62f, 0.07f), White);
+            mb.Box(new Vector3(0.87f, 0.95f, -1.9f), new Vector3(0.03f, 1.3f, 0.8f), Palette.Hex(0x24507F));       // the door
+            mb.Glow = true;
+            mb.Box(new Vector3(0, 1.78f, -2.71f), new Vector3(1.1f, 0.16f, 0.03f), Amber);                          // destination board
+            foreach (float e in new[] { -1f, 1f }) { mb.Box(new Vector3(e * 0.62f, 0.55f, -2.715f), new Vector3(0.24f, 0.12f, 0.03f), Palette.Hex(0xFFF4D0)); mb.Box(new Vector3(e * 0.66f, 0.7f, 2.715f), new Vector3(0.16f, 0.26f, 0.03f), Palette.Hex(0xE8372E)); }
+            mb.Glow = false;
+            Axle(mb, 0.74f, -1.7f, 0.36f, 0.22f); Axle(mb, 0.74f, 1.6f, 0.36f, 0.26f);
+            return mb;
+        }
+
+        /// <summary>A box lorry delivering to the airport (faces -Z, about 5.5 m).</summary>
+        public static MeshBuilder Lorry(Color box)
+        {
+            var mb = new MeshBuilder { Smoothness = 0.45f };
+            Chassis(mb, -2.6f, 2.7f);
+            Cab(mb, -1.55f, 1.6f, Palette.Hex(0xE4E7EA));
+            mb.Box(new Vector3(0, 1.45f, 0.65f), new Vector3(1.7f, 1.9f, 4.1f), box);
+            mb.Box(new Vector3(0, 2.42f, 0.65f), new Vector3(1.72f, 0.06f, 4.12f), MeshBuilder.Darken(box, 0.8f));
+            foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(e * 0.86f, 1.5f, 0.65f), new Vector3(0.02f, 0.5f, 2.6f), White);
+            mb.Box(new Vector3(0, 1.4f, 2.71f), new Vector3(1.5f, 1.7f, 0.03f), Palette.Hex(0xC9CED3));
+            mb.Box(new Vector3(0, 1.4f, 2.72f), new Vector3(0.04f, 1.7f, 0.03f), Dark);
+            mb.Glow = true; foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(e * 0.7f, 0.5f, 2.72f), new Vector3(0.16f, 0.1f, 0.03f), Palette.Hex(0xE8372E)); mb.Glow = false;
+            Axle(mb, 0.7f, -2.0f, 0.36f, 0.24f); Axle(mb, 0.7f, 1.7f, 0.36f, 0.3f);
+            return mb;
+        }
     }
 }

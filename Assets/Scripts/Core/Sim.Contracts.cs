@@ -58,7 +58,7 @@ namespace Crosswind.Core
 
         public const int ContractStars = 2;
         /// <summary>Real seconds between one set of offers and the next.</summary>
-        public const double MarketSeconds = 2 * 3600;
+        public const double MarketSeconds = 45 * 60;
         public const int RecordKept = 40;
 
         public bool ContractsOpen { get { return Stars >= ContractStars; } }
@@ -112,6 +112,9 @@ namespace Crosswind.Core
 
         public int Rep(string airline) { var e = State.rep.Find(l => l.id == airline); return e != null ? Math.Max(0, e.level) : 0; }
         public int RepTotal { get { return State.rep.Sum(l => Math.Max(0, l.level)); } }
+        /// <summary>The best reputation with any one airline, and the tier that is.</summary>
+        public int RepBest { get { return State.rep.Count == 0 ? 0 : State.rep.Max(l => Math.Max(0, l.level)); } }
+        public int RepBestTier { get { int v = RepBest, t = 0; while (t + 1 < RepAt.Length && v >= RepAt[t + 1]) t++; return t; } }
         public int RepTier(string airline) { int v = Rep(airline), t = 0; while (t + 1 < RepAt.Length && v >= RepAt[t + 1]) t++; return t; }
         /// <summary>Points to the next tier (0 at the top).</summary>
         public int RepToNext(string airline) { int t = RepTier(airline); return t + 1 < RepAt.Length ? RepAt[t + 1] - Rep(airline) : 0; }
@@ -213,7 +216,7 @@ namespace Crosswind.Core
                 if (b.part == 4 && !NightOps) b.part = line.Likes.FirstOrDefault(p => p != 4);
                 if (b.part <= 0) b.part = 1;
                 b.reward = Math.Floor(ContractMinute * (b.kind == 0 ? CharterMinutes : SeriesMinutes * b.flights) * (1 + 0.1 * tier) * (0.7 + 0.3 * (b.plane + 1) / ((int)top + 1)));
-                b.rep = b.kind == 0 ? 8 + 4 * b.plane : b.flights * (3 + b.plane);
+                b.rep = b.kind == 0 ? 12 + 6 * b.plane : b.flights * (4 + 2 * b.plane);
                 State.market.Add(b);
             }
             Changed?.Invoke();
@@ -248,6 +251,7 @@ namespace Crosswind.Core
             var b = OfferById(id);
             State.market.Remove(b);
             State.bookings.Add(b);
+            State.contractsSigned++;
             if (!AutoPlace(b)) Toast?.Invoke(FlightNo(b) + " has no free stand in its hours: plan it in OPS");
             AddRating(4 * (b.plane + 1));
             Changed?.Invoke();
@@ -416,6 +420,7 @@ namespace Crosswind.Core
             if (b == null) return;
             b.airborne = false;
             b.flown++;
+            Count("contract", 1);
             if (onTime) b.onTime++;
             if (!dry) b.served++;
             if (GradeIndex(Satisfaction) <= b.grade) b.pleased++;
@@ -447,6 +452,8 @@ namespace Crosswind.Core
             double paid = Math.Floor(b.reward * RewardShare(marks));
             int rep = (int)Math.Round(b.rep * RepShare(marks));
             State.bookings.Remove(b);
+            State.contractsDone++;
+            if (marks == 3) State.fullMarks++;
             Earn(AfterLoan(paid), false);
             AddRep(b.airline, rep);
             Relate(b.airline, marks * 2 - 2);

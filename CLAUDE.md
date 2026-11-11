@@ -125,7 +125,7 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   (streamed, see `ArtImport`); `Sfx.TickMusic` cross-fades them with `Sim.Night`; Settings has a Music switch.
 - Road cars are Quaternius (CC0, `Tools/art/cars.py`); the bus, lorries and cones are code (`Gse.Bus`, `Lorry`, `Cone`). No Kenney models are left in the build.
 - Contracts (`Core/Sim.Contracts.cs`, `ContractTests`; open at 2 stars): beside the routes, airlines put charters and
-  series on a market (`State.market`, a new set every `MarketSeconds` of real time or for gems, from its own dice
+  series on a market (`State.market`, a new set every `MarketSeconds` (45 minutes) of real time or for gems, from its own dice
   `marketSeed` so it never shifts the flights). Signed ones go in the book (`State.bookings`, `BookingCap` = 2 + tower
   level), are planned onto a stand and an hour of their day-part (`Plan`, `PlanBlocked`, `AutoPlace` picks the quietest
   hour by `HourlyTraffic`; a visit keeps the stand `BlockHours`), and fly one flight a day (`ContractArrivals`; the
@@ -156,3 +156,11 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   studio light, shadow catcher, trimmed to a 256 square). Add an icon: put it in `ICONS`, fetch, `render <name>`, and
   update the credits (`CREDITS.md` and the "Picture icons" row under EMPIRE). `World/Studio.cs` still photographs the
   game's own terminal items for the catalogue (`Interior.Picture`).
+- Contracts are in the guide (`first_contract`, `contract_done`, `rep_first`, `rep_known`, `contracts_10`,
+  `rep_trusted`: any bot that plays the chain must sign contracts, as `PacingTests.Greedy` and `PlayBot` do), the
+  achievements (`contracts_*`, `full_marks_10`, `rep_trusted`, `rep_flagship`; counters `State.contractsSigned`,
+  `contractsDone`, `fullMarks`), the daily tasks (kind `contract`), the reminders (new offers) and the loading tips.
+  `PacingTests.SixHoursOfBooks` prints where six hours of play gets to (goal, contracts done, reputation). New
+  achievements must also go in `docs/appstore/gamecenter.json` (a test checks it) with a badge
+  (`Tools/art/gc_badges.py` draws the missing ones), and App Store Connect only learns of them when the
+  `crosswind-setup` job runs with `CROSSWIND_STEPS=gamecenter` (ask first).

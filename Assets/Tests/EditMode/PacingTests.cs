@@ -48,6 +48,12 @@ namespace Crosswind.Tests
 
                 if (s.PlannerOpen && (s.State.plansMade == 0 || (int)(t / 60) % 10 == 0)) s.AutoPlan();
                 // What a contract on offer is waiting for comes first, then the cheapest thing.
+                // Contracts: sign what the book has room for, and keep them planned.
+                if (s.ContractsOpen)
+                {
+                    foreach (var b in s.State.market.ToList()) if (s.SignContractBlocked(b.id) == null) s.SignContract(b.id);
+                    if (s.State.bookings.Exists(b => b.hour < 0)) s.AutoPlanContracts();
+                }
                 if (s.ReportWaiting) s.ClaimReport();
                 foreach (AircraftClass mc in System.Enum.GetValues(typeof(AircraftClass))) if (s.CheckProgress(mc) >= 0.9f && s.CheckBlocked(mc) == null) s.DoCheck(mc);
                 if (s.RunwayCondition < 0.45f && s.ResurfaceBlocked() == null && s.ResurfaceCost < s.State.money * 0.3) s.Resurface();
@@ -76,6 +82,7 @@ namespace Crosswind.Tests
             var s = new Sim(GameState.New());
             foreach (var l in Greedy(s, 6 * 3600, 4f).Where(x => x.Contains("day ") || x.Contains("stars"))) TestContext.WriteLine(l);
             var last = s.State.ledger[0];
+            TestContext.WriteLine("after 6h: goal " + s.State.goalIndex + "/" + Goals.All.Count + (s.CurrentGoal != null ? " (" + s.CurrentGoal.Id + ")" : "") + ", contracts done " + s.State.contractsDone + " (" + s.State.fullMarks + " with full marks), best reputation " + s.RepBest + ", total " + s.RepTotal);
             Assert.Less(last.Costs, last.Income * 0.3, "running costs never eat the airport");
         }
 

@@ -163,6 +163,7 @@ namespace Crosswind.Core
         public List<DayLedger> ledger = new List<DayLedger>();       // the last days' books, newest first
         public DayLedger today = new DayLedger();                    // the day being counted
         public double dayOpenMoney = -1;                             // cash when the day opened (-1: not yet counted)
+        public int contractsSigned, contractsDone, fullMarks;         // contracts signed, flown to the end, and of those with all three marks
 
         public static GameState New()
         {

@@ -18,6 +18,11 @@ namespace Crosswind.Game
         static readonly string[] Tips =
         {
             "Hire a manager and the department runs itself, even while you're away.",
+            "Contracts are marked three ways: punctual, serviced, standards. Full marks pay the whole reward.",
+            "Reputation with an airline raises what every one of its flights pays you.",
+            "Holiday airlines fly more at the weekend, business airlines in the week. Plan around them.",
+            "Wages and upkeep are charged when the day closes at 06:00. A big airport standing idle still costs money.",
+            "Plan a contract onto a quiet hour: the planner in OPS shows how busy each hour is.",
             "On-time flights please an airline. Happy airlines pay up to 30% more.",
             "A crowded hour chokes the runway: spread your routes in the day planner.",
             "Every new star brings a team crate. Put your best people on duty.",

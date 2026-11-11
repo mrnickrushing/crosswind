@@ -27,6 +27,8 @@ namespace Crosswind.Core
             }
             if (FreeCrateIn > 60)
                 all.Add(new Reminder { In = FreeCrateIn, Title = "A team crate is waiting", Body = "Your free crate is ready. Who's inside?" });
+            if (ContractsOpen && MarketIn > 60 && State.bookings.Count < BookingCap)
+                all.Add(new Reminder { In = MarketIn, Title = "New contracts on the market", Body = "The airlines have posted new charters and series at " + Map.Name + "." });
             double ev = EventLeft - 3 * 3600;
             if (ev > 60 && State.eventProgress > 0)
                 all.Add(new Reminder { In = ev, Title = CurrentEvent.Name + " ends in 3 hours", Body = "There's still time for the next reward." });

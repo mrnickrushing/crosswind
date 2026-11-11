@@ -311,6 +311,72 @@
    "image": "gamecenter/checks_40.png"
   },
   {
+   "id": "crosswind.ach.contracts_5",
+   "ref": "contracts_5",
+   "name": "Signed and Delivered I",
+   "before": "Fly 5 contracts to their last flight.",
+   "after": "You flew 5 contracts to their last flight.",
+   "points": 10,
+   "glyph": "handshake",
+   "tier": 0,
+   "image": "gamecenter/contracts_5.png"
+  },
+  {
+   "id": "crosswind.ach.contracts_25",
+   "ref": "contracts_25",
+   "name": "Signed and Delivered II",
+   "before": "Fly 25 contracts to their last flight.",
+   "after": "You flew 25 contracts to their last flight.",
+   "points": 25,
+   "glyph": "handshake",
+   "tier": 1,
+   "image": "gamecenter/contracts_25.png"
+  },
+  {
+   "id": "crosswind.ach.contracts_100",
+   "ref": "contracts_100",
+   "name": "Signed and Delivered III",
+   "before": "Fly 100 contracts to their last flight.",
+   "after": "You flew 100 contracts to their last flight.",
+   "points": 50,
+   "glyph": "handshake",
+   "tier": 3,
+   "image": "gamecenter/contracts_100.png"
+  },
+  {
+   "id": "crosswind.ach.full_marks_10",
+   "ref": "full_marks_10",
+   "name": "Clean Sheet",
+   "before": "Finish 10 contracts with all three marks.",
+   "after": "You finished 10 contracts with all three marks.",
+   "points": 20,
+   "glyph": "medal",
+   "tier": 2,
+   "image": "gamecenter/full_marks_10.png"
+  },
+  {
+   "id": "crosswind.ach.rep_trusted",
+   "ref": "rep_trusted",
+   "name": "Good Name",
+   "before": "Become Trusted by an airline.",
+   "after": "An airline rates your airport Trusted.",
+   "points": 15,
+   "glyph": "crown",
+   "tier": 1,
+   "image": "gamecenter/rep_trusted.png"
+  },
+  {
+   "id": "crosswind.ach.rep_flagship",
+   "ref": "rep_flagship",
+   "name": "Flagship Airport",
+   "before": "Reach the top reputation tier with an airline.",
+   "after": "An airline rates your airport Flagship.",
+   "points": 50,
+   "glyph": "crown",
+   "tier": 3,
+   "image": "gamecenter/rep_flagship.png"
+  },
+  {
    "id": "crosswind.ach.class_c",
    "ref": "class_c",
    "name": "Jet Age",

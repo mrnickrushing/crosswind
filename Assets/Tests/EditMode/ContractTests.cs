@@ -141,6 +141,10 @@ namespace Crosswind.Tests
             Assert.AreEqual(rep, rec.rep);
             Assert.AreEqual(rep, s.Rep(b.airline));
             Assert.GreaterOrEqual(days, 3, "never more than one flight a day");
+            Assert.AreEqual(1, s.State.contractsSigned);
+            Assert.AreEqual(1, s.State.contractsDone);
+            Assert.AreEqual(1, s.State.fullMarks);
+            Assert.AreEqual(rep, s.RepBest);
         }
 
         [Test]

@@ -163,6 +163,8 @@ namespace Crosswind.Core
                 new TaskState { kind = "upgrade", target = 5, gems = 3 },
                 new TaskState { kind = "opportunity", target = 3, gems = 4 },
                 new TaskState { kind = "research", target = 1, gems = 5 },
+                // Contract flights, once the market is open (before that, another day of flights).
+                ContractsOpen ? new TaskState { kind = "contract", target = Math.Min(4, Math.Max(1, State.bookings.Count)), gems = 4 } : new TaskState { kind = "flights", target = 20 + Stars * 10, gems = 3 },
             };
             int start = Math.Abs(Today) % pool.Length;
             for (int i = 0; i < 3; i++) State.tasks.Add(pool[(start + i * 2) % pool.Length]);
@@ -184,6 +186,7 @@ namespace Crosswind.Core
                 case "earn": return "Earn " + Format.Money(t.target);
                 case "upgrade": return "Build or upgrade " + Format.Money(t.target) + " times";
                 case "opportunity": return "Take " + Format.Money(t.target) + " opportunities";
+                case "contract": return t.target <= 1 ? "Handle a contract flight (OPS)" : "Handle " + Format.Money(t.target) + " contract flights (OPS)";
                 default: return "Finish a research project";
             }
         }
@@ -225,6 +228,11 @@ namespace Crosswind.Core
                 A("resurface_" + n, "Fresh Tarmac", "Resurface the runway " + n + " times", n, s => s.State.resurfaced, g);
             foreach (var (n, g) in new[] { (5, 5), (40, 20) })
                 A("checks_" + n, "Airworthy", "Complete " + n + " fleet maintenance checks", n, s => s.State.checksDone, g);
+            foreach (var (n, g) in new[] { (5, 10), (25, 25), (100, 50) })
+                A("contracts_" + n, "Signed and Delivered", "Fly " + n + " contracts to their last flight", n, s => s.State.contractsDone, g);
+            A("full_marks_10", "Clean Sheet", "Finish 10 contracts with all three marks", 10, s => s.State.fullMarks, 20);
+            A("rep_trusted", "Good Name", "Become Trusted by an airline", 2, s => s.RepBestTier, 15);
+            A("rep_flagship", "Flagship Airport", "Reach the top reputation tier with an airline", RepAt.Length - 1, s => s.RepBestTier, 50);
             A("class_c", "Jet Age", "Sign an Albatross 160 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class >= AircraftClass.C) ? 1 : 0, 10);
             A("class_e", "Heavy Metal", "Sign a Leviathan 520 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.E) ? 1 : 0, 40);
             return list;

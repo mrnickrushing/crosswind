@@ -34,9 +34,11 @@ namespace Crosswind.Core
             G("fuel_manager", "Hire a fuel manager: the depot runs itself", 1, s => s.State.managers.Contains("fuel") ? 1 : 0, 500, 5);
             G("two_stars", "Reach a 2-star airport", 2, s => s.Stars, 800, 5);
             G("baggage", "Build baggage handling", 1, s => s.Level("baggage"), 600);
+            G("first_contract", "Airlines post contracts beside their routes: sign one (OPS)", 1, s => s.State.contractsSigned, 1200, 5);
             G("runway_3", "Lengthen the runway to level 3 for the Heron 50", 3, s => s.Level("runway"), 1500);
             G("regional", "Sign a Heron 50 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.B) ? 1 : 0, 2500, 10);
             G("fifty_flights", "Handle 50 flights", 50, s => s.State.flightsHandled, 4000);
+            G("contract_done", "Fly a contract to its last flight and see its marks (OPS, RECORD)", 1, s => s.State.contractsDone, 5000, 5);
             G("shops", "Furnish the terminal: place a coffee bar (TERMINAL, then SHOP)", 1, s => s.State.terminal.Count(t => Sim.AmenityById(t.id).Earns), 3000);
             G("comfort", "Passengers need seats and toilets: place both in the terminal", 2, s => Math.Min(1, s.Placed("seats") + s.Placed("recliners")) + Math.Min(1, s.Placed("toilets")), 2500, 5);
             G("three_stars", "Reach a 3-star airport", 3, s => s.Stars, 10000, 10);
@@ -45,6 +47,7 @@ namespace Crosswind.Core
             G("runway_6", "Build a level 6 runway for the Albatross 160", 6, s => s.Level("runway"), 40000);
             G("jet", "Sign an Albatross 160 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.C) ? 1 : 0, 80000, 15);
             G("four_stars", "Reach a 4-star airport", 4, s => s.Stars, 250000, 20);
+            G("rep_first", "Earn 20 reputation with one airline by flying its contracts well (OPS, AIRLINES)", 20, s => s.RepBest, 150000, 15);
             G("own_plane", "Buy your first aircraft (AIRLINES, Your Airline)", 1, s => s.FleetSize, 100000, 15);
             G("research_3", "Finish 3 research projects (RESEARCH)", 3, s => s.State.researched.Count, 60000, 10);
             G("catering", "Build the flight kitchen", 1, s => s.Level("catering"), 80000);
@@ -55,6 +58,8 @@ namespace Crosswind.Core
             G("parking", "Open the car park and transit", 1, s => s.Level("parking"), 100000);
             G("stands_8", "Upgrade the aircraft stands to level 8", 8, s => s.Level("stands"), 600000, 10);
             G("five_stars", "Reach a 5-star airport", 5, s => s.Stars, 1500000, 25);
+            G("rep_known", "Earn 60 reputation with one airline: they will rate you Known and pay 3% more", 60, s => s.RepBest, 1500000, 20);
+            G("contracts_10", "Finish 10 contracts", 10, s => s.State.contractsDone, 2000000, 20);
             G("runway_10", "Build a level 10 runway for the Condor 300", 10, s => s.Level("runway"), 3000000);
             G("widebody", "Sign a Condor 300 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.D) ? 1 : 0, 6000000, 20);
             G("train_3", "Train a manager to level 3 (STAFF)", 3, s => s.State.managers.Count == 0 ? 0 : s.State.managers.Max(m => s.ManagerLevel(m)), 4000000, 10);
@@ -64,6 +69,7 @@ namespace Crosswind.Core
             G("cargo", "Open the cargo terminal", 1, s => s.Level("cargo"), 3e7);
             G("flights_5000", "Handle 5,000 flights", 5000, s => s.State.flightsHandled, 8e7, 20);
             G("seven_stars", "Reach a 7-star airport", 7, s => s.Stars, 2e8, 40);
+            G("rep_trusted", "Become Trusted by an airline: 200 reputation with it", 200, s => s.RepBest, 3e8, 40);
             G("jumbo", "Sign a Leviathan 520 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.E) ? 1 : 0, 1e9, 50);
             G("sell", "Sell your stake and open a second airport (EMPIRE)", 1, s => s.State.mapsRun.Count, 0, 100);
         }

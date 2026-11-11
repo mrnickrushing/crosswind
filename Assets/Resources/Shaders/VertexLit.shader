@@ -140,9 +140,11 @@ Shader "Crosswind/VertexLit"
                 inputData.shadowMask = half4(1, 1, 1, 1);
 
                 SurfaceData s = (SurfaceData)0;
-                s.albedo = albedo * (1 - glow * 0.6);
+                // A lamp or a lit window by day is dark glass; at night its own colour comes up.
+                float lit = saturate(_NightGlow);
+                s.albedo = lerp(albedo, lerp(albedo * 0.22 + float3(0.09, 0.15, 0.2), albedo * 0.4, lit), glow);
                 s.metallic = i.sm.y;
-                s.smoothness = i.sm.x;
+                s.smoothness = lerp(i.sm.x, lerp(0.85, i.sm.x, lit), glow);
                 s.occlusion = occlusion;
                 s.alpha = 1;
                 s.emission = glow * _NightGlow * _GlowColor.rgb * (0.6 + albedo);

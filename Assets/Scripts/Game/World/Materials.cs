@@ -31,7 +31,7 @@ namespace Crosswind.Game
         static readonly Dictionary<string, Material> _surfaces = new Dictionary<string, Material>();
 
         /// <summary>Metres one repeat of a surface covers.</summary>
-        public static float Tile(string surface) { return surface == "Grass" ? 9f : surface == "Concrete" ? 13f : surface == "Asphalt" ? 7f : 8f; }
+        public static float Tile(string surface) { return surface == "Grass" ? 9f : surface == "Concrete" ? 18f : surface == "Asphalt" ? 7f : 8f; }
 
         /// <summary>A textured ground material (Resources/Textures/{name}.jpg + {name}Normal.jpg), lit, matte.</summary>
         public static Material Surface(string name, Color tint)
@@ -52,7 +52,7 @@ namespace Crosswind.Game
             m = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
             var tex = Resources.Load<Texture2D>("Textures/" + name);
             m.SetTexture("_BaseMap", tex);
-            m.SetColor("_BaseColor", name == "Asphalt" ? new Color(1.9f, 1.9f, 2.0f) : name == "Grass" ? new Color(1.05f, 1.12f, 0.9f) : name == "Concrete" ? new Color(1.15f, 1.15f, 1.12f) : Color.white);
+            m.SetColor("_BaseColor", name == "Asphalt" ? new Color(1.9f, 1.9f, 2.0f) : name == "Grass" ? new Color(1.05f, 1.12f, 0.9f) : name == "Concrete" ? new Color(1.72f, 1.74f, 1.8f) : Color.white);
             m.SetFloat("_Smoothness", name == "Grass" ? 0.05f : 0.22f);
             m.SetFloat("_Metallic", 0);
             var n = Resources.Load<Texture2D>("Textures/" + name + "Normal");

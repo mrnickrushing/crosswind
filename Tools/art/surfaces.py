@@ -5,7 +5,7 @@ import io, json, os, sys, urllib.request, zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT = os.path.join(ROOT, "Assets", "Resources", "Textures")
 UA = {"User-Agent": "Crosswind-asset-pipeline"}
-SURFACES = {"Asphalt": "asphalt_track", "Tarmac": "clean_asphalt", "Concrete": "concrete_pavement", "Grass": "acg:Grass001"}
+SURFACES = {"Asphalt": "asphalt_track", "Tarmac": "clean_asphalt", "Concrete": "concrete_floor_worn_001", "Grass": "acg:Grass001"}
 def get(url): return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120).read()
 os.makedirs(OUT, exist_ok=True)
 for name, tid in SURFACES.items():

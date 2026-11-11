@@ -147,6 +147,13 @@ namespace Crosswind.Game
             if (s.StandCount <= 2) mb.Box(new Vector3(Layout.TaxiX + apronW * 0.5f, 0.0f, 0), new Vector3(apronW, 0.05f, 112), Palette.Gravel);
             else g.Rect("Concrete", Layout.TaxiX + apronW * 0.5f, 0, apronW, 112, 0.025f);
             bool paved = s.StandCount > 2;
+            if (paved)
+            {
+                // The apron is poured in slabs: sealed joints every 7.5 m, and darker patches where the engines idle.
+                var joint = new Color(0.33f, 0.34f, 0.36f);
+                for (float x = Layout.TaxiX + 4; x < termX; x += 7.5f) mb.Box(new Vector3(x, 0.03f, 0), new Vector3(0.09f, 0.012f, 112), joint);
+                for (float z = -52.5f; z <= 52.5f; z += 7.5f) mb.Box(new Vector3(Layout.TaxiX + apronW * 0.5f, 0.03f, z), new Vector3(apronW, 0.012f, 0.09f), joint);
+            }
             for (int i = 0; i < s.StandCount; i++)
             {
                 var p = Layout.Stand(i);
@@ -282,7 +289,7 @@ namespace Crosswind.Game
                     foreach (float side in new[] { -1f, 1f })
                         mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 0.12f), tH * 0.52f, z), new Vector3(0.18f, tH * 0.74f, 0.22f), Palette.White);
                 // The roof: a pale membrane (textured), a parapet round its edge, plant on top.
-                g.Rect("Tarmac", c.x, c.z, tDepth + 2.2f, tLen + 1.4f, tH + 0.52f, 0, new Color(0.8f, 0.82f, 0.86f));
+                g.Rect("Concrete", c.x, c.z, tDepth + 2.2f, tLen + 1.4f, tH + 0.52f, 0, new Color(0.86f, 0.87f, 0.9f));
                 foreach (float side in new[] { -1f, 1f })
                 {
                     mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 1.1f), tH + 0.75f, c.z), new Vector3(0.25f, 0.5f, tLen + 1.6f), Palette.White);

@@ -47,7 +47,7 @@ namespace Crosswind.Game
             var w = sim.Weather;
             float want = w == Core.Weather.Clear ? 0 : w == Core.Weather.Rain ? 0.45f : w == Core.Weather.Fog ? 0.6f : w == Core.Weather.Storm ? 0.9f : 0.5f;
             _gloom = Mathf.MoveTowards(_gloom, want, Time.unscaledDeltaTime * 0.4f);
-            _grade.postExposure.Override(Mathf.Lerp(0.35f, -0.25f, _gloom));
+            _grade.postExposure.Override(Mathf.Lerp(0.35f, Mathf.Lerp(-0.25f, 0.2f, sim.Night), _gloom));     // bad weather darkens the day, not the night
             _grade.saturation.Override(Mathf.Lerp(16f, -30f, _gloom));
             _grade.colorFilter.Override(Color.Lerp(Color.white, w == Core.Weather.Snow ? new Color(0.9f, 0.95f, 1f) : new Color(0.78f, 0.84f, 0.95f), _gloom));
             // The day: the sun swings round and sinks, the sky dims, and everything that glows comes on at dusk.
@@ -63,17 +63,21 @@ namespace Crosswind.Game
                 _sun.intensity = Mathf.Lerp(0.5f, Mathf.Lerp(1.35f, 0.5f, _gloom), day);
                 _sun.shadowStrength = Mathf.Lerp(0.5f, Mathf.Lerp(0.85f, 0.3f, _gloom), day);
             }
-            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.62f, 0.72f, 0.86f), new Color(0.2f, 0.26f, 0.42f), night);
-            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.55f, 0.58f, 0.56f), new Color(0.16f, 0.2f, 0.32f), night);
+            RenderSettings.ambientSkyColor = Color.Lerp(new Color(0.62f, 0.72f, 0.86f), new Color(0.26f, 0.32f, 0.5f), night);
+            RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.55f, 0.58f, 0.56f), new Color(0.2f, 0.25f, 0.38f), night);
             RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.3f, 0.32f, 0.26f), new Color(0.08f, 0.1f, 0.15f), night);
             RenderSettings.reflectionIntensity = Mathf.Lerp(0.9f, 0.25f, night);
-            RenderSettings.fogColor = Color.Lerp(new Color(0.74f, 0.83f, 0.92f), new Color(0.05f, 0.07f, 0.13f), night);
+            float fog = w == Core.Weather.Fog ? 1 : w == Core.Weather.Snow ? 0.6f : w == Core.Weather.Storm ? 0.5f : w == Core.Weather.Rain ? 0.3f : 0;
+            // Night fog is lit from below by the airport: a grey glow, never a black wall.
+            RenderSettings.fogColor = Color.Lerp(new Color(0.74f, 0.83f, 0.92f), Color.Lerp(new Color(0.05f, 0.07f, 0.13f), new Color(0.17f, 0.19f, 0.25f), fog), night);
             if (RenderSettings.skybox != null) RenderSettings.skybox.SetFloat("_Exposure", Mathf.Lerp(1.05f, 0.16f, night));
             _bloom.intensity.Override(Mathf.Lerp(0.18f, 0.9f, night));
             _bloom.threshold.Override(Mathf.Lerp(1.5f, 0.95f, night));
-            float fog = w == Core.Weather.Fog ? 1 : w == Core.Weather.Snow ? 0.6f : w == Core.Weather.Storm ? 0.5f : w == Core.Weather.Rain ? 0.3f : 0;
-            RenderSettings.fogStartDistance = Mathf.Lerp(RenderSettings.fogStartDistance, Mathf.Lerp(420, 120, fog), Time.unscaledDeltaTime);
-            RenderSettings.fogEndDistance = Mathf.Lerp(RenderSettings.fogEndDistance, Mathf.Lerp(1100, 420, fog), Time.unscaledDeltaTime);
+            // The camera stands far back (a long lens), so the fog is measured from what it looks at, not from the lens:
+            // on a clear day it starts well behind the airport; in fog it begins just in front and the far side fades out.
+            float reach = CameraRig.Instance != null ? CameraRig.Instance.Distance : 300;
+            RenderSettings.fogStartDistance = Mathf.Lerp(RenderSettings.fogStartDistance, reach + Mathf.Lerp(250, -60, fog), Time.unscaledDeltaTime * 3);
+            RenderSettings.fogEndDistance = Mathf.Lerp(RenderSettings.fogEndDistance, reach + Mathf.Lerp(900, 300, fog), Time.unscaledDeltaTime * 3);
         }
     }
 }

@@ -26,6 +26,18 @@ and in the game); never paid AI art without asking.
     through UI events: the project uses the new Input System only), `UI/Hud` (money, income, stars, guide card,
     service buttons over waiting aircraft, pay pop-ups, toasts), `UI/Hud.Sheets` (BUILD, AIRLINES, STAFF, the
     welcome-back card).
+- Depth (Core): `Sim.Progress` (research effects via `Fx`, manager training, boosts, selling up for Wings and the six
+  maps), `Sim.Live` (weather, opportunities, daily tasks, sign-in calendar, achievements), `Sim.Airlines` (airline
+  mood, contract terms, an airline walking), timed builds with two crews (`Sim.Upgrade`, `BuildSeconds`; tests set
+  `BuildTimeScale = 0`), passenger `Needs` behind `Satisfaction`. Real time comes from `Sim.RealNow` (tests replace it).
+- Art: free models only. `Tools/art/kenney.py <kit>` downloads Kenney kits (CC0) to `art-src/free`;
+  `Tools/art/models.py` converts the ones listed in it through `Tools/blender/model_import.py` into
+  `Resources/Models/<id>.fbx`: vertex-coloured, one unit on the longest side (aircraft: one unit long, nose +Z via
+  `--nose`; people: one unit tall, frozen in a clip frame via `--pose walk:4`). Kit cars and people face -Z. Draw
+  them with `Models.Kit(id, parent, at, yaw, size)`. Sketchfab aircraft are CC BY: keep `CREDITS.md` current.
+  `App/Look` is the post-processing and weather grading; `World/Life` the passengers and traffic; `World/WeatherFx`
+  rain and snow; `App/Sfx` sound (interface clips + synthesised aircraft).
+- `Game/Debug/PlayBot` (Editor): `PlayBot.Begin(30)` plays the real game greedily at 30x; `PlayBot.Report()`.
 - In the Editor: `Crosswind.Game.GameRoot.Speed` fast-forwards the simulation; delete
   `~/.config/unity3d/Rushing Technologies/Crosswind/crosswind_save.json` for a new game.
 

@@ -114,19 +114,73 @@ namespace Crosswind.Core
             if (Level(facility) >= d.MaxLevel) return "Fully upgraded";
             if (facility == "runway" && Level(facility) >= Map.MaxRunway) return "No room for a longer runway at " + Map.Name;
             if (Stars < d.Stars) return "Needs a " + d.Stars + "-star airport";
+            if (Building(facility) != null) return "Being built";
+            if (State.builds.Count >= Builders && BuildSeconds(facility) > 0) return "Both building crews are busy";
             if (State.money < Cost(facility)) return "Need " + Format.Money(Cost(facility) - State.money) + " more";
             return null;
         }
 
+        /// <summary>How many builds can run at once.</summary>
+        public const int Builders = 2;
+        /// <summary>Tests set this to 0 to build at once.</summary>
+        public float BuildTimeScale = 1;
+
+        public BuildJob Building(string facility) { return State.builds.Find(b => b.facility == facility); }
+
+        /// <summary>How long this build takes: nothing for small jobs, then longer with every tenfold of its cost.</summary>
+        public float BuildSeconds(string facility)
+        {
+            double baseCost = Cost(facility) / Map.CostScale;
+            if (baseCost < 4000) return 0;
+            return (float)Math.Min(1800, (Math.Log10(baseCost) - 3.3) * 40) * BuildTimeScale;
+        }
+
+        /// <summary>Pays for a build or an upgrade. Small ones are done at once; big ones take a crew and some time.</summary>
         public bool Upgrade(string facility)
         {
             if (UpgradeBlocked(facility) != null) return false;
+            float seconds = BuildSeconds(facility);
             State.money -= Cost(facility);
-            SetLevel(facility, Level(facility) + 1);
             State.upgradesBought++;
             Count("upgrade", 1);
-            AddRating(2 + Level(facility));
+            if (seconds <= 0) FinishBuild(facility);
+            else State.builds.Add(new BuildJob { facility = facility, doneAt = RealNow() + seconds, total = seconds });
             Changed?.Invoke();
+            return true;
+        }
+
+        void FinishBuild(string facility)
+        {
+            SetLevel(facility, Level(facility) + 1);
+            AddRating(2 + Level(facility));
+            BuildDone?.Invoke(facility);
+        }
+
+        /// <summary>A build finished (the world puts up dust, the HUD says so).</summary>
+        public event Action<string> BuildDone;
+
+        void Builds()
+        {
+            for (int i = State.builds.Count - 1; i >= 0; i--)
+            {
+                if (RealNow() < State.builds[i].doneAt) continue;
+                string f = State.builds[i].facility;
+                State.builds.RemoveAt(i);
+                FinishBuild(f);
+                Toast?.Invoke(Content.Facilities[f].Name + " is ready: level " + Level(f));
+                Changed?.Invoke();
+            }
+        }
+
+        public int BuildSkipGems(BuildJob b) { return Math.Max(1, (int)Math.Ceiling((b.doneAt - RealNow()) / 60)); }
+
+        public bool SkipBuild(string facility)
+        {
+            var b = Building(facility);
+            if (b == null || State.gems < BuildSkipGems(b)) return false;
+            State.gems -= BuildSkipGems(b);
+            b.doneAt = RealNow();
+            Builds();
             return true;
         }
 

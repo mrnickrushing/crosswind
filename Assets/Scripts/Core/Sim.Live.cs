@@ -28,6 +28,7 @@ namespace Crosswind.Core
         void Live(float dt)
         {
             if (State.research != null) FinishResearch();
+            if (State.builds.Count > 0) Builds();
             if (State.time >= State.weatherUntil) NextWeather();
             if (State.opportunity != null && State.time >= State.opportunity.expiresAt) { State.opportunity = null; Changed?.Invoke(); }
             if (State.opportunity == null && State.time >= State.nextOpportunityAt) NextOpportunity();
@@ -83,6 +84,27 @@ namespace Crosswind.Core
         }
 
         public bool Rush { get { return State.time < State.rushUntil; } }
+
+        // ------------------------------------------------------------------ the sign-in calendar
+
+        /// <summary>Seven days of rewards, then round again: gems, with a bigger one on day seven. Missing a day starts over.</summary>
+        public static readonly int[] SignInGems = { 2, 3, 4, 5, 6, 8, 20 };
+
+        public bool SignInReady { get { return State.signInDay != Today; } }
+        /// <summary>The day of the calendar the next claim is (0..6).</summary>
+        public int SignInIndex { get { return (State.signInDay == Today - 1 || State.signInDay == Today ? State.signInStreak : 0) % SignInGems.Length; } }
+
+        public int ClaimSignIn()
+        {
+            if (!SignInReady) return 0;
+            int index = State.signInDay == Today - 1 ? State.signInStreak % SignInGems.Length : 0;
+            int gems = SignInGems[index];
+            State.signInStreak = index + 1;
+            State.signInDay = Today;
+            State.gems += gems;
+            Changed?.Invoke();
+            return gems;
+        }
 
         // ------------------------------------------------------------------ today's tasks
 

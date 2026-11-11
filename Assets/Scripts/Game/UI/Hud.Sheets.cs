@@ -18,6 +18,8 @@ namespace Crosswind.Game
             if (tab >= 0) { _sheetList.anchoredPosition = Vector2.zero; RefreshSheet(); }
         }
 
+        static string Gems(int n) { return n + (n == 1 ? " gem" : " gems"); }
+
         float _rowY;
 
         RectTransform Row(float height)
@@ -64,6 +66,19 @@ namespace Crosswind.Game
             var s = _sim;
             if (_tab == 0)
             {
+                if (s.State.builds.Count > 0)
+                {
+                    Header("BUILDING (" + s.State.builds.Count + " OF " + Sim.Builders + " CREWS)");
+                    foreach (var job in s.State.builds.ToList())
+                    {
+                        var jd = Content.Facilities[job.facility];
+                        Entry(jd.Name, Format.Time(job.doneAt - s.RealNow()) + " LEFT", "Level " + (s.Level(job.facility) + 1) + " is going up. Finished even if you close the game.",
+                            "FINISH\n<size=34>" + Gems(s.BuildSkipGems(job)) + "</size>", s.State.gems < s.BuildSkipGems(job) ? "Not enough gems" : null, () => s.SkipBuild(job.facility), Ui.Blue);
+                    }
+                }
+                Header("PASSENGERS: " + Mathf.RoundToInt(s.Satisfaction * 100) + "% SATISFIED (THEY SPEND MORE WHEN HAPPY)");
+                foreach (var need in s.Needs)
+                    Entry(need.Name, Mathf.RoundToInt(need.Value * 100) + "%", need.Value >= 0.999f ? "Passengers have no complaints here." : need.Advice + ".", null, null, null);
                 foreach (var group in new[] { "Airside", "Services", "Terminal" })
                 {
                     Header(group.ToUpper());
@@ -72,10 +87,12 @@ namespace Crosswind.Game
                         var d = Content.Facilities[id];
                         if (d.Group != group) continue;
                         int level = s.Level(id);
+                        if (s.Building(id) != null) continue;
+                        float secs = s.BuildSeconds(id);
                         string blocked = s.UpgradeBlocked(id);
                         string why = blocked == null ? null : blocked.StartsWith("Need ") ? blocked : blocked;
-                        Entry(d.Name, level > 0 ? "LEVEL " + level : "NOT BUILT", d.Blurb, level >= d.MaxLevel ? "MAX" : (level > 0 ? "UPGRADE\n" : "BUILD\n") + "<size=34>" + Format.Money(s.Cost(id)) + "</size>",
-                            blocked != null && blocked.StartsWith("Need ") ? blocked : why, () => { if (s.Upgrade(id)) Toast(d.Name + (level > 0 ? " upgraded to level " + (level + 1) : " built")); });
+                        Entry(d.Name, (level > 0 ? "LEVEL " + level : "NOT BUILT") + (secs > 0 ? " · " + Format.Time(secs) + " TO BUILD" : ""), d.Blurb, level >= d.MaxLevel ? "MAX" : (level > 0 ? "UPGRADE\n" : "BUILD\n") + "<size=34>" + Format.Money(s.Cost(id)) + "</size>",
+                            blocked != null && blocked.StartsWith("Need ") ? blocked : why, () => { if (s.Upgrade(id)) Toast(secs > 0 ? d.Name + ": the crew has started" : d.Name + (level > 0 ? " upgraded to level " + (level + 1) : " built")); });
                     }
                 }
             }
@@ -142,7 +159,7 @@ namespace Crosswind.Game
             {
                 var r = Content.ResearchById(s.State.research.id);
                 Header("UNDER WAY");
-                Entry(r.Name, Format.Time(s.ResearchLeft) + " LEFT", r.Blurb, "FINISH\n<size=34>" + s.ResearchSkipGems + " gems</size>", s.State.gems < s.ResearchSkipGems ? "Not enough gems" : null,
+                Entry(r.Name, Format.Time(s.ResearchLeft) + " LEFT", r.Blurb, "FINISH\n<size=34>" + Gems(s.ResearchSkipGems) + "</size>", s.State.gems < s.ResearchSkipGems ? "Not enough gems" : null,
                     () => { s.SkipResearch(); }, Ui.Blue);
             }
             foreach (var branch in Content.Research.Select(r => r.Branch).Distinct())
@@ -171,7 +188,12 @@ namespace Crosswind.Game
                 Entry(Sim.TaskText(task), task.claimed ? "CLAIMED" : Format.Money(task.progress) + " / " + Format.Money(task.target), "Reward: " + task.gems + " gems. New tasks every day.",
                     task.claimed ? null : "CLAIM\n<size=34>" + task.gems + " gems</size>", done ? null : "Not done yet", () => { if (s.ClaimTask(k)) Toast("+" + task.gems + " gems"); }, Ui.Blue);
             }
+            Header("DAILY GIFT");
+            Entry("Day " + (s.SignInIndex + 1) + " of 7", s.SignInReady ? null : "COME BACK TOMORROW", "A gift every day you play: " + string.Join(", ", Sim.SignInGems) + " gems. Miss a day and it starts again.",
+                s.SignInReady ? "CLAIM\n<size=34>" + Sim.SignInGems[s.SignInIndex] + " gems</size>" : null, null, () => { int g = s.ClaimSignIn(); if (g > 0) Toast("Daily gift: +" + g + " gems"); }, Ui.Gold);
             Header("BOOST");
+            Entry("Free boost", s.FreeBoostReady ? "READY" : "IN " + Format.Time(s.FreeBoostIn), "Double income for " + Content.BoostMinutes + " minutes, on the house, every " + Sim.FreeBoostHours + " hours.",
+                "TAKE IT", s.FreeBoostReady ? null : "Not ready yet", () => { if (s.TakeFreeBoost()) Toast("Income doubled for " + Content.BoostMinutes + " minutes"); }, Ui.Green);
             Entry("Double income", s.Boosted ? Format.Time(s.BoostLeft) + " LEFT" : null, "Everything the airport earns is doubled for " + Content.BoostMinutes + " minutes. Stacks up to 4 hours.",
                 "BOOST\n<size=34>" + Content.BoostGems + " gems</size>", s.State.gems < Content.BoostGems ? "Not enough gems" : null, () => { if (s.BuyBoost()) Toast("Income doubled for " + Content.BoostMinutes + " minutes"); }, Ui.Gold);
 
@@ -187,6 +209,8 @@ namespace Crosswind.Game
                     "MOVE", s.SellBlocked(m.Id), () => ConfirmSell(m), Ui.Gold);
             }
 
+            Header("SETTINGS");
+            Entry("Sound", Sfx.Muted ? "OFF" : "ON", "Interface sounds and the airfield.", Sfx.Muted ? "TURN ON" : "TURN OFF", null, () => { Sfx.Muted = !Sfx.Muted; }, Ui.Card);
             Header("ACHIEVEMENTS");
             foreach (var a in Sim.Achievements.OrderBy(a => s.AchievementClaimed(a) ? 2 : s.AchievementDone(a) ? 0 : 1))
             {

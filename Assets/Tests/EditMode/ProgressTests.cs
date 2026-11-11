@@ -7,7 +7,7 @@ namespace Crosswind.Tests
     public class ProgressTests
     {
         double _now = 1_800_000_000;
-        Sim Fresh() { var s = new Sim(GameState.New()); s.RealNow = () => _now; Sim.UtcOffsetSeconds = 0; return s; }
+        Sim Fresh() { var s = new Sim(GameState.New()); s.RealNow = () => _now; s.BuildTimeScale = 0; Sim.UtcOffsetSeconds = 0; return s; }
 
         [Test]
         public void ResearchTakesRealTimeAndChangesTheRules()
@@ -200,6 +200,64 @@ namespace Crosswind.Tests
             Assert.IsNull(s.State.research); Assert.IsNull(s.State.opportunity);
             Assert.AreEqual("meadow", s.State.map);
             s.Tick(10);
+        }
+
+        [Test]
+        public void BigBuildsTakeACrewAndTimeAndGemsHurryThem()
+        {
+            var s = Fresh();
+            s.BuildTimeScale = 1;
+            s.State.money = 1e9; s.State.ratingXp = Content.StarXp[4]; s.State.gems = 50;
+            Assert.AreEqual(0, s.BuildSeconds("stands"), "small jobs are done at once");
+            while (s.BuildSeconds("runway") <= 0) Assert.IsTrue(s.Upgrade("runway"));
+            int level = s.Level("runway");
+            float seconds = s.BuildSeconds("runway");
+            Assert.IsTrue(s.Upgrade("runway"));
+            Assert.AreEqual(level, s.Level("runway"), "not yet");
+            StringAssert.Contains("Being built", s.UpgradeBlocked("runway"));
+            _now += seconds + 1; s.Tick(0.1f);
+            Assert.AreEqual(level + 1, s.Level("runway"));
+            // Two crews: a third big job waits.
+            while (s.BuildSeconds("tower") <= 0) s.Upgrade("tower");
+            while (s.BuildSeconds("ils") <= 0) s.Upgrade("ils");
+            Assert.IsTrue(s.Upgrade("runway")); Assert.IsTrue(s.Upgrade("tower"));
+            StringAssert.Contains("crews are busy", s.UpgradeBlocked("ils"));
+            int gems = s.State.gems;
+            Assert.IsTrue(s.SkipBuild("tower"));
+            Assert.Less(s.State.gems, gems);
+            Assert.IsNull(s.Building("tower"));
+            Assert.IsTrue(s.Upgrade("ils"));
+        }
+
+        [Test]
+        public void TheSignInCalendarPaysOnceADayAndRestartsAfterAMiss()
+        {
+            var s = Fresh();
+            Assert.IsTrue(s.SignInReady);
+            Assert.AreEqual(Sim.SignInGems[0], s.ClaimSignIn());
+            Assert.AreEqual(0, s.ClaimSignIn(), "once a day");
+            _now += 86400;
+            Assert.AreEqual(Sim.SignInGems[1], s.ClaimSignIn());
+            _now += 3 * 86400;
+            Assert.AreEqual(Sim.SignInGems[0], s.ClaimSignIn(), "a missed day starts over");
+        }
+
+        [Test]
+        public void PassengersHaveNeedsThatBuildingsAnswer()
+        {
+            var s = Fresh();
+            s.State.money = 1e12; s.State.ratingXp = Content.StarXp[4];
+            while (s.Level("runway") < 6) s.Upgrade("runway");
+            s.Upgrade("baggage"); s.Upgrade("catering");
+            foreach (var r in s.Offers.ToList()) s.Sign(r.Id);
+            var before = s.Needs;
+            float sat = s.Satisfaction;
+            Assert.AreEqual(4, before.Count);
+            Assert.Less(before[1].Value, 1f, "a busy airport with no seats");
+            for (int i = 0; i < 6; i++) { s.Upgrade("seating"); s.Upgrade("info"); s.Upgrade("shops"); }
+            Assert.Greater(s.Needs[1].Value, before[1].Value);
+            Assert.Greater(s.Satisfaction, sat);
+            foreach (var n in s.Needs) { Assert.That(n.Value, Is.InRange(0f, 1f)); Assert.IsNotEmpty(n.Advice); }
         }
     }
 }

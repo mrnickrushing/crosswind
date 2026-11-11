@@ -6,7 +6,7 @@ namespace Crosswind.Tests
 {
     public class SimTests
     {
-        static Sim Fresh() { return new Sim(GameState.New()); }
+        static Sim Fresh() { return new Sim(GameState.New()) { BuildTimeScale = 0, RealNow = () => 1_800_000_000 }; }
 
         /// <summary>Plays for a while, tapping every waiting service the way a player would.</summary>
         static void Play(Sim s, float seconds, bool tap = true)

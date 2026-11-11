@@ -145,6 +145,19 @@ namespace Crosswind.Core
             Changed?.Invoke();
         }
 
+        public const int FreeBoostHours = 4;
+        public bool FreeBoostReady { get { return RealNow() >= State.freeBoostAt; } }
+        public double FreeBoostIn { get { return Math.Max(0, State.freeBoostAt - RealNow()); } }
+
+        /// <summary>A boost on the house every four hours: a reason to look in.</summary>
+        public bool TakeFreeBoost()
+        {
+            if (!FreeBoostReady) return false;
+            State.freeBoostAt = RealNow() + FreeBoostHours * 3600;
+            AddBoost();
+            return true;
+        }
+
         public bool BuyBoost()
         {
             if (State.gems < Content.BoostGems) return false;

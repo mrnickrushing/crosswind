@@ -1,19 +1,45 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Crosswind.Core
 {
     public sealed partial class Sim
     {
-        /// <summary>How pleased passengers are, 0.4..1.5: whether the terminal keeps up with the flights signed, plus the shops.</summary>
+        /// <summary>One thing passengers want, how well the airport answers it (0..1), and what would help.</summary>
+        public struct Need { public string Name, Advice; public float Value; }
+
+        /// <summary>Passengers a minute the signed routes bring through the terminal (both ways).</summary>
+        public double PassengerDemand
+        {
+            get { return State.contracts.Sum(c => { var r = Content.Routes[c.route]; return Content.Aircraft[r.Class].Seats * 2 * r.FlightsPerHour * TermsFlights(c.terms) / 60.0; }) / 10.0; }
+        }
+
+        /// <summary>What passengers think of the place, need by need: queues, comfort, food and shopping, finding the way.</summary>
+        public List<Need> Needs
+        {
+            get
+            {
+                double demand = Math.Max(1, PassengerDemand);
+                float Fit(double supply) { return (float)Math.Max(0, Math.Min(1, supply / demand)); }
+                return new List<Need>
+                {
+                    new Need { Name = "Short queues", Value = Fit(TerminalFlow), Advice = "Upgrade the slowest of check-in, security and gates" },
+                    new Need { Name = "Comfort", Value = Fit(4 + Level("seating") * 7 + Level("lounge") * 5), Advice = "Add seating and toilets" },
+                    new Need { Name = "Food and shops", Value = Fit(2 + Level("shops") * 6), Advice = "Open more shops and cafes" },
+                    new Need { Name = "Finding the way", Value = Fit(6 + Level("info") * 9), Advice = "Improve information and wayfinding" },
+                };
+            }
+        }
+
+        /// <summary>How pleased passengers are, 0.4..1.5: queues count most, then comfort, food and wayfinding; lounges add a little on top.</summary>
         public float Satisfaction
         {
             get
             {
-                // Passengers a minute the signed routes bring (both ways), against what the terminal moves.
-                double demand = State.contracts.Sum(c => { var r = Content.Routes[c.route]; return Content.Aircraft[r.Class].Seats * 2 * r.FlightsPerHour / 60.0; }) / 10.0;
-                double fit = demand <= 0 ? 1 : Math.Min(1.0, TerminalFlow / demand);
-                return (float)Math.Max(0.4, Math.Min(1.5, 0.4 + 0.6 * fit + 0.02 * Level("shops")));
+                var n = Needs;
+                float v = 0.4f + 0.3f * n[0].Value + 0.12f * n[1].Value + 0.1f * n[2].Value + 0.08f * n[3].Value + 0.02f * Level("shops") + 0.01f * Level("lounge");
+                return Math.Max(0.4f, Math.Min(1.5f, v));
             }
         }
 

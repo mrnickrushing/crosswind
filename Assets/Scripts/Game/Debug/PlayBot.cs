@@ -44,6 +44,7 @@ namespace Crosswind.Game
             _think = 1f;
             while (s.ClaimGoal()) { }
             s.TakeOpportunity();
+            s.ClaimSignIn();
             for (int k = 0; k < s.State.tasks.Count; k++) s.ClaimTask(k);
             foreach (var a in Sim.Achievements) s.ClaimAchievement(a.Id);
             foreach (var r in s.Offers.ToList()) s.Sign(r.Id);

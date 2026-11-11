@@ -32,6 +32,7 @@ namespace Crosswind.Game
             v._sim.FlightChanged += v.OnFlight;
             v.Rebuild();
             Life.Create(go.transform);
+            WeatherFx.Create(go.transform);
             foreach (var f in v._sim.State.flights) v.OnFlight(f);
             return v;
         }
@@ -77,10 +78,15 @@ namespace Crosswind.Game
             float termX = Layout.TerminalX(s);
 
             // Ground: grass, with a darker mown strip round the runway.
-            mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), Palette.Grass);
-            mb.Box(new Vector3(Layout.RunwayX, -0.04f, 0), new Vector3(w + 14, 0.04f, half * 2 + 30), Palette.GrassDark);
+            // The land this airport sits on: meadow, island sand, desert, alpine green, snow, or the city's edge.
+            string map = s.State.map;
+            Color ground = map == "coral" ? Palette.Hex(0xD9C58C) : map == "dune" ? Palette.Hex(0xCFA868) : map == "polar" ? Palette.Hex(0xE8EEF2) : map == "alpine" ? Palette.Hex(0x5E8F52) : map == "metro" ? Palette.Hex(0x7D9468) : Palette.Grass;
+            Color stripe = MeshBuilder.Darken(ground, 0.94f), tree = map == "dune" ? Palette.Hex(0x8A9A4A) : map == "polar" ? Palette.Hex(0x3E5A48) : Palette.Hex(0x4E7A3A);
+            mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), ground);
+            if (map == "coral") mb.Box(new Vector3(-420, -0.28f, 0), new Vector3(520, 0.5f, 1400), Palette.Hex(0x2E9CB4));     // the sea, west of the strip
+            mb.Box(new Vector3(Layout.RunwayX, -0.04f, 0), new Vector3(w + 14, 0.04f, half * 2 + 30), MeshBuilder.Darken(ground, 0.86f));
             for (int k = -14; k <= 14; k++)
-                mb.Box(new Vector3(20, -0.045f, k * 44f), new Vector3(1400, 0.02f, 22), Palette.Hex(0x669246));        // mowing stripes
+                mb.Box(new Vector3(20, -0.045f, k * 44f), new Vector3(1400, 0.02f, 22), stripe);        // mowing stripes
 
             // Runway: grass strip, gravel, asphalt, then concrete with full markings.
             Color surface = rl <= 1 ? Palette.GrassWorn : rl <= 2 ? Palette.Gravel : rl <= 9 ? Palette.Asphalt : Palette.AsphaltPale;
@@ -292,15 +298,15 @@ namespace Crosswind.Game
 
             // Trees round the edge so the field sits in a landscape.
             rng = new System.Random(7);
-            for (int i = 0; i < 520; i++)
+            for (int i = 0; i < (map == "dune" || map == "polar" ? 120 : 520); i++)
             {
                 float x = (float)rng.NextDouble() * 900 - 430, z = (float)rng.NextDouble() * 900 - 450;
                 bool clear = x > Layout.RunwayX - 22 && x < roadX + 150 && z > -half - 85 && z < half + 110;
-                if (clear) continue;
+                if (clear || (map == "coral" && x < -150)) continue;
                 float h = 3 + (float)rng.NextDouble() * 4;
                 mb.Smoothness = 0.05f;
                 mb.Cylinder(new Vector3(x, 0, z), new Vector3(x, h * 0.4f, z), 0.3f, 0.25f, 5, Palette.Wood);
-                mb.Sphere(new Vector3(x, h * 0.75f, z), new Vector3(h * 0.38f, h * 0.45f, h * 0.38f), 6, i % 3 == 0 ? Palette.GrassDark : Palette.Hex(0x4E7A3A));
+                mb.Sphere(new Vector3(x, h * 0.75f, z), new Vector3(h * 0.38f, h * 0.45f, h * 0.38f), 6, i % 3 == 0 ? MeshBuilder.Darken(tree, 0.85f) : tree);
             }
 
             _static = mb.ToObject("Static", transform);

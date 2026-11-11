@@ -6,7 +6,7 @@ namespace Crosswind.Tests
 {
     public class AirlineTests
     {
-        static Sim Fresh() { var s = new Sim(GameState.New()); s.RealNow = () => 1_800_000_000; return s; }
+        static Sim Fresh() { var s = new Sim(GameState.New()); s.RealNow = () => 1_800_000_000; s.BuildTimeScale = 0; return s; }
 
         [Test]
         public void OnTimeFlightsPleaseAnAirlineAndItPaysMore()

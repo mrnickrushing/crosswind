@@ -47,6 +47,7 @@ namespace Crosswind.Game
             h._sim.FlightPaid += h.OnPaid;
             h._sim.StarGained += h.OnStar;
             h._sim.RouteLost += r => { h._dirty = true; Sfx.Play("error"); };
+            h._sim.BuildDone += f => { h._dirty = true; if (GameRoot.Speed <= 3) Sfx.Play("build"); };
             h._sim.OpportunityAppeared += o => Sfx.Play("chime", 0.6f);
             h._sim.WeatherChanged += w => { if (w != Weather.Clear) h.Toast(w + ": the runway slows down"); };
             h._shownMoney = h._sim.State.money;
@@ -207,7 +208,7 @@ namespace Crosswind.Game
                     + "\n<size=26>" + Mathf.CeilToInt((float)(o.expiresAt - _sim.State.time)) + "s</size>";
                 _opp.localScale = Vector3.one * (1 + Mathf.Sin(Time.unscaledTime * 6) * 0.03f);
             }
-            _empireDot.gameObject.SetActive(_sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
+            _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateServiceButtons();
             UpdatePops();
             if ((_refreshIn -= Time.unscaledDeltaTime) <= 0 || _dirty) { _refreshIn = 0.5f; if (_tab >= 0) RefreshSheet(); _dirty = false; }

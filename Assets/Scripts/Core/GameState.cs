@@ -47,6 +47,10 @@ namespace Crosswind.Core
     [Serializable]
     public sealed class ResearchJob { public string id; public double doneAt; }
 
+    /// <summary>A build or an upgrade under way (real time).</summary>
+    [Serializable]
+    public sealed class BuildJob { public string facility; public double doneAt, total; }
+
     /// <summary>Something that turns up for a short while and pays if you take it: a rush, a charter, a lucky find.</summary>
     [Serializable]
     public sealed class Opportunity { public string kind; public double expiresAt; public double value; }
@@ -84,7 +88,8 @@ namespace Crosswind.Core
         public List<string> researched = new List<string>();
         public ResearchJob research;                                // JsonUtility writes an empty one for null: see Repair
         public List<LevelEntry> managerLevels = new List<LevelEntry>();
-        public double boostUntil;                                   // real time the 2x income boost ends
+        public double boostUntil;
+        public double freeBoostAt;                                  // real time the next free boost is ready                                   // real time the 2x income boost ends
         public List<string> achievements = new List<string>();     // claimed
 
         public List<LevelEntry> relations = new List<LevelEntry>();   // each airline's satisfaction with you, 0..100 (starts at 50)
@@ -98,6 +103,8 @@ namespace Crosswind.Core
         public int taskDay;                                         // the day today's tasks belong to
         public List<TaskState> tasks = new List<TaskState>();
         public int upgradesBought;
+        public List<BuildJob> builds = new List<BuildJob>();
+        public int signInDay = -1, signInStreak;                    // the last day claimed, and days in a row
         public double sessionEarned;
 
         public static GameState New()
@@ -137,6 +144,8 @@ namespace Crosswind.Core
             if (relations == null) relations = new List<LevelEntry>();
             if (opportunity != null && string.IsNullOrEmpty(opportunity.kind)) opportunity = null;
             if (tasks == null) tasks = new List<TaskState>();
+            if (builds == null) builds = new List<BuildJob>();
+            builds.RemoveAll(b => b == null || b.facility == null || !Content.Facilities.ContainsKey(b.facility));
             tasks.RemoveAll(x => x == null || string.IsNullOrEmpty(x.kind));
             if (seed == 0) seed = 12345;
         }

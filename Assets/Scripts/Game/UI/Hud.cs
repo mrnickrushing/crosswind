@@ -1,0 +1,274 @@
+using System.Collections.Generic;
+using System.Linq;
+using Crosswind.Core;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Crosswind.Game
+{
+    /// <summary>
+    /// The screen: money, income and stars at the top; the guide card under them; service buttons floating over the
+    /// aircraft that are waiting for a crew; BUILD, AIRLINES and STAFF sheets from the bottom bar; pay pop-ups, toasts,
+    /// the star banner and the welcome-back card.
+    /// </summary>
+    public sealed partial class Hud : MonoBehaviour
+    {
+        public static Hud Instance { get; private set; }
+
+        Sim _sim;
+        RectTransform _root, _world, _sheet, _sheetList, _toast, _goal, _banner, _away;
+        Text _money, _rate, _starText, _goalText, _goalCount, _toastText, _sheetTitle;
+        Image _starFill, _goalFill;
+        Button _goalClaim;
+        readonly List<Button> _tabs = new List<Button>();
+        readonly List<ServiceButton> _serviceButtons = new List<ServiceButton>();
+        readonly List<Pop> _pops = new List<Pop>();
+        int _tab = -1;
+        bool _dirty = true;
+        float _refreshIn, _toastT, _bannerT;
+        double _shownMoney;
+
+        sealed class ServiceButton { public RectTransform Rt; public Image Bg; public Text Label; public int Flight; public Service Service; }
+        sealed class Pop { public RectTransform Rt; public Text Text; public Vector3 World; public float Age; }
+
+        static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF" };
+
+        public static Hud Create()
+        {
+            var go = new GameObject("HUD");
+            var h = go.AddComponent<Hud>();
+            Instance = h;
+            h._sim = GameRoot.Sim;
+            h.Build();
+            h._sim.Changed += h.OnChanged;
+            h._sim.Toast += h.Toast;
+            h._sim.FlightPaid += h.OnPaid;
+            h._sim.StarGained += h.OnStar;
+            h._shownMoney = h._sim.State.money;
+            h.OfferAway();
+            return h;
+        }
+
+        void OnDestroy()
+        {
+            if (_sim != null) { _sim.Changed -= OnChanged; _sim.Toast -= Toast; _sim.FlightPaid -= OnPaid; _sim.StarGained -= OnStar; }
+            if (Instance == this) Instance = null;
+        }
+
+        void OnChanged() { _dirty = true; }
+
+        // ------------------------------------------------------------------ layout
+
+        void Build()
+        {
+            _root = Ui.Canvas("Canvas", transform);
+            // Everything not covered by a control drags the camera.
+            var pad = Ui.Img("Pad", _root, new Color(0, 0, 0, 0));
+            pad.rectTransform.Fill(); pad.raycastTarget = true;
+            pad.gameObject.AddComponent<DragPad>();
+            _world = Ui.Rect("World", _root); _world.Fill();
+
+            // Top: money, income, stars.
+            var top = Ui.Img("Top", _root, Ui.Panel, true).rectTransform;
+            top.Band(true, -70, 190, 24);
+            _money = Ui.Label("Money", top, "0", 84, Color.white, TextAnchor.MiddleLeft);
+            _money.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(110, -14), new Vector2(560, 96));
+            var coin = Ui.Img("Coin", top, Ui.Gold); coin.sprite = Ui.Circle;
+            coin.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(28, -28), new Vector2(66, 66));
+            Ui.Label("C", coin.transform, "$", 46, Ui.Ink).rectTransform.Fill();
+            _rate = Ui.Label("Rate", top, "", 36, Ui.Green, TextAnchor.MiddleLeft, false);
+            _rate.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(32, 18), new Vector2(560, 50));
+            _starText = Ui.Label("Stars", top, "", 52, Ui.Gold, TextAnchor.MiddleRight);
+            _starText.rectTransform.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-30, -22), new Vector2(380, 70));
+            var bar = Ui.Img("StarBar", top, new Color(0, 0, 0, 0.45f), true).rectTransform;
+            bar.Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-30, 30), new Vector2(360, 26));
+            _starFill = Ui.Img("Fill", bar, Ui.Gold, true);
+            _starFill.rectTransform.anchorMin = Vector2.zero; _starFill.rectTransform.anchorMax = new Vector2(0, 1); _starFill.rectTransform.offsetMin = _starFill.rectTransform.offsetMax = Vector2.zero;
+
+            // The guide card.
+            _goal = Ui.Img("Goal", _root, Ui.Panel, true).rectTransform;
+            _goal.Band(true, -276, 150, 24);
+            _goalText = Ui.Label("Text", _goal, "", 38, Color.white, TextAnchor.UpperLeft, false);
+            _goalText.rectTransform.Fill(); _goalText.rectTransform.offsetMin = new Vector2(28, 44); _goalText.rectTransform.offsetMax = new Vector2(-250, -16);
+            _goalText.resizeTextForBestFit = true; _goalText.resizeTextMinSize = 26; _goalText.resizeTextMaxSize = 38;
+            var gbar = Ui.Img("Bar", _goal, new Color(0, 0, 0, 0.45f), true).rectTransform;
+            gbar.anchorMin = new Vector2(0, 0); gbar.anchorMax = new Vector2(1, 0); gbar.pivot = new Vector2(0, 0); gbar.offsetMin = new Vector2(28, 16); gbar.offsetMax = new Vector2(-250, 38);
+            _goalFill = Ui.Img("Fill", gbar, Ui.Green, true);
+            _goalFill.rectTransform.anchorMin = Vector2.zero; _goalFill.rectTransform.anchorMax = new Vector2(0, 1); _goalFill.rectTransform.offsetMin = _goalFill.rectTransform.offsetMax = Vector2.zero;
+            _goalCount = Ui.Label("Count", _goal, "", 34, Ui.Dim, TextAnchor.MiddleCenter);
+            _goalCount.rectTransform.Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 100));
+            _goalClaim = Ui.Button("Claim", _goal, "CLAIM", Ui.Green, () => { if (_sim.ClaimGoal()) { Toast("Reward collected"); _dirty = true; } }, 44);
+            ((RectTransform)_goalClaim.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 104));
+
+            // Bottom bar and the sheet it opens.
+            var bottom = Ui.Img("Bottom", _root, Ui.Panel).rectTransform;
+            bottom.Band(false, 0, 190);
+            bottom.GetComponent<Image>().raycastTarget = true;
+            for (int i = 0; i < TabNames.Length; i++)
+            {
+                int k = i;
+                var b = Ui.Button(TabNames[i], bottom, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 46);
+                var rt = (RectTransform)b.transform;
+                rt.anchorMin = new Vector2(i / 3f, 0); rt.anchorMax = new Vector2((i + 1) / 3f, 1); rt.offsetMin = new Vector2(i == 0 ? 20 : 10, 54); rt.offsetMax = new Vector2(i == 2 ? -20 : -10, -18);
+                _tabs.Add(b);
+            }
+            _sheet = Ui.Img("Sheet", _root, Ui.Panel, true).rectTransform;
+            _sheet.anchorMin = new Vector2(0, 0); _sheet.anchorMax = new Vector2(1, 0); _sheet.pivot = new Vector2(0.5f, 0);
+            _sheet.offsetMin = new Vector2(16, 0); _sheet.offsetMax = new Vector2(-16, 0); _sheet.anchoredPosition = new Vector2(0, 196); _sheet.sizeDelta = new Vector2(-32, 860);
+            _sheet.GetComponent<Image>().raycastTarget = true;
+            _sheetTitle = Ui.Label("Title", _sheet, "", 52, Color.white, TextAnchor.MiddleLeft);
+            _sheetTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(34, -14), new Vector2(700, 80));
+            var close = Ui.Button("Close", _sheet, "X", new Color(0, 0, 0, 0), () => OpenTab(-1), 56);
+            ((RectTransform)close.transform).Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-10, -8), new Vector2(100, 92));
+            var view = Ui.Img("View", _sheet, new Color(0, 0, 0, 0.001f)).rectTransform;
+            view.Fill(); view.offsetMin = new Vector2(16, 16); view.offsetMax = new Vector2(-16, -104);
+            view.GetComponent<Image>().raycastTarget = true;
+            view.gameObject.AddComponent<RectMask2D>();
+            _sheetList = Ui.Rect("List", view);
+            _sheetList.anchorMin = new Vector2(0, 1); _sheetList.anchorMax = new Vector2(1, 1); _sheetList.pivot = new Vector2(0.5f, 1);
+            _sheetList.offsetMin = Vector2.zero; _sheetList.offsetMax = Vector2.zero;
+            var scroll = view.gameObject.AddComponent<ScrollRect>();
+            scroll.content = _sheetList; scroll.viewport = view; scroll.horizontal = false; scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 40;
+            _sheet.gameObject.SetActive(false);
+
+            // Toast and the star banner.
+            _toast = Ui.Img("Toast", _root, new Color(0, 0, 0, 0.82f), true).rectTransform;
+            _toast.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 230), new Vector2(900, 90));
+            _toastText = Ui.Label("Text", _toast, "", 38, Color.white, TextAnchor.MiddleCenter, false);
+            _toastText.rectTransform.Fill(12);
+            _toast.gameObject.SetActive(false);
+            _banner = Ui.Img("Banner", _root, new Color(0.1f, 0.13f, 0.18f, 0.95f), true).rectTransform;
+            _banner.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -460), new Vector2(900, 200));
+            Ui.Label("Text", _banner, "", 60, Ui.Gold).rectTransform.Fill(16);
+            _banner.gameObject.SetActive(false);
+        }
+
+        // ------------------------------------------------------------------ every frame
+
+        void Update()
+        {
+            // Money counts up to its value instead of jumping.
+            _shownMoney += (_sim.State.money - _shownMoney) * (1 - Mathf.Exp(-10 * Time.unscaledDeltaTime));
+            if (System.Math.Abs(_sim.State.money - _shownMoney) < 0.6) _shownMoney = _sim.State.money;
+            _money.text = Format.Money(_shownMoney);
+            _rate.text = "+" + Format.Money(_sim.State.incomeRate * 60) + " / min";
+            int stars = _sim.Stars;
+            _starText.text = stars + " <size=40>STAR" + (stars == 1 ? "" : "S") + "</size>";
+            _starFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(_sim.StarProgress), 1);
+
+            var g = _sim.CurrentGoal;
+            _goal.gameObject.SetActive(g != null);
+            if (g != null)
+            {
+                bool done = _sim.GoalDone;
+                _goalText.text = g.Text;
+                _goalFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01((float)(_sim.GoalProgress / g.Target)), 1);
+                _goalClaim.gameObject.SetActive(done);
+                _goalCount.gameObject.SetActive(!done);
+                _goalCount.text = g.Target > 1 ? Format.Money(_sim.GoalProgress) + " / " + Format.Money(g.Target) : "+" + Format.Money(g.Money);
+            }
+
+            UpdateServiceButtons();
+            UpdatePops();
+            if ((_refreshIn -= Time.unscaledDeltaTime) <= 0 || _dirty) { _refreshIn = 0.5f; if (_tab >= 0) RefreshSheet(); _dirty = false; }
+            if (_toastT > 0 && (_toastT -= Time.unscaledDeltaTime) <= 0) _toast.gameObject.SetActive(false);
+            if (_bannerT > 0 && (_bannerT -= Time.unscaledDeltaTime) <= 0) _banner.gameObject.SetActive(false);
+        }
+
+        public void Toast(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            _toastText.text = text;
+            _toast.gameObject.SetActive(true);
+            _toast.SetAsLastSibling();
+            _toastT = 2.2f;
+        }
+
+        void OnStar(int stars)
+        {
+            _banner.GetComponentInChildren<Text>().text = stars + "-STAR AIRPORT!\n<size=38><color=#FFFFFFB0>New airlines and buildings unlocked</color></size>";
+            _banner.gameObject.SetActive(true);
+            _banner.SetAsLastSibling();
+            _bannerT = 3.5f;
+            _dirty = true;
+        }
+
+        /// <summary>A point in the world as a position on the canvas (z under 0: behind the camera).</summary>
+        Vector3 ToCanvas(Vector3 world)
+        {
+            var cam = CameraRig.Instance.Cam;
+            var sp = cam.WorldToScreenPoint(world);
+            Vector2 local;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(_root, sp, null, out local);
+            return new Vector3(local.x, local.y, sp.z);
+        }
+
+        // ------------------------------------------------------------------ service buttons over waiting aircraft
+
+        static Color ServiceColor(Service s) { return s == Service.Fuel ? Palette.Fuel : s == Service.Baggage ? Palette.Baggage : s == Service.Catering ? Palette.Catering : Palette.Cleaning; }
+        static string ServiceWord(Service s) { return s == Service.Fuel ? "FUEL" : s == Service.Baggage ? "BAGS" : s == Service.Catering ? "FOOD" : "CLEAN"; }
+
+        void UpdateServiceButtons()
+        {
+            int used = 0;
+            if (AirportView.Instance != null)
+                foreach (var plane in AirportView.Instance.Planes)
+                {
+                    var f = plane.Flight;
+                    if (f.phase != Phase.Service) continue;
+                    int k = 0, waiting = f.jobs.Count(j => !j.dispatched && !j.done);
+                    foreach (var j in f.jobs)
+                    {
+                        if (j.dispatched || j.done) continue;
+                        var c = ToCanvas(plane.Head);
+                        if (c.z < 0) { k++; continue; }
+                        var b = ButtonAt(used++);
+                        b.Flight = f.id; b.Service = j.service;
+                        b.Bg.color = _sim.CrewFree(j.service) ? ServiceColor(j.service) : Ui.Off;
+                        b.Label.text = ServiceWord(j.service);
+                        b.Rt.anchoredPosition = new Vector2(c.x + (k - (waiting - 1) / 2f) * 150, c.y + 20 + Mathf.Sin(Time.unscaledTime * 5 + f.id) * 6);
+                        k++;
+                    }
+                }
+            for (int i = used; i < _serviceButtons.Count; i++) _serviceButtons[i].Rt.gameObject.SetActive(false);
+        }
+
+        ServiceButton ButtonAt(int i)
+        {
+            while (_serviceButtons.Count <= i)
+            {
+                var sb = new ServiceButton();
+                var b = Ui.Button("Service", _world, "", Color.white, null, 36);
+                sb.Rt = (RectTransform)b.transform; sb.Bg = b.GetComponent<Image>(); sb.Label = b.GetComponentInChildren<Text>();
+                sb.Rt.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(140, 96));
+                b.onClick.AddListener(() => { if (_sim.Dispatch(sb.Flight, sb.Service)) _dirty = true; });
+                _serviceButtons.Add(sb);
+            }
+            _serviceButtons[i].Rt.gameObject.SetActive(true);
+            return _serviceButtons[i];
+        }
+
+        // ------------------------------------------------------------------ pay pop-ups
+
+        void OnPaid(FlightState f, double paid, bool onTime)
+        {
+            var t = Ui.Label("Pay", _world, "+" + Format.Money(paid) + (onTime ? "" : "  <size=30>LATE</size>"), 46, onTime ? Ui.Gold : Ui.Red);
+            t.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(400, 60));
+            var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.8f); o.effectDistance = new Vector2(2, -2);
+            _pops.Add(new Pop { Rt = t.rectTransform, Text = t, World = new Vector3(Layout.RunwayX, 6, Layout.RunwayHalf(_sim) * 0.5f) });
+        }
+
+        void UpdatePops()
+        {
+            for (int i = _pops.Count - 1; i >= 0; i--)
+            {
+                var p = _pops[i];
+                p.Age += Time.unscaledDeltaTime;
+                var c = ToCanvas(p.World);
+                p.Rt.anchoredPosition = new Vector2(c.x, c.y + p.Age * 90);
+                p.Text.color = new Color(p.Text.color.r, p.Text.color.g, p.Text.color.b, Mathf.Clamp01(1.6f - p.Age));
+                if (p.Age > 1.6f) { Destroy(p.Rt.gameObject); _pops.RemoveAt(i); }
+            }
+        }
+    }
+}

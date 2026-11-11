@@ -14,7 +14,20 @@ and in the game); never paid AI art without asking.
   - Randomness is an xorshift seed kept in the save, so a run replays exactly.
 - `Assets/Tests/EditMode`: `SimTests` (rules), `PacingTests` (a greedy player; prints the first hour's timeline:
   run it after any tuning change).
-- `Assets/Scripts/Game`: not written yet (milestone 2: the world built from code, camera, HUD).
+- `Assets/Scripts/Game` (everything is built from code at runtime; `GameRoot` boots in any scene):
+  - `App/GameRoot` (creates the `Sim` from the save, light, camera, airport, HUD; ticks and saves), `App/SaveSystem`
+    (JSON in persistentDataPath), `App/CameraRig` (three-quarter view; `Pan`, `Zoom`).
+  - `World/Layout` (where the runway, taxiway, stands and terminal are, and the taxi paths), `World/AirportView`
+    (rebuilds the static airport when a level changes; one `PlaneView` per flight), `World/PlaneView` (turns a
+    flight's phase and timer into a position: holding pattern, landing, taxi, parked with service trucks, take-off),
+    `World/Models` (aircraft by class in airline colours, trucks, blocks: placeholders until free models replace
+    them), `World/MeshBuilder` + `Resources/Shaders/VertexLit` (vertex-coloured meshes, from Last Tide).
+  - `UI/Ui` (canvas 1080x1920 expanding, rounded panels, labels, buttons; `DragPad` pans and pinches the camera
+    through UI events: the project uses the new Input System only), `UI/Hud` (money, income, stars, guide card,
+    service buttons over waiting aircraft, pay pop-ups, toasts), `UI/Hud.Sheets` (BUILD, AIRLINES, STAFF, the
+    welcome-back card).
+- In the Editor: `Crosswind.Game.GameRoot.Speed` fast-forwards the simulation; delete
+  `~/.config/unity3d/Rushing Technologies/Crosswind/crosswind_save.json` for a new game.
 
 ## Verify every change
 

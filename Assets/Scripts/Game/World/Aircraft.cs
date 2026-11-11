@@ -161,6 +161,17 @@ namespace Crosswind.Game
                 Surface(mb, new Vector3(sx * R * 0.2f, stabY, stabZ), new Vector3(sx * s.Span * 0.19f, stabY + R * 0.1f, stabZ - s.Span * 0.19f * (s.Sweep + 0.12f)), finChord * 0.7f, finChord * 0.32f, R * 0.09f, R * 0.05f, wing, sx);
             }
 
+            // ---- lights: red and green at the wingtips, white on the tail, a red beacon on the roof
+            mb.Mat(0.5f, 0, true);
+            mb.Sphere(new Vector3(-s.Span * 0.5f, wy + s.Span * (s.WingY > 0 ? 0.0f : 0.045f), wz - s.Span * 0.5f * s.Sweep), Vector3.one * 0.13f, 6, Palette.Hex(0xFF3B30));
+            mb.Sphere(new Vector3(s.Span * 0.5f, wy + s.Span * (s.WingY > 0 ? 0.0f : 0.045f), wz - s.Span * 0.5f * s.Sweep), Vector3.one * 0.13f, 6, Palette.Hex(0x34E36A));
+            mb.Sphere(new Vector3(0, cy + R * 1.02f, L * 0.08f), Vector3.one * 0.12f, 6, Palette.Hex(0xFF3B30));
+            mb.Sphere(new Vector3(0, cy + lift(0.01f), -L * 0.5f + 0.05f), Vector3.one * 0.11f, 6, Palette.White);
+            if (p.Windows)
+                for (float z = -L * 0.2f; z <= L * 0.33f; z += Mathf.Max(0.36f, R * 0.52f) * 2)
+                    foreach (float sx in new[] { -1f, 1f }) mb.Box(new Vector3(sx * R * 0.992f, cy + R * 0.2f, z), new Vector3(0.03f, R * 0.12f, 0.12f), Palette.Hex(0xFFE9B0));
+            mb.Mat(0.6f);
+
             // ---- landing gear
             mb.Smoothness = 0.2f;
             float mainZ = wz - rootChord * 0.15f, mainX = s.WingY > 0 ? R * 0.9f : R * 1.5f;

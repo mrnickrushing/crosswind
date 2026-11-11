@@ -50,6 +50,28 @@ namespace Crosswind.Game
             return l;
         }
 
+        Light[] _flood;
+
+        /// <summary>Floodlights: three pools of light over the apron and one over the car park, on from dusk.</summary>
+        void Floodlights(AirportView view)
+        {
+            if (_flood == null)
+            {
+                _flood = new Light[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    var l = new GameObject("Floodlight").AddComponent<Light>();
+                    l.transform.SetParent(transform, false);
+                    l.type = LightType.Point; l.range = 70; l.color = new Color(1f, 0.93f, 0.78f); l.shadows = LightShadows.None;
+                    _flood[i] = l;
+                }
+            }
+            float night = GameRoot.Sim.Night, termX = Layout.TerminalX(GameRoot.Sim);
+            for (int i = 0; i < 3; i++) _flood[i].transform.position = new Vector3((Layout.TaxiX + termX) * 0.5f, 22, -40 + i * 40);
+            _flood[3].transform.position = new Vector3(view.RoadX + 16, 16, -30);
+            foreach (var l in _flood) { l.intensity = night * 260f; l.enabled = night > 0.02f && !CameraRig.Inside; }
+        }
+
         GameObject _radar;
 
         void Radar(AirportView view)
@@ -69,7 +91,7 @@ namespace Crosswind.Game
         void Update()
         {
             var view = AirportView.Instance;
-            if (view != null) Radar(view);
+            if (view != null) { Radar(view); Floodlights(view); }
             if (view == null || _walk == null || _walk[0][0] == null) return;
             float dt = Time.deltaTime * Mathf.Max(1, GameRoot.Speed);
 

@@ -204,7 +204,9 @@ namespace Crosswind.Game
 
             _gems.text = _sim.State.gems.ToString();
             var w = _sim.Weather;
-            _weather.text = w == Weather.Clear ? "" : (w == Weather.Rain ? "RAIN" : w == Weather.Fog ? "FOG" : w == Weather.Storm ? "STORM" : "SNOW") + "  <size=28>runway at " + Mathf.RoundToInt(_sim.WeatherFactor * 100) + "%</size>";
+            int hh = (int)_sim.Hour, mm = (int)((_sim.Hour - hh) * 60) / 10 * 10;
+            string clock = hh.ToString("00") + ":" + mm.ToString("00") + "   ";
+            _weather.text = clock + (w == Weather.Clear ? "" : (w == Weather.Rain ? "RAIN" : w == Weather.Fog ? "FOG" : w == Weather.Storm ? "STORM" : "SNOW") + "  <size=28>runway at " + Mathf.RoundToInt(_sim.WeatherFactor * 100) + "%</size>");
             _chips.text = (_sim.Rush ? "RUSH x2  " + Format.Time(_sim.State.rushUntil - _sim.State.time) + "   " : "") + (_sim.Boosted ? "BOOST x2  " + Format.Time(_sim.BoostLeft) : "");
             var o = _sim.State.opportunity;
             _opp.gameObject.SetActive(o != null && _tab < 0);

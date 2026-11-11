@@ -109,7 +109,11 @@ namespace Crosswind.Game
                     foreach (float sx in new[] { -1f, 1f }) mb.Box(new Vector3(Layout.RunwayX + sx * w * 0.5f, 0.15f, e * half), new Vector3(0.9f, 0.3f, 0.5f), Palette.Paint);
             if (rl >= 5)   // edge lights
                 for (float z = -half; z <= half; z += 10)
-                    foreach (float sx in new[] { -1f, 1f }) mb.Box(new Vector3(Layout.RunwayX + sx * (w * 0.5f + 0.6f), 0.15f, z), new Vector3(0.25f, 0.3f, 0.25f), Palette.PaintYellow);
+                {
+                    mb.Glow = true;
+                    foreach (float sx in new[] { -1f, 1f }) mb.Box(new Vector3(Layout.RunwayX + sx * (w * 0.5f + 0.6f), 0.2f, z), new Vector3(0.45f, 0.4f, 0.45f), Palette.Hex(0xFFE9A8));
+                    mb.Glow = false;
+                }
 
             // Taxiway and its links to the runway.
             int tl = s.Level("taxiways");
@@ -121,6 +125,13 @@ namespace Crosswind.Game
             foreach (float z in new[] { lineUp, exit })
                 if (tl >= 4) g.Rect("Tarmac", (Layout.RunwayX + Layout.TaxiX) * 0.5f, z, Layout.TaxiX - Layout.RunwayX, tw, 0.035f); else mb.Box(new Vector3((Layout.RunwayX + Layout.TaxiX) * 0.5f, 0.01f, z), new Vector3(Layout.TaxiX - Layout.RunwayX, 0.06f, tw), taxi);
             if (tl >= 4) mb.Box(new Vector3(Layout.TaxiX, 0.05f, (lineUp + Mathf.Max(exit, 46)) * 0.5f), new Vector3(0.2f, 0.02f, Mathf.Max(exit, 46) - lineUp), Palette.PaintYellow);
+            if (tl >= 2)
+            {
+                mb.Glow = true;
+                for (float z = lineUp; z <= Mathf.Max(exit, 46); z += 8)
+                    foreach (float sx in new[] { -1f, 1f }) mb.Box(new Vector3(Layout.TaxiX + sx * (tw * 0.5f + 0.4f), 0.15f, z), new Vector3(0.32f, 0.3f, 0.32f), Palette.Hex(0x4A9BFF));
+                mb.Glow = false;
+            }
 
             // Apron and stands.
             int cols = Layout.Columns(s);
@@ -212,6 +223,7 @@ namespace Crosswind.Game
                     var lp = new Vector3(termX - 1.2f, 0, z);
                     mb.Cylinder(lp, lp + Vector3.up * 14, 0.22f, 0.14f, 6, Palette.Steel);
                     mb.Box(lp + new Vector3(-0.8f, 14.2f, 0), new Vector3(2.4f, 0.5f, 1.4f), Palette.SteelDark);
+                    mb.Glow = true; mb.Box(lp + new Vector3(-0.8f, 13.9f, 0), new Vector3(2.2f, 0.12f, 1.2f), Palette.White); mb.Glow = false;
                 }
             }
 
@@ -238,6 +250,10 @@ namespace Crosswind.Game
                 mb.Smoothness = 0.92f;
                 foreach (float side in new[] { -1f, 1f })
                     mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 0.06f), tH * 0.52f, c.z), new Vector3(0.14f, tH * 0.72f, tLen - 2.4f), Palette.Hex(0x4E86A8));
+                mb.Glow = true;
+                foreach (float side in new[] { -1f, 1f })
+                    mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 0.14f), tH * 0.34f, c.z), new Vector3(0.05f, tH * 0.22f, tLen - 3f), Palette.Hex(0xFFE2A0));
+                mb.Glow = false;
                 mb.Smoothness = 0.3f;
                 for (float z = c.z - tLen * 0.5f + 1.2f; z <= c.z + tLen * 0.5f - 1.1f; z += 3f)
                     foreach (float side in new[] { -1f, 1f })
@@ -282,6 +298,10 @@ namespace Crosswind.Game
                 mb.Smoothness = 0.92f;
                 for (float z = c.z - tLen * 0.5f + 3; z < c.z + tLen * 0.5f - 3; z += 4.5f)
                     mb.Box(new Vector3(c.x - tDepth * 0.22f, tH + 0.55f, z), new Vector3(tDepth * 0.28f, 0.14f, 2.6f), Palette.Hex(0x5E9CBE));
+                mb.Glow = true;
+                for (float z = c.z - tLen * 0.5f + 3; z < c.z + tLen * 0.5f - 3; z += 4.5f)
+                    mb.Box(new Vector3(c.x - tDepth * 0.22f, tH + 0.63f, z), new Vector3(tDepth * 0.2f, 0.02f, 1.6f), Palette.Hex(0xFFF0C8));
+                mb.Glow = false;
                 if (s.Level("shops") > 0)
                 {
                     float sl = Mathf.Min(tLen - 8, 8 + s.Level("shops") * 2.5f);
@@ -319,6 +339,13 @@ namespace Crosswind.Game
             mb.Smoothness = 0.08f;
             g.Rect("Tarmac", roadX, 0, 7, 420, 0.03f);
             for (float z = -200; z < 200; z += 8) mb.Box(new Vector3(roadX, 0.04f, z), new Vector3(0.2f, 0.02f, 3.5f), Palette.Paint);
+            for (float z = -190; z <= 190; z += 26)
+            {
+                var sl = new Vector3(roadX + 4.2f, 0, z);
+                mb.Cylinder(sl, sl + Vector3.up * 6, 0.1f, 0.07f, 5, Palette.SteelDark);
+                mb.Box(sl + new Vector3(-0.9f, 6f, 0), new Vector3(1.8f, 0.1f, 0.14f), Palette.SteelDark);
+                mb.Glow = true; mb.Box(sl + new Vector3(-1.6f, 5.9f, 0), new Vector3(0.6f, 0.12f, 0.3f), Palette.Hex(0xFFE2A0)); mb.Glow = false;
+            }
             int park = s.Level("parking");
             float lotW = 16 + Mathf.Min(6, park) * 3, lotL = 26 + Mathf.Min(10, park) * 5;
             var lot = new Vector3(roadX + 5 + lotW * 0.5f, 0, -46 + lotL * 0.5f);
@@ -411,7 +438,10 @@ namespace Crosswind.Game
             mb.Cylinder(tp + Vector3.up * (th + 3.3f), tp + Vector3.up * (th + 4.2f), 0.8f, 0.6f, 8, Palette.Hex(0xAEB4BA));
             mb.Cylinder(tp + new Vector3(1.6f, th + 3.3f, 0.8f), tp + new Vector3(1.6f, th + 7.5f, 0.8f), 0.05f, 4, Palette.Steel);
             mb.Cylinder(tp + new Vector3(-1.4f, th + 3.3f, -1f), tp + new Vector3(-1.4f, th + 6f, -1f), 0.05f, 4, Palette.Steel);
-            mb.Sphere(tp + new Vector3(1.6f, th + 7.6f, 0.8f), Vector3.one * 0.18f, 6, Palette.Hex(0xE8372E));
+            mb.Glow = true;
+            mb.Sphere(tp + new Vector3(1.6f, th + 7.6f, 0.8f), Vector3.one * 0.3f, 6, Palette.Hex(0xFF4A3A));
+            mb.Cylinder(tp + Vector3.up * (th + 1.4f), tp + Vector3.up * (th + 1.9f), 3.08f, 3.2f, 14, Palette.Hex(0xBFE6FF));
+            mb.Glow = false;
 
             // A windsock by the runway: every airfield has one.
             var ws = new Vector3(Layout.RunwayX + w * 0.5f + 5, 0, -half + 20);

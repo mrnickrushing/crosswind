@@ -12,6 +12,39 @@ namespace Crosswind.Core
         public event Action<Weather> WeatherChanged;
         public event Action<Opportunity> OpportunityAppeared;
 
+        // ------------------------------------------------------------------ the day
+
+        /// <summary>A day at the airport takes twelve minutes: it starts at 06:00, dusk falls about 19:00, and the small hours are quiet.</summary>
+        public const float DayLength = 720f;
+        /// <summary>0 at 06:00, 0.5 at 18:00, back to 1 at 06:00.</summary>
+        public float DayPhase { get { return (float)((State.time % DayLength) / DayLength); } }
+        public float Hour { get { return (6 + DayPhase * 24) % 24; } }
+        /// <summary>How dark it is, 0 by day to 1 in the middle of the night (dusk and dawn in between).</summary>
+        public float Night
+        {
+            get
+            {
+                float p = DayPhase;
+                if (p < 0.04f) return 1 - p / 0.04f * 0.6f - 0.4f * (p / 0.04f);     // dawn: 1 -> 0
+                if (p < 0.52f) return 0;
+                if (p < 0.6f) return (p - 0.52f) / 0.08f;                            // dusk
+                return 1;
+            }
+        }
+
+        /// <summary>How busy this time of day is: a morning and an evening peak, a quiet night (less quiet with runway lights).</summary>
+        public float DemandFactor
+        {
+            get
+            {
+                float h = Hour;
+                float peak = Math.Max(0, 1 - Math.Abs(h - 8.5f) / 2.5f) + Math.Max(0, 1 - Math.Abs(h - 18f) / 2.5f);
+                bool lit = Level("runway") >= 5 || Researched("ops_night");
+                float night = h >= 23 || h < 5 ? (Researched("ops_night") ? 0.9f : lit ? 0.6f : 0.4f) : 1f;
+                return (0.9f + 0.5f * peak) * night;
+            }
+        }
+
         public Weather Weather { get { return (Weather)State.weather; } }
 
         /// <summary>How fast the runway works in this weather, 0.5..1, after landing aids and research.</summary>

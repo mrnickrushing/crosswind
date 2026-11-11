@@ -299,5 +299,21 @@ namespace Crosswind.Tests
             for (int i = 0; i < 2400; i++) s.Tick(0.25f);
             if (s.CurrentEvent.Counts == "flights" || s.CurrentEvent.Counts == "ontime" || s.CurrentEvent.Counts == "earnMinutes") Assert.Greater(s.State.eventProgress, 0);
         }
+
+        [Test]
+        public void TheDayHasPeaksAndAQuietNight()
+        {
+            var s = Fresh();
+            float F(float hour) { s.State.time = ((hour - 6 + 24) % 24) / 24.0 * Sim.DayLength; return s.DemandFactor; }
+            Assert.Greater(F(8.5f), F(13f), "the morning peak");
+            Assert.Greater(F(18f), F(13f), "the evening peak");
+            Assert.Less(F(2f), F(13f), "the small hours");
+            float dark = F(2f);
+            s.State.money = 1e9; while (s.Level("runway") < 5) s.Upgrade("runway");
+            Assert.Greater(F(2f), dark, "runway lights keep more of the night");
+            s.State.time = 0; Assert.That(s.Hour, Is.EqualTo(6f).Within(0.01f));
+            s.State.time = Sim.DayLength * 0.3; Assert.AreEqual(0f, s.Night);
+            s.State.time = Sim.DayLength * 0.8; Assert.AreEqual(1f, s.Night);
+        }
     }
 }

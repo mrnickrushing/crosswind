@@ -15,6 +15,7 @@ namespace Crosswind.Core
         public string route;
         public int terms;               // 0 standard, 1 busy (more flights, less patience), 2 premium (fewer flights, pays more)
         public double nextArrival;      // game time of the next flight on this route
+        public int slot;                // the planner: 0 all day, 1 morning, 2 afternoon, 3 evening, 4 night
     }
 
     [Serializable]
@@ -25,6 +26,7 @@ namespace Crosswind.Core
         public Phase phase;
         public float timer;             // seconds left in the current timed phase
         public int stand = -1;
+        public int slot;                // the planner slot it was scheduled in (its pay follows it)
         public double arrivedAt;        // game time it joined the approach
         public double parkedAt;         // game time it reached the stand
         public List<ServiceJob> jobs = new List<ServiceJob>();

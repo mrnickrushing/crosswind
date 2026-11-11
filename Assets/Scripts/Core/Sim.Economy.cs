@@ -71,7 +71,7 @@ namespace Crosswind.Core
             var contract = State.contracts.Find(c => c.route == f.route);
             int terms = contract != null ? contract.terms : 0;
             bool onTime = State.time - f.parkedAt <= OnTimeTarget(r) * TermsPatience(terms);
-            double paid = FlightValue(r, onTime) * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * (r.Airline == "own" ? OwnPay : RelationPay(r.Airline));
+            double paid = FlightValue(r, onTime) * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay : RelationPay(r.Airline));
             if (r.Airline != "own") Relate(r.Airline, onTime ? 0.4f : -2.5f);
             Earn(paid, true);
             State.flightsHandled++;
@@ -132,12 +132,13 @@ namespace Crosswind.Core
                 var r = Content.Routes[c.route];
                 if (!r.Needs.All(Automated)) continue;
                 var plane = Content.Aircraft[r.Class];
-                double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) * FleetFlights(r) / 3600.0;
+                // A slotted route flies three quarters of the day's flights.
+                double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) * FleetFlights(r) / 3600.0 * (c.slot > 0 ? SlotRate * 6 / 24 : 1);
                 double ground = BoardTime(plane) * 2 + plane.ServiceSeconds / Math.Max(0.1f, r.Needs.Min(n => CrewSpeed(n))) + plane.TaxiSeconds * 2 / TaxiSpeed;
                 runwayLoad += perSec * 2 * plane.RunwaySeconds / RunwaySpeed;
                 standLoad += perSec * ground;
                 foreach (var n in r.Needs) crewLoad[(int)n] += perSec * plane.ServiceSeconds / Math.Max(0.1f, CrewSpeed(n));
-                perSecond += perSec * FlightValue(r, true);
+                perSecond += perSec * FlightValue(r, true) * SlotPay(r, c.slot);
             }
             if (perSecond <= 0) return ParkingRate;
             // The tightest bottleneck scales everything down.

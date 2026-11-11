@@ -244,11 +244,13 @@ namespace Crosswind.Core
             {
                 if (State.time < c.nextArrival) continue;
                 var r = Content.Routes[c.route];
-                double gap = 3600.0 / (r.FlightsPerHour * (1 + Fx(Effect.Demand)) * TermsFlights(c.terms) * DemandFactor * FleetFlights(r));
+                float pace = ScheduleRate(c);
+                if (pace <= 0) { c.nextArrival = State.time + UntilSlot(c.slot) + Rand() * 4; continue; }     // outside its slot: back when it opens
+                double gap = 3600.0 / (ListedRate(c) * pace);
                 // Never more waiting than the tower can watch: a full pattern sends the next one round again.
                 if (State.flights.Count >= TowerSlots) { c.nextArrival = State.time + Math.Min(gap, 5); continue; }
                 c.nextArrival = State.time + gap * (0.85 + Rand() * 0.3);
-                var f = new FlightState { id = State.nextFlightId++, route = r.Id, phase = Phase.Approach, arrivedAt = State.time };
+                var f = new FlightState { id = State.nextFlightId++, route = r.Id, phase = Phase.Approach, arrivedAt = State.time, slot = c.slot };
                 State.flights.Add(f);
                 FlightChanged?.Invoke(f);
             }

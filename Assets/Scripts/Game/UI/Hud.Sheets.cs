@@ -24,7 +24,7 @@ namespace Crosswind.Game
 
         RectTransform Row(float height)
         {
-            var row = Ui.Img("Row", _sheetList, Ui.Card, true).rectTransform;
+            var row = Ui.ArtImg("Row", _sheetList, "card", Color.white).rectTransform;
             row.anchorMin = new Vector2(0, 1); row.anchorMax = new Vector2(1, 1); row.pivot = new Vector2(0.5f, 1);
             row.offsetMin = Vector2.zero; row.offsetMax = Vector2.zero; row.anchoredPosition = new Vector2(0, -_rowY); row.sizeDelta = new Vector2(0, height);
             _rowY += height + 12;
@@ -33,7 +33,7 @@ namespace Crosswind.Game
 
         void Header(string text)
         {
-            var t = Ui.Label("Header", _sheetList, text, 34, Ui.Dim, TextAnchor.LowerLeft);
+            var t = Ui.Label("Header", _sheetList, text, 28, new Color(0.45f, 0.8f, 1f), TextAnchor.LowerLeft);
             var rt = t.rectTransform;
             rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(1, 1); rt.pivot = new Vector2(0.5f, 1);
             rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero; rt.anchoredPosition = new Vector2(12, -_rowY); rt.sizeDelta = new Vector2(0, 50);
@@ -43,18 +43,18 @@ namespace Crosswind.Game
         /// <summary>A row: title, a line under it, and a button on the right that is grey with the reason when it can't be used.</summary>
         void Entry(string title, string tag, string body, string button, string blocked, System.Action act, Color? accent = null)
         {
-            var row = Row(168);
-            var t = Ui.Label("Title", row, title + (tag != null ? "  <size=32><color=#FFFFFF90>" + tag + "</color></size>" : ""), 42, Color.white, TextAnchor.UpperLeft);
-            t.rectTransform.Fill(); t.rectTransform.offsetMin = new Vector2(24, 0); t.rectTransform.offsetMax = new Vector2(-300, -12);
+            var row = Row(150);
+            var t = Ui.Label("Title", row, title + (tag != null ? "  <size=26><color=#FFFFFF90>" + tag + "</color></size>" : ""), 36, Color.white, TextAnchor.UpperLeft);
+            t.rectTransform.Fill(); t.rectTransform.offsetMin = new Vector2(24, 0); t.rectTransform.offsetMax = new Vector2(-250, -10);
             var b = Ui.Label("Body", row, body, 30, Ui.Dim, TextAnchor.UpperLeft, false);
-            b.rectTransform.Fill(); b.rectTransform.offsetMin = new Vector2(24, 10); b.rectTransform.offsetMax = new Vector2(-300, -64);
-            b.resizeTextForBestFit = true; b.resizeTextMinSize = 22; b.resizeTextMaxSize = 30; b.verticalOverflow = VerticalWrapMode.Truncate;
+            b.rectTransform.Fill(); b.rectTransform.offsetMin = new Vector2(24, 10); b.rectTransform.offsetMax = new Vector2(-250, -56);
+            b.resizeTextForBestFit = true; b.resizeTextMinSize = 20; b.resizeTextMaxSize = 28; b.verticalOverflow = VerticalWrapMode.Truncate;
             if (button == null) return;
             bool ok = blocked == null;
             var btn = Ui.Button("Do", row, null, ok ? (accent ?? Ui.Green) : Ui.Off, () => { if (ok) { act(); Sfx.Play("build", 0.7f); _dirty = true; } else { Toast(blocked); Sfx.Play("error", 0.5f); } }, 40);
-            ((RectTransform)btn.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-18, 0), new Vector2(264, 124));
-            var l = Ui.Label("L", btn.transform, ok ? button : button + "\n<size=24>" + blocked + "</size>", 40, Color.white);
-            l.rectTransform.Fill(8); l.resizeTextForBestFit = true; l.resizeTextMinSize = 20; l.resizeTextMaxSize = 40;
+            ((RectTransform)btn.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, 0), new Vector2(220, 112));
+            var l = Ui.Label("L", btn.transform, ok ? button : button + "\n<size=22>" + blocked + "</size>", 34, Color.white);
+            l.rectTransform.Fill(10); l.resizeTextForBestFit = true; l.resizeTextMinSize = 16; l.resizeTextMaxSize = 34;
         }
 
         void RefreshSheet()

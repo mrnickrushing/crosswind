@@ -75,92 +75,109 @@ namespace Crosswind.Game
             pad.rectTransform.Fill(); pad.raycastTarget = true;
             pad.gameObject.AddComponent<DragPad>();
             _world = Ui.Rect("World", _root); _world.Fill();
+            // The controls keep clear of the notch and the home bar.
+            _safe = Ui.Rect("Safe", _root); _safe.Fill();
+            _safe.gameObject.AddComponent<SafeArea>();
 
-            // Top: money, income, stars.
-            var top = Ui.Img("Top", _root, Ui.Panel, true).rectTransform;
-            top.Band(true, -70, 190, 24);
-            _money = Ui.Label("Money", top, "0", 84, Color.white, TextAnchor.MiddleLeft);
-            _money.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(110, -14), new Vector2(560, 96));
-            var coin = Ui.ArtImg("Coin", top, "coin", Color.white, 0);
-            coin.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(22, -22), new Vector2(80, 80));
-            _rate = Ui.Label("Rate", top, "", 36, Ui.Green, TextAnchor.MiddleLeft, false);
-            _rate.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(32, 18), new Vector2(360, 50));
-            var gem = Ui.ArtImg("Gem", top, "gem", Color.white, 0);
-            gem.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(394, 16), new Vector2(52, 52));
-            _gems = Ui.Label("Gems", top, "0", 36, Color.white, TextAnchor.MiddleLeft);
-            _gems.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(450, 18), new Vector2(160, 50));
-            _starText = Ui.Label("Stars", top, "", 52, Ui.Gold, TextAnchor.MiddleRight);
-            _starText.rectTransform.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-30, -22), new Vector2(380, 70));
-            var bar = Ui.Img("StarBar", top, new Color(0, 0, 0, 0.45f), true).rectTransform;
-            bar.Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-30, 30), new Vector2(360, 26));
-            _starFill = Ui.Img("Fill", bar, Ui.Gold, true);
-            _starFill.rectTransform.anchorMin = Vector2.zero; _starFill.rectTransform.anchorMax = new Vector2(0, 1); _starFill.rectTransform.offsetMin = _starFill.rectTransform.offsetMax = Vector2.zero;
-
-            // The guide card.
-            _goal = Ui.Img("Goal", _root, Ui.Panel, true).rectTransform;
-            _goal.Band(true, -276, 150, 24);
-            _goalText = Ui.Label("Text", _goal, "", 38, Color.white, TextAnchor.UpperLeft, false);
-            _goalText.rectTransform.Fill(); _goalText.rectTransform.offsetMin = new Vector2(28, 44); _goalText.rectTransform.offsetMax = new Vector2(-250, -16);
-            _goalText.resizeTextForBestFit = true; _goalText.resizeTextMinSize = 26; _goalText.resizeTextMaxSize = 38;
-            var gbar = Ui.Img("Bar", _goal, new Color(0, 0, 0, 0.45f), true).rectTransform;
-            gbar.anchorMin = new Vector2(0, 0); gbar.anchorMax = new Vector2(1, 0); gbar.pivot = new Vector2(0, 0); gbar.offsetMin = new Vector2(28, 16); gbar.offsetMax = new Vector2(-250, 38);
-            _goalFill = Ui.Img("Fill", gbar, Ui.Green, true);
-            _goalFill.rectTransform.anchorMin = Vector2.zero; _goalFill.rectTransform.anchorMax = new Vector2(0, 1); _goalFill.rectTransform.offsetMin = _goalFill.rectTransform.offsetMax = Vector2.zero;
-            _goalCount = Ui.Label("Count", _goal, "", 34, Ui.Dim, TextAnchor.MiddleCenter);
-            _goalCount.rectTransform.Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 100));
-            _goalClaim = Ui.Button("Claim", _goal, "CLAIM", Ui.Green, () => { var g = _sim.CurrentGoal; if (_sim.ClaimGoal()) { Reward(g.Money * _sim.Map.IncomeScale, g.Gems); Sfx.Play("claim"); _dirty = true; } }, 44);
-            ((RectTransform)_goalClaim.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 104));
-
-            // Under the guide: the weather, and what is running (a boost, a rush).
-            _weather = Ui.Label("Weather", _root, "", 34, Color.white, TextAnchor.MiddleLeft);
-            _weather.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -440), new Vector2(500, 50));
-            Outline(_weather);
-            _chips = Ui.Label("Chips", _root, "", 34, Ui.Gold, TextAnchor.MiddleRight);
-            _chips.rectTransform.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -440), new Vector2(620, 50));
-            Outline(_chips);
-            // INSIDE / OUTSIDE: look into the terminal, or back over the airfield.
-            var inside = Ui.Button("Inside", _root, "INSIDE", Ui.Blue, null, 36);
-            ((RectTransform)inside.transform).Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(24, 214), new Vector2(230, 96));
-            var insideText = inside.GetComponentInChildren<Text>();
-            inside.onClick.AddListener(() => { Sfx.Play("open", 0.5f); CameraRig.Instance.SetInside(!CameraRig.Inside); insideText.text = CameraRig.Inside ? "OUTSIDE" : "INSIDE"; });
-            // An opportunity: a big button on the right that counts down.
-            var opp = Ui.Button("Opportunity", _root, "", Ui.Gold, () => { if (_sim.TakeOpportunity()) { _dirty = true; Sfx.Play("confirm"); } }, 38);
-            _opp = (RectTransform)opp.transform;
-            _opp.Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-24, 240), new Vector2(330, 150));
-            _oppText = opp.GetComponentInChildren<Text>(); _oppText.color = Ui.Ink;
-            _opp.gameObject.SetActive(false);
-
-            // Bottom bar and the sheet it opens.
-            var bottom = Ui.Img("Bottom", _root, Ui.Panel).rectTransform;
-            bottom.Band(false, 0, 190);
-            bottom.GetComponent<Image>().raycastTarget = true;
+            // Left: the navigation rail.
+            var rail = Ui.ArtImg("Rail", _safe, "panel", Color.white).rectTransform;
+            rail.anchorMin = new Vector2(0, 0); rail.anchorMax = new Vector2(0, 1); rail.pivot = new Vector2(0, 0.5f);
+            rail.offsetMin = new Vector2(12, 12); rail.offsetMax = new Vector2(140, -12);
+            rail.GetComponent<Image>().raycastTarget = true;
             for (int i = 0; i < TabNames.Length; i++)
             {
                 int k = i;
-                var b = Ui.Button(TabNames[i], bottom, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 28);
-                // An icon above the word.
-                var lab = b.GetComponentInChildren<Text>().rectTransform; lab.anchorMin = new Vector2(0, 0); lab.anchorMax = new Vector2(1, 0.4f); lab.offsetMin = new Vector2(2, 4); lab.offsetMax = new Vector2(-2, 0);
-                Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.66f), Vector2.zero, 62);
-                var rt = (RectTransform)b.transform;
-                float n = TabNames.Length;
-                rt.anchorMin = new Vector2(i / n, 0); rt.anchorMax = new Vector2((i + 1) / n, 1); rt.offsetMin = new Vector2(i == 0 ? 16 : 6, 44); rt.offsetMax = new Vector2(i == n - 1 ? -16 : -6, -12);
+                var b = Ui.Button(TabNames[i], rail, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 22);
+                var lab = b.GetComponentInChildren<Text>().rectTransform; lab.anchorMin = new Vector2(0, 0); lab.anchorMax = new Vector2(1, 0.36f); lab.offsetMin = new Vector2(2, 8); lab.offsetMax = new Vector2(-2, 0);
+                Ui.IconImg(TabIcons[i], b.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 50);
+                ((RectTransform)b.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -12 - i * 126), new Vector2(112, 118));
                 _tabs.Add(b);
             }
-            // A dot on EMPIRE when a task or an achievement is waiting to be claimed.
             var dot = Ui.Img("Dot", _tabs[4].transform, Ui.Red); dot.sprite = Ui.Circle;
-            _empireDot = dot.rectTransform; _empireDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-6, -6), new Vector2(30, 30));
+            _empireDot = dot.rectTransform; _empireDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-4, -4), new Vector2(26, 26));
             var dot2 = Ui.Img("Dot", _tabs[2].transform, Ui.Red); dot2.sprite = Ui.Circle;
-            _staffDot = dot2.rectTransform; _staffDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-6, -6), new Vector2(30, 30));
-            _sheet = Ui.Img("Sheet", _root, Ui.Panel, true).rectTransform;
-            _sheet.anchorMin = new Vector2(0, 0); _sheet.anchorMax = new Vector2(1, 0); _sheet.pivot = new Vector2(0.5f, 0);
-            _sheet.offsetMin = new Vector2(16, 0); _sheet.offsetMax = new Vector2(-16, 0); _sheet.anchoredPosition = new Vector2(0, 196); _sheet.sizeDelta = new Vector2(-32, 860);
+            _staffDot = dot2.rectTransform; _staffDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-4, -4), new Vector2(26, 26));
+            // INSIDE / OUTSIDE at the foot of the rail: look into the terminal, or back over the airfield.
+            var inside = Ui.Button("Inside", rail, "TERMINAL", Ui.Blue, null, 22);
+            ((RectTransform)inside.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 12), new Vector2(112, 118));
+            var insideText = inside.GetComponentInChildren<Text>();
+            var il = insideText.rectTransform; il.anchorMin = new Vector2(0, 0); il.anchorMax = new Vector2(1, 0.36f); il.offsetMin = new Vector2(2, 8); il.offsetMax = new Vector2(-2, 0);
+            Ui.IconImg("home", inside.transform, Color.white, new Vector2(0.5f, 0.62f), Vector2.zero, 50);
+            inside.onClick.AddListener(() => { Sfx.Play("open", 0.5f); CameraRig.Instance.SetInside(!CameraRig.Inside); insideText.text = CameraRig.Inside ? "AIRFIELD" : "TERMINAL"; OnInsideChanged(); });
+
+            // Top left: the airport's vital signs in one compact block (cash, income, gems, rating).
+            var top = Ui.ArtImg("Status", _safe, "panel", Color.white).rectTransform;
+            top.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(152, -12), new Vector2(660, 132));
+            var coin = Ui.ArtImg("Coin", top, "coin", Color.white, 0);
+            coin.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(16, -14), new Vector2(64, 64));
+            _money = Ui.Label("Money", top, "0", 60, Color.white, TextAnchor.MiddleLeft);
+            _money.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(90, -8), new Vector2(290, 74));
+            _rate = Ui.Label("Rate", top, "", 28, Ui.Green, TextAnchor.MiddleLeft, false);
+            _rate.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(22, 12), new Vector2(300, 38));
+            var div1 = Ui.Img("Div", top, new Color(1, 1, 1, 0.12f)).rectTransform; div1.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(384, 0), new Vector2(2, 96));
+            var gem = Ui.ArtImg("Gem", top, "gem", Color.white, 0);
+            gem.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(398, -20), new Vector2(46, 46));
+            _gems = Ui.Label("Gems", top, "0", 36, Color.white, TextAnchor.MiddleLeft);
+            _gems.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(450, -18), new Vector2(110, 50));
+            Ui.Label("GemsCap", top, "GEMS", 20, Ui.Dim, TextAnchor.MiddleLeft).rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(402, 14), new Vector2(120, 30));
+            var div2 = Ui.Img("Div", top, new Color(1, 1, 1, 0.12f)).rectTransform; div2.Place(new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(508, 0), new Vector2(2, 96));
+            var starIcon = Ui.ArtImg("Star", top, "star", Color.white, 0);
+            starIcon.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(520, -16), new Vector2(52, 52));
+            _starText = Ui.Label("Stars", top, "", 44, Ui.Gold, TextAnchor.MiddleLeft);
+            _starText.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(578, -14), new Vector2(80, 56));
+            var bar = Ui.ArtImg("StarBar", top, "well", Color.white, 44, 3f).rectTransform;
+            bar.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(522, 18), new Vector2(124, 20));
+            var barIn = Ui.Rect("In", bar); barIn.Fill(4);
+            _starFill = Ui.Img("Fill", barIn, Ui.Gold, true);
+            _starFill.rectTransform.anchorMin = Vector2.zero; _starFill.rectTransform.anchorMax = new Vector2(0, 1); _starFill.rectTransform.offsetMin = _starFill.rectTransform.offsetMax = Vector2.zero;
+
+            // The guide card under it.
+            _goal = Ui.ArtImg("Goal", _safe, "panel", Color.white).rectTransform;
+            _goal.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(152, -152), new Vector2(660, 112));
+            var accent = Ui.Img("Accent", _goal, Ui.Green, true).rectTransform; accent.anchorMin = new Vector2(0, 0); accent.anchorMax = new Vector2(0, 1); accent.offsetMin = new Vector2(8, 14); accent.offsetMax = new Vector2(14, -14);
+            Ui.Label("Cap", _goal, "NEXT", 20, Ui.Green, TextAnchor.UpperLeft).rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(26, -10), new Vector2(200, 26));
+            _goalText = Ui.Label("Text", _goal, "", 30, Color.white, TextAnchor.UpperLeft, false);
+            _goalText.rectTransform.Fill(); _goalText.rectTransform.offsetMin = new Vector2(26, 30); _goalText.rectTransform.offsetMax = new Vector2(-200, -34);
+            _goalText.resizeTextForBestFit = true; _goalText.resizeTextMinSize = 20; _goalText.resizeTextMaxSize = 30;
+            var gbar = Ui.Img("Bar", _goal, new Color(0, 0, 0, 0.45f), true).rectTransform;
+            gbar.anchorMin = new Vector2(0, 0); gbar.anchorMax = new Vector2(1, 0); gbar.pivot = new Vector2(0, 0); gbar.offsetMin = new Vector2(26, 12); gbar.offsetMax = new Vector2(-200, 24);
+            _goalFill = Ui.Img("Fill", gbar, Ui.Green, true);
+            _goalFill.rectTransform.anchorMin = Vector2.zero; _goalFill.rectTransform.anchorMax = new Vector2(0, 1); _goalFill.rectTransform.offsetMin = _goalFill.rectTransform.offsetMax = Vector2.zero;
+            _goalCount = Ui.Label("Count", _goal, "", 28, Ui.Dim, TextAnchor.MiddleCenter);
+            _goalCount.rectTransform.Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-14, 0), new Vector2(176, 84));
+            _goalClaim = Ui.Button("Claim", _goal, "CLAIM", Ui.Green, () => { var g = _sim.CurrentGoal; if (_sim.ClaimGoal()) { Reward(g.Money * _sim.Map.IncomeScale, g.Gems); Sfx.Play("claim"); _dirty = true; } }, 36);
+            ((RectTransform)_goalClaim.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-14, 0), new Vector2(176, 84));
+
+            // Top centre: the clock and the weather; under it what is running (a boost, a rush).
+            var clock = Ui.ArtImg("Clock", _safe, "panel", Color.white).rectTransform;
+            clock.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(60, -12), new Vector2(380, 58));
+            _weather = Ui.Label("Weather", clock, "", 30, Color.white);
+            _weather.rectTransform.Fill(4);
+            _chips = Ui.Label("Chips", _safe, "", 30, Ui.Gold);
+            _chips.rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(60, -76), new Vector2(620, 44));
+            Outline(_chips);
+
+            BuildBoard();
+
+            // An opportunity: a button at the bottom right that counts down.
+            var opp = Ui.Button("Opportunity", _safe, "", Ui.Gold, () => { if (_sim.TakeOpportunity()) { _dirty = true; Sfx.Play("confirm"); } }, 34);
+            _opp = (RectTransform)opp.transform;
+            _opp.Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-20, 20), new Vector2(310, 140));
+            _oppText = opp.GetComponentInChildren<Text>(); _oppText.color = Ui.Ink;
+            _opp.gameObject.SetActive(false);
+
+            // The drawer the rail opens: down the right-hand side, the airfield still in view beside it.
+            _sheet = Ui.ArtImg("Sheet", _safe, "panel", Color.white).rectTransform;
+            _sheet.anchorMin = new Vector2(1, 0); _sheet.anchorMax = new Vector2(1, 1); _sheet.pivot = new Vector2(1, 0.5f);
+            _sheet.offsetMin = new Vector2(-892, 12); _sheet.offsetMax = new Vector2(-12, -12);
             _sheet.GetComponent<Image>().raycastTarget = true;
-            _sheetTitle = Ui.Label("Title", _sheet, "", 52, Color.white, TextAnchor.MiddleLeft);
-            _sheetTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(34, -14), new Vector2(700, 80));
-            var close = Ui.Button("Close", _sheet, "X", new Color(0, 0, 0, 0), () => OpenTab(-1), 56);
-            ((RectTransform)close.transform).Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-10, -8), new Vector2(100, 92));
+            _sheetTitle = Ui.Label("Title", _sheet, "", 44, Color.white, TextAnchor.MiddleLeft);
+            _sheetTitle.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, -10), new Vector2(600, 70));
+            var rule = Ui.Img("Rule", _sheet, new Color(0.25f, 0.76f, 1f, 0.9f)).rectTransform; rule.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(30, -78), new Vector2(90, 4));
+            var close = Ui.Button("Close", _sheet, "X", new Color(0, 0, 0, 0), () => OpenTab(-1), 46);
+            ((RectTransform)close.transform).Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-8, -6), new Vector2(90, 80));
             var view = Ui.Img("View", _sheet, new Color(0, 0, 0, 0.001f)).rectTransform;
-            view.Fill(); view.offsetMin = new Vector2(16, 16); view.offsetMax = new Vector2(-16, -104);
+            view.Fill(); view.offsetMin = new Vector2(16, 16); view.offsetMax = new Vector2(-16, -92);
             view.GetComponent<Image>().raycastTarget = true;
             view.gameObject.AddComponent<RectMask2D>();
             _sheetList = Ui.Rect("List", view);
@@ -175,6 +192,11 @@ namespace Crosswind.Game
             BuildFeedback();
         }
 
+        RectTransform _safe;
+
+        /// <summary>The middle of a control, as a position on the canvas (for pointers and chips that fly from it).</summary>
+        Vector2 CanvasPos(RectTransform rt) { var p = _root.InverseTransformPoint(rt.TransformPoint(rt.rect.center)); return new Vector2(p.x, p.y); }
+
         // ------------------------------------------------------------------ every frame
 
         void Update()
@@ -185,7 +207,7 @@ namespace Crosswind.Game
             _money.text = Format.Money(_shownMoney);
             _rate.text = "+" + Format.Money(_sim.State.incomeRate * 60) + " / min";
             int stars = _sim.Stars;
-            _starText.text = stars + " <size=40>STAR" + (stars == 1 ? "" : "S") + "</size>";
+            _starText.text = stars.ToString();
             _starFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(_sim.StarProgress), 1);
 
             var g = _sim.CurrentGoal;
@@ -203,8 +225,8 @@ namespace Crosswind.Game
             _gems.text = _sim.State.gems.ToString();
             var w = _sim.Weather;
             int hh = (int)_sim.Hour, mm = (int)((_sim.Hour - hh) * 60) / 10 * 10;
-            string clock = hh.ToString("00") + ":" + mm.ToString("00") + "   ";
-            _weather.text = clock + (w == Weather.Clear ? "" : (w == Weather.Rain ? "RAIN" : w == Weather.Fog ? "FOG" : w == Weather.Storm ? "STORM" : "SNOW") + "  <size=28>runway at " + Mathf.RoundToInt(_sim.WeatherFactor * 100) + "%</size>");
+            string clock = hh.ToString("00") + ":" + mm.ToString("00") + (w == Weather.Clear ? "   CLEAR" : "   ");
+            _weather.text = clock + (w == Weather.Clear ? "" : (w == Weather.Rain ? "RAIN" : w == Weather.Fog ? "FOG" : w == Weather.Storm ? "STORM" : "SNOW") + "  <size=24>runway " + Mathf.RoundToInt(_sim.WeatherFactor * 100) + "%</size>");
             _chips.text = (_sim.Rush ? "RUSH x2  " + Format.Time(_sim.State.rushUntil - _sim.State.time) + "   " : "") + (_sim.Boosted ? "BOOST x2  " + Format.Time(_sim.BoostLeft) : "");
             var o = _sim.State.opportunity;
             _opp.gameObject.SetActive(o != null && _tab < 0);
@@ -216,6 +238,7 @@ namespace Crosswind.Game
             }
             _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
             _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
+            UpdateBoard();
             UpdateServiceButtons();
             UpdatePops();
             UpdateGuide();

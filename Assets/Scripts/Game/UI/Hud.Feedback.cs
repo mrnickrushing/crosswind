@@ -76,9 +76,9 @@ namespace Crosswind.Game
         /// <summary>What a claimed goal paid: its chips rise from the guide card.</summary>
         void Reward(double money, int gems)
         {
-            float y = -520;
-            if (money >= 1) { var p = Float(Chip(_root, "+" + Format.Money(money), Ui.Gold, "coin", 52), 2.2f); p.Screen = true; p.At = new Vector2(0, _root.rect.height * 0.5f + y); p.Drift = new Vector2(0, 90); y -= 100; }
-            if (gems > 0) { var p = Float(Chip(_root, "+" + gems + (gems == 1 ? " gem" : " gems"), GemBlue, "gem", 52), 2.2f); p.Screen = true; p.At = new Vector2(0, _root.rect.height * 0.5f + y); p.Drift = new Vector2(0, 90); p.Age = -0.15f; }
+            var from = CanvasPos(_goal); float y = -120;
+            if (money >= 1) { var p = Float(Chip(_root, "+" + Format.Money(money), Ui.Gold, "coin", 52), 2.2f); p.Screen = true; p.At = from + new Vector2(0, y); p.Drift = new Vector2(0, 60); y -= 100; }
+            if (gems > 0) { var p = Float(Chip(_root, "+" + gems + (gems == 1 ? " gem" : " gems"), GemBlue, "gem", 52), 2.2f); p.Screen = true; p.At = from + new Vector2(0, y); p.Drift = new Vector2(0, 60); p.Age = -0.15f; }
             if (money < 1 && gems <= 0) Toast("Done");
         }
 
@@ -93,7 +93,7 @@ namespace Crosswind.Game
                 if (_tab < 0 && GameRoot.Speed <= 3)
                 {
                     var p = Float(Chip(_root, "+" + Format.Money(_ratingOwed) + " rating", Ui.Gold, "star", 34), 1.5f);
-                    p.Screen = true; p.At = new Vector2(_root.rect.width * 0.5f - 210, _root.rect.height * 0.5f - 232); p.Drift = new Vector2(0, 46);
+                    p.Screen = true; p.At = CanvasPos((RectTransform)_starFill.transform.parent) + new Vector2(200, -30); p.Drift = new Vector2(0, 40);
                 }
                 _starPulse = 0.6f; _ratingOwed = 0;
             }
@@ -123,7 +123,7 @@ namespace Crosswind.Game
             RectTransform outer;
             var inner = Pill("Toast", _root, new Color(1, 1, 1, 0.28f), out outer, 3);
             _toast = outer; _toastRim = outer.GetComponent<Image>();
-            _toast.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 330), new Vector2(900, 92));
+            _toast.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(900, 84));
             _toastText = Ui.Label("Text", inner, "", 38, Color.white, TextAnchor.MiddleCenter, false);
             _toastText.rectTransform.Fill(14);
             _toastText.resizeTextForBestFit = true; _toastText.resizeTextMinSize = 24; _toastText.resizeTextMaxSize = 38;
@@ -133,7 +133,7 @@ namespace Crosswind.Game
             // The star banner: a gold-rimmed plate, a gold band across its top, the stars landing one by one.
             var plate = Pill("Banner", _root, Ui.Gold, out outer, 10, false);
             _banner = outer;
-            _banner.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -430), new Vector2(940, 330));
+            _banner.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -150), new Vector2(940, 330));
             _bannerGroup = _banner.gameObject.AddComponent<CanvasGroup>(); _bannerGroup.blocksRaycasts = false;
             _bannerRays = Ui.ArtImg("Rays", plate, "rays", new Color(1f, 0.82f, 0.3f, 0.35f), 0).rectTransform;
             _bannerRays.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), new Vector2(0, -130), new Vector2(620, 620));
@@ -154,7 +154,7 @@ namespace Crosswind.Game
             if (string.IsNullOrEmpty(text)) return;
             _toastText.text = text;
             float w = Mathf.Clamp(_toastText.preferredWidth + 90, 320, 960);
-            _toast.sizeDelta = new Vector2(w, 92);
+            _toast.sizeDelta = new Vector2(w, 84);
             _toast.gameObject.SetActive(true);
             _toast.SetAsLastSibling();
             _toastT = 2.4f; _toastAge = 0;
@@ -192,7 +192,7 @@ namespace Crosswind.Game
                 else
                 {
                     _toast.localScale = Vector3.one * Spring(_toastAge / 1.4f);
-                    _toast.anchoredPosition = new Vector2(0, 330 - 40 * Mathf.Clamp01(1 - _toastAge / 0.18f));
+                    _toast.anchoredPosition = new Vector2(0, 40 - 40 * Mathf.Clamp01(1 - _toastAge / 0.18f));
                     _toastGroup.alpha = Mathf.Clamp01(_toastAge / 0.1f) * Mathf.Clamp01(_toastT / 0.35f);
                 }
             }

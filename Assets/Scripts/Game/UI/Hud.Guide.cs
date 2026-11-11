@@ -44,8 +44,8 @@ namespace Crosswind.Game
             {
                 var waiting = _serviceButtons.FirstOrDefault(b => b.Rt.gameObject.activeSelf);
                 if (st.flightsHandled == 0 && waiting != null) { at = waiting.Rt.anchoredPosition + new Vector2(0, -70); say = "Tap to send the fuel truck"; }
-                else if (_sim.GoalDone && st.goalIndex < 3) { at = ((RectTransform)_goalClaim.transform).anchoredPosition + new Vector2(_root.rect.width * 0.5f - 130, _root.rect.height * 0.5f - 420); say = "Collect your reward"; }
-                else if (st.goalIndex == 2 && _sim.UpgradeBlocked("stands") == null) { at = new Vector2(-_root.rect.width * 0.4f, -_root.rect.height * 0.5f + 250); say = "Open BUILD and add a stand"; }
+                else if (_sim.GoalDone && st.goalIndex < 3) { at = CanvasPos((RectTransform)_goalClaim.transform) + new Vector2(0, -90); say = "Collect your reward"; }
+                else if (st.goalIndex == 2 && _sim.UpgradeBlocked("stands") == null) { at = CanvasPos((RectTransform)_tabs[0].transform) + new Vector2(120, -20); say = "Open BUILD and add a stand"; }
                 if (st.goalIndex >= 3) { st.tutorialDone = true; }
             }
             _hand.gameObject.SetActive(at.HasValue);

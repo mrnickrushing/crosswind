@@ -93,7 +93,7 @@ namespace Crosswind.Game
             shade.raycastTarget = true;
             _crateCard = shade.rectTransform; _crateCard.Fill(); _crateCard.SetAsLastSibling();
             var card = Ui.Img("Card", _crateCard, Ui.Panel, true).rectTransform;
-            card.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(820, 980));
+            card.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(780, 940));
             var band = Ui.Img("Band", card, tint, true).rectTransform;
             band.Band(true, 0, 120);
             Ui.Label("Rarity", band, RarityName[(int)d.Rarity], 54, Ui.Ink).rectTransform.Fill();

@@ -80,11 +80,24 @@ ring = ImageChops.subtract(rounded(128, 34, 8, 14), rounded(128, 34, 8, 14).filt
 rim = Image.new("RGBA", (N, N), (0, 0, 0, 0)); rim.paste(vgrad(N, N, (255, 255, 255, 255), (200, 200, 200, 255)), (0, 0), ring)
 save(rim, "rim", 128)
 # Button (white, tinted): flatter gloss, a darker lip at the bottom so it reads as pressable.
-btn = shaped(128, rounded(128, 30, 8, 14), (255, 255, 255, 255), (206, 210, 218, 255), gloss=0.4)
-lip = Image.new("L", (N, N), 0); ImageDraw.Draw(lip).rectangle((0, N * 0.78, N, N), fill=70)
-lip = ImageChops.multiply(lip, rounded(128, 30, 8, 14).filter(ImageFilter.MinFilter(5 * S * 2 + 1)))
+btn = shaped(128, rounded(128, 16, 6, 10), (255, 255, 255, 255), (214, 218, 226, 255), ow=3, gloss=0.2, drop=4)
+lip = Image.new("L", (N, N), 0); ImageDraw.Draw(lip).rectangle((0, N * 0.84, N, N), fill=46)
+lip = ImageChops.multiply(lip, rounded(128, 16, 6, 10).filter(ImageFilter.MinFilter(3 * S * 2 + 1)))
 btn.paste(Image.new("RGBA", (N, N), (0, 0, 0, 255)), (0, 0), lip)
 save(btn, "button", 128)
+# Panels: dark glass with a fine light edge (the HUD's surfaces), and the lighter card that rows sit on.
+def glass(top, bottom, edge, r=18, hi=40):
+    m = rounded(128, r, 3)
+    im = Image.new("RGBA", (N, N), (0, 0, 0, 0))
+    im.paste(Image.new("RGBA", (N, N), edge), (0, 0), m)
+    inner = m.filter(ImageFilter.MinFilter(2 * S * 2 + 1))
+    im.paste(vgrad(N, N, top, bottom), (0, 0), inner)
+    line = Image.new("L", (N, N), 0); ImageDraw.Draw(line).rectangle((0, 5 * S, N, 7 * S), fill=hi)
+    im.paste(Image.new("RGBA", (N, N), (255, 255, 255, 255)), (0, 0), ImageChops.multiply(line, inner))
+    return im
+save(glass((26, 36, 52, 242), (12, 18, 28, 242), (86, 108, 138, 255)), "panel", 128)
+save(glass((40, 52, 72, 255), (30, 40, 56, 255), (62, 78, 102, 255), r=14, hi=26), "card", 128)
+save(glass((16, 22, 32, 255), (22, 30, 42, 255), (48, 60, 80, 255), r=12, hi=0), "well", 128)
 
 # Coin, gem, star: full colour.
 coin = shaped(128, disc(128, 8), (255, 226, 110, 255), (232, 150, 20, 255), outline=(110, 62, 8, 255), gloss=0.6)

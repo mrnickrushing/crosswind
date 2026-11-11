@@ -20,7 +20,7 @@ namespace Crosswind.Game
         public static readonly Color Gold = new Color(1f, 0.78f, 0.24f), Green = new Color(0.25f, 0.72f, 0.42f), Blue = new Color(0.2f, 0.52f, 0.86f), Red = new Color(0.9f, 0.36f, 0.3f);
         public static readonly Color Dim = new Color(1, 1, 1, 0.6f), Off = new Color(0.32f, 0.36f, 0.42f);
 
-        /// <summary>A portrait canvas (1080 x 1920 reference, expanding on taller or wider screens) and the event system.</summary>
+        /// <summary>A landscape canvas (1920 x 1080 reference, expanding on taller or wider screens) and the event system.</summary>
         public static RectTransform Canvas(string name, Transform parent)
         {
             var go = new GameObject(name, typeof(RectTransform));
@@ -29,7 +29,7 @@ namespace Crosswind.Game
             c.renderMode = RenderMode.ScreenSpaceOverlay;
             var s = go.AddComponent<CanvasScaler>();
             s.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            s.referenceResolution = new Vector2(1080, 1920);
+            s.referenceResolution = new Vector2(1920, 1080);
             s.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             go.AddComponent<GraphicRaycaster>();
             if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() == null)
@@ -223,5 +223,21 @@ namespace Crosswind.Game
         }
 
         public void OnScroll(PointerEventData e) { if (CameraRig.Instance != null) CameraRig.Instance.Zoom(1 + Mathf.Clamp(e.scrollDelta.y, -3, 3) * 0.08f); }
+    }
+
+    /// <summary>Keeps the controls inside the screen's safe area (clear of the notch and the home bar).</summary>
+    public sealed class SafeArea : MonoBehaviour
+    {
+        Rect _last;
+        void Update()
+        {
+            var sa = Screen.safeArea;
+            if (sa == _last || Screen.width <= 0 || Screen.height <= 0) return;
+            _last = sa;
+            var rt = (RectTransform)transform;
+            rt.anchorMin = new Vector2(sa.xMin / Screen.width, sa.yMin / Screen.height);
+            rt.anchorMax = new Vector2(sa.xMax / Screen.width, sa.yMax / Screen.height);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+        }
     }
 }

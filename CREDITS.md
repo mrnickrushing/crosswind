@@ -19,3 +19,7 @@ Each was converted to a vertex-coloured mesh, rescaled and re-oriented (`Tools/b
 ## Vehicles, buildings, people (Kenney, CC0: https://kenney.nl)
 
 Car Kit, City Kit (Commercial, Industrial, Roads), Mini Characters. Public domain; listed with thanks.
+
+## People
+
+Passengers, staff portraits and ground crew: characters by **Quaternius** (CC0, via poly.pizza): Woman in Dress, Man in Long Sleeves, Man (two), Man in Suit, Woman in Tank Top, Animated Woman, Woman Casual, Woman, Casual Character, Business Man, Hoodie Character, Worker. Posed and slimmed by `Tools/art/models.py`.

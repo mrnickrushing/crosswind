@@ -18,15 +18,18 @@ MODELS = {  # id: (source, "size" | "height")
 for k in "abcdefghijklmn": MODELS["shop_" + k] = (COM + "building-%s.glb" % k, "size")
 for k in "abcde": MODELS["tower_" + k] = (COM + "building-skyscraper-%s.glb" % k, "height")
 for k in "abcdefghijklmnopqrst": MODELS["works_" + k] = (IND + "building-%s.glb" % k, "size")
-for i, k in enumerate(["female-a", "female-b", "female-c", "female-d", "female-e", "female-f", "male-a", "male-b", "male-c", "male-d", "male-e", "male-f"]):
-    for tag, pose in (("w0", "walk:0"), ("w1", "walk:4"), ("w2", "walk:8"), ("w3", "walk:12"), ("idle", "idle:0"), ("sit", "sit:2")):
-        MODELS["person_%d_%s" % (i, tag)] = (MINI + "character-%s.glb" % k, "height", pose)
-for tag, pose in (("w0", "walk:0"), ("w1", "walk:4"), ("w2", "walk:8"), ("w3", "walk:12"), ("idle", "idle:0")):
-    MODELS["worker_" + tag] = (MINI + "character-worker.glb", "height", pose)
+# People: Quaternius's realistically proportioned characters (CC0, poly.pizza), each frozen in four walking strides,
+# standing and (where the pack has it) sitting, and slimmed for crowds.
+PEOPLE = ["dress", "longsleeves", "man_a", "man_b", "suit", "tanktop", "woman_c", "woman_casual", "woman_d", "casual", "business", "hoodie"]
+for i, k in enumerate(PEOPLE):
+    for tag, pose in (("w0", "walk:f0"), ("w1", "walk:f0.25"), ("w2", "walk:f0.5"), ("w3", "walk:f0.75"), ("idle", "idle:f0"), ("sit", "sit:f0.9")):
+        MODELS["person_%d_%s" % (i, tag)] = ("people/%s.glb" % k, "height", pose, "--maxfaces", "1500")
+for tag, pose in (("w0", "walk:f0"), ("w1", "walk:f0.25"), ("w2", "walk:f0.5"), ("w3", "walk:f0.75"), ("idle", "idle:f0")):
+    MODELS["worker_" + tag] = ("people/worker.glb", "height", pose, "--maxfaces", "1500")
 out = os.path.join(ROOT, "Assets", "Resources", "Models")
 for mid in (sys.argv[1:] or list(MODELS)):
     src, mode = MODELS[mid][0], MODELS[mid][1]
-    extra = ["--pose", MODELS[mid][2]] if len(MODELS[mid]) > 2 else []
+    extra = (["--pose", MODELS[mid][2]] + list(MODELS[mid][3:])) if len(MODELS[mid]) > 2 else []
     r = subprocess.run(["blender", "-b", "--factory-startup", "-P", os.path.join(ROOT, "Tools", "blender", "model_import.py"), "--", os.path.join(F, src), os.path.join(out, mid + ".fbx"),
                         "--" + mode, "1"] + extra, capture_output=True, text=True)
     line = [l for l in r.stdout.splitlines() if "[free]" in l]

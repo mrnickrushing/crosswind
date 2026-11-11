@@ -44,16 +44,30 @@ pose = arg("--pose", None, str)
 if pose and arm is not None:
     name, frame = pose.split(":")
     act = bpy.data.actions.get(name)
+    if act is None:
+        # A loose name ("walk") picks the shortest clip that has it in its name ("HumanArmature|Man_Walk").
+        hits = sorted((a for a in bpy.data.actions if name.lower() in a.name.lower()), key=lambda a: len(a.name))
+        act = hits[0] if hits else None
     if act is not None:
         arm.animation_data_create()
         arm.animation_data.action = act
-        bpy.context.scene.frame_set(int(frame))
+        # "f0.25" is a quarter of the way through the clip, whatever its length.
+        at = act.frame_range[0] + (act.frame_range[1] - act.frame_range[0]) * float(frame[1:]) if frame.startswith("f") else int(frame)
+        bpy.context.scene.frame_set(int(round(at)))
         bpy.context.view_layer.update()
         for o in meshes:
             bpy.context.view_layer.objects.active = o
             for mod in list(o.modifiers):
                 if mod.type == "ARMATURE":
                     bpy.ops.object.modifier_apply(modifier=mod.name)
+maxfaces = arg("--maxfaces", 0.0)
+if maxfaces:
+    total = sum(len(o.data.polygons) for o in meshes)
+    if total > maxfaces:
+        for o in meshes:
+            bpy.context.view_layer.objects.active = o
+            m = o.modifiers.new("slim", "DECIMATE"); m.ratio = maxfaces / total
+            bpy.ops.object.modifier_apply(modifier=m.name)
 
 
 def to_linear(c):

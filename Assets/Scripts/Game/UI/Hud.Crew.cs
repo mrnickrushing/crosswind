@@ -139,7 +139,7 @@ namespace Crosswind.Game
     public static class Portraits
     {
         const int Size = 256, Layer = 31, Kinds = 12;
-        public static float Up = 0.3f, Zoom = 0.74f;      // framing: how far above the middle to aim, and how much of the height to show
+        public static float Up = 0.7f, Zoom = 0.34f;      // framing: how far above the middle to aim, and how much of the height to show
         static readonly Dictionary<int, Sprite> _made = new Dictionary<int, Sprite>();
         static Camera _cam;
 
@@ -158,6 +158,11 @@ namespace Crosswind.Game
                 _cam.enabled = false;
                 _cam.clearFlags = CameraClearFlags.SolidColor; _cam.backgroundColor = new Color(0, 0, 0, 0);
                 _cam.cullingMask = 1 << Layer; _cam.orthographic = true; _cam.nearClipPlane = 0.05f; _cam.farClipPlane = 20;
+                // Their own studio light: a key from the front left, so a face reads at thumbnail size.
+                var key = new GameObject("Portrait light").AddComponent<Light>();
+                Object.DontDestroyOnLoad(key.gameObject);
+                key.type = LightType.Directional; key.cullingMask = 1 << Layer; key.intensity = 1.6f; key.color = new Color(1f, 0.97f, 0.92f); key.shadows = LightShadows.None;
+                key.transform.rotation = Quaternion.Euler(25, 150, 0);
             }
             var go = new GameObject("Sitter");
             go.layer = Layer;

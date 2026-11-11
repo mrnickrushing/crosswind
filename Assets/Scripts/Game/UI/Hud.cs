@@ -187,6 +187,7 @@ namespace Crosswind.Game
             scroll.content = _sheetList; scroll.viewport = view; scroll.horizontal = false; scroll.movementType = ScrollRect.MovementType.Clamped; scroll.scrollSensitivity = 40;
             _sheet.gameObject.SetActive(false);
 
+            BuildTerminalUi();
             BuildGuide();
             // Toast and the star banner.
             BuildFeedback();
@@ -239,6 +240,7 @@ namespace Crosswind.Game
             _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
             _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateBoard();
+            UpdateTerminalUi();
             UpdateServiceButtons();
             UpdatePops();
             UpdateGuide();

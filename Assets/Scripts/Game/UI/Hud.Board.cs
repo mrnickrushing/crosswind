@@ -101,6 +101,6 @@ namespace Crosswind.Game
             Sfx.Play("open", 0.4f);
         }
 
-        void OnInsideChanged() { _dirty = true; }
+        void OnInsideChanged() { _dirty = true; if (!CameraRig.Inside) { StopPlacing(); ClosePick(); } else if (_tab >= 0 && _tab != ShopTab) OpenTab(-1); }
     }
 }

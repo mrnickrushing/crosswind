@@ -106,10 +106,6 @@ namespace Crosswind.Core
             Fac("checkin", "Check-in Desks", "Terminal", 200, "More passengers processed a minute.", start: 1);
             Fac("security", "Security Lanes", "Terminal", 260, "Shorter queues: happier passengers who spend more.", start: 1);
             Fac("gates", "Gate Lounges", "Terminal", 320, "Faster boarding and deplaning.", start: 1);
-            Fac("shops", "Shops and Cafes", "Terminal", 400, "Every passenger spends more.", stars: 2);
-            Fac("seating", "Seating and Toilets", "Terminal", 300, "Somewhere to sit, and clean toilets: comfort for everyone waiting.", stars: 2);
-            Fac("info", "Information and Wayfinding", "Terminal", 900, "Screens, signs and a help desk: nobody lost, nobody late to the gate.", stars: 3);
-            Fac("lounge", "Lounges", "Terminal", 6000, "Comfort for the passengers who pay most: the passenger fee rises.", stars: 4);
             Fac("parking", "Car Park and Transit", "Terminal", 2500, "Parking, buses, and later a rail link: income every minute, flights or not.", stars: 3);
             // Operations.
             Fac("ils", "Landing Aids", "Airside", 3000, "Lights, radar and ILS: bad weather slows the runway less with every level.", stars: 3, growth: 1.9f, max: 10);

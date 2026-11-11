@@ -253,9 +253,9 @@ namespace Crosswind.Tests
             foreach (var r in s.Offers.ToList()) s.Sign(r.Id);
             var before = s.Needs;
             float sat = s.Satisfaction;
-            Assert.AreEqual(4, before.Count);
+            Assert.AreEqual(8, before.Count);
             Assert.Less(before[1].Value, 1f, "a busy airport with no seats");
-            for (int i = 0; i < 6; i++) { s.Upgrade("seating"); s.Upgrade("info"); s.Upgrade("shops"); }
+            foreach (var a in Sim.Amenities) for (int i = 0; i < 3; i++) s.PlaceAnywhere(a.Id);
             Assert.Greater(s.Needs[1].Value, before[1].Value);
             Assert.Greater(s.Satisfaction, sat);
             foreach (var n in s.Needs) { Assert.That(n.Value, Is.InRange(0f, 1f)); Assert.IsNotEmpty(n.Advice); }

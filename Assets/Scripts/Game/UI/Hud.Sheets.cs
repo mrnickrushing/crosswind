@@ -62,6 +62,7 @@ namespace Crosswind.Game
             if (_tab < 0) return;
             Ui.Clear(_sheetList);
             _rowY = 0;
+            if (_tab == ShopTab) { ShopSheet(); _sheetList.sizeDelta = new Vector2(0, _rowY); return; }
             _sheetTitle.text = TabNames[_tab];
             var s = _sim;
             if (_tab == 0)

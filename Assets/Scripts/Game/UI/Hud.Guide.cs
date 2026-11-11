@@ -79,6 +79,7 @@ namespace Crosswind.Game
         /// <summary>A tap on the world (the drag pad saw a touch that didn't move): the nearest aircraft under it, if any.</summary>
         public void TapWorld(Vector2 screen)
         {
+            if (CameraRig.Instance != null && CameraRig.Inside) { TerminalTap(screen); return; }
             if (AirportView.Instance == null || CameraRig.Instance == null) return;
             PlaneView best = null; float bestD = 120f * 120f * (Screen.height / 1920f) * (Screen.height / 1920f);
             foreach (var p in AirportView.Instance.Planes)

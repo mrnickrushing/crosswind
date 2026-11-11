@@ -37,7 +37,8 @@ namespace Crosswind.Core
             G("runway_3", "Lengthen the runway to level 3 for the Heron 50", 3, s => s.Level("runway"), 1500);
             G("regional", "Sign a Heron 50 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.B) ? 1 : 0, 2500, 10);
             G("fifty_flights", "Handle 50 flights", 50, s => s.State.flightsHandled, 4000);
-            G("shops", "Open the shops and cafes", 1, s => s.Level("shops"), 3000);
+            G("shops", "Furnish the terminal: place a coffee bar (TERMINAL, then SHOP)", 1, s => s.State.terminal.Count(t => Sim.AmenityById(t.id).Earns), 3000);
+            G("comfort", "Passengers need seats and toilets: place both in the terminal", 2, s => Math.Min(1, s.Placed("seats") + s.Placed("recliners")) + Math.Min(1, s.Placed("toilets")), 2500, 5);
             G("three_stars", "Reach a 3-star airport", 3, s => s.Stars, 10000, 10);
             G("plan_day", "Open the day planner and tap AUTO PLAN (AIRLINES)", 1, s => s.State.plansMade > 0 || s.State.contracts.Exists(c => c.slot > 0) ? 1 : 0, 6000, 5);
             G("baggage_manager", "Hire a baggage manager", 1, s => s.State.managers.Contains("baggage") ? 1 : 0, 8000, 5);

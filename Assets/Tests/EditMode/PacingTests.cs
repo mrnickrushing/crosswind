@@ -36,6 +36,16 @@ namespace Crosswind.Tests
                 foreach (var r in s.Offers.ToList()) s.Sign(r.Id);
                 foreach (var id in Content.FacilityOrder) if (s.HireBlocked(id) == null) s.Hire(id);
                 while (s.State.crates > 0) s.OpenCrate();
+                {
+                    var worst = s.WorstNeed;
+                    if (worst.Value < 0.9f)
+                    {
+                        var item = Sim.Amenities.Where(a => a.Gives == worst.Want && s.Stars >= a.Stars && s.AmenityCost(a.Id) <= s.State.money * 0.5).OrderByDescending(a => a.Points).FirstOrDefault();
+                        if (item != null && !s.PlaceAnywhere(item.Id)) { var up = s.State.terminal.Where(t => Sim.AmenityById(t.id).Gives == worst.Want && s.AmenityUpgradeBlocked(t) == null && s.AmenityUpgradeCost(t) <= s.State.money * 0.5).FirstOrDefault(); if (up != null) s.UpgradeAmenity(up); }
+                    }
+                    if (s.LoungeLevel < s.Stars - 3 && s.Stars >= 4 && s.AmenityCost("lounge") <= s.State.money * 0.3) s.PlaceAnywhere("lounge");
+                }
+
                 if (s.PlannerOpen && (s.State.plansMade == 0 || (int)(t / 60) % 10 == 0)) s.AutoPlan();
                 // What a contract on offer is waiting for comes first, then the cheapest thing.
                 var wanted = Content.Routes.Values.Where(r => !s.Signed(r.Id) && s.Stars >= r.Stars)

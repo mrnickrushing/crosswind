@@ -52,6 +52,16 @@ namespace Crosswind.Game
             foreach (var id in Content.FacilityOrder) if (s.HireBlocked(id) == null) s.Hire(id);
             if (s.FreeCrateReady) s.TakeFreeCrate();
             while (s.State.crates > 0) s.OpenCrate();
+            {
+                var worst = s.WorstNeed;
+                if (worst.Value < 0.9f)
+                {
+                    var item = Sim.Amenities.Where(a => a.Gives == worst.Want && s.Stars >= a.Stars && s.AmenityCost(a.Id) <= s.State.money * 0.5).OrderByDescending(a => a.Points).FirstOrDefault();
+                    if (item != null && !s.PlaceAnywhere(item.Id)) { var up = s.State.terminal.Where(t => Sim.AmenityById(t.id).Gives == worst.Want && s.AmenityUpgradeBlocked(t) == null && s.AmenityUpgradeCost(t) <= s.State.money * 0.5).FirstOrDefault(); if (up != null) s.UpgradeAmenity(up); }
+                }
+                if (s.LoungeLevel < s.Stars - 3 && s.Stars >= 4 && s.AmenityCost("lounge") <= s.State.money * 0.3) s.PlaceAnywhere("lounge");
+            }
+
             if (s.PlannerOpen && (!s.State.contracts.Exists(c => c.slot > 0) || (int)(s.State.time / 60) % 5 == 0)) s.AutoPlan();
             if (s.State.research == null)
             {

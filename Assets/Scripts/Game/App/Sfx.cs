@@ -15,6 +15,45 @@ namespace Crosswind.Game
         static AudioSource _bed;
         static AudioClip _jet, _prop;
         static int _next;
+        static AudioSource _day, _night;
+        const float MusicLevel = 0.32f;
+
+        /// <summary>Music on or off (its own switch: plenty of people want the sounds without it).</summary>
+        public static bool Music
+        {
+            get { return PlayerPrefs.GetInt("cw_music", 1) == 1; }
+            set { PlayerPrefs.SetInt("cw_music", value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        /// <summary>
+        /// Keeps the music with the clock: the day loop while the sun is up, the quieter night one after dark, a slow
+        /// cross-fade between them, and both down while the title screen or a card wants quiet (<paramref name="duck"/>).
+        /// </summary>
+        public static void TickMusic(float night, float dt, float duck = 1f)
+        {
+            if (_day == null) return;
+            float on = Music ? MusicLevel * duck : 0;
+            float wantDay = on * (1 - night), wantNight = on * night * 1.1f;
+            _day.volume = Mathf.MoveTowards(_day.volume, wantDay, dt * 0.12f);
+            _night.volume = Mathf.MoveTowards(_night.volume, wantNight, dt * 0.12f);
+            // A silent track is stopped (nothing decoding for nothing) and starts again from the top when wanted.
+            foreach (var src in new[] { _day, _night })
+            {
+                bool want = src == _day ? wantDay > 0 : wantNight > 0;
+                if (src.clip == null) continue;
+                if (want && !src.isPlaying) src.Play();
+                else if (!want && src.volume <= 0.0001f && src.isPlaying) src.Stop();
+            }
+        }
+
+        static AudioSource MusicSource(Transform parent, string name)
+        {
+            var s = new GameObject("Music " + name).AddComponent<AudioSource>();
+            s.transform.SetParent(parent, false);
+            s.clip = Resources.Load<AudioClip>("Audio/Music/" + name);
+            s.loop = true; s.volume = 0; s.spatialBlend = 0; s.playOnAwake = false; s.priority = 0;
+            return s;
+        }
 
         public static bool Muted
         {
@@ -39,6 +78,7 @@ namespace Crosswind.Game
             _bed.transform.SetParent(go.transform, false);
             _bed.clip = Roar("Wind", 6f, 260f, 0f, loop: true); _bed.loop = true; _bed.volume = 0.05f; _bed.spatialBlend = 0;
             _bed.Play();
+            _day = MusicSource(go.transform, "day"); _night = MusicSource(go.transform, "night");
             AudioListener.volume = Muted ? 0 : 1;
         }
 

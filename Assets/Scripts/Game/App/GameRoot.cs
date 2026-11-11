@@ -108,6 +108,7 @@ namespace Crosswind.Game
             AppleAccount.Update();
             if (!_ready) return;
             Sim.Tick(Time.deltaTime * Speed);
+            Sfx.TickMusic(Sim.Night, Time.unscaledDeltaTime);
             if ((_saveIn -= Time.unscaledDeltaTime) <= 0) { _saveIn = 10f; Save(); }
         }
 

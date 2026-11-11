@@ -34,6 +34,17 @@ namespace Crosswind.EditorTools
             t.textureCompression = TextureImporterCompression.CompressedHQ;
         }
 
+        void OnPreprocessAudio()
+        {
+            // Music is long: stream it from disk rather than hold it decoded in memory.
+            if (!assetPath.StartsWith("Assets/Resources/Audio/Music/")) return;
+            var a = (AudioImporter)assetImporter;
+            a.loadInBackground = true;
+            var st = a.defaultSampleSettings;
+            st.loadType = AudioClipLoadType.Streaming; st.compressionFormat = AudioCompressionFormat.Vorbis; st.quality = 0.55f;
+            a.defaultSampleSettings = st;
+        }
+
         void OnPreprocessModel()
         {
             if (!assetPath.StartsWith("Assets/Resources/Models/")) return;

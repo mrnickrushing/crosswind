@@ -127,6 +127,7 @@ namespace Crosswind.Core
         public PlacedAmenity FindSpot(string id)
         {
             var d = AmenityById(id);
+            if (d == null) return null;
             int rows = FloorRows, mid = rows / 2;
             for (int k = 0; k < rows; k++)
             {

@@ -236,6 +236,7 @@ namespace Crosswind.Game
                 _oppText.text = (o.kind == "charter" ? "CHARTER\n<size=44>+" + Format.Money(o.value) + "</size>" : o.kind == "rush" ? "RUSH HOUR\n<size=34>double pay</size>" : "LUCKY FIND\n<size=34>+" + (int)o.value + " gems</size>")
                     + "\n<size=26>" + Mathf.CeilToInt((float)(o.expiresAt - _sim.State.time)) + "s</size>";
                 _opp.localScale = Vector3.one * (1 + Mathf.Sin(Time.unscaledTime * 6) * 0.03f);
+                _opp.anchoredPosition = new Vector2(-20, CameraRig.Inside ? 124 : 20);      // clear of the ratings strip indoors
             }
             _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
             _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));

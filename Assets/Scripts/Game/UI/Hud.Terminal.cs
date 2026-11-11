@@ -83,7 +83,7 @@ namespace Crosswind.Game
 
             // A passenger, asked.
             _paxCard = Ui.ArtImg("Passenger", _safe, "panel", Color.white).rectTransform;
-            _paxCard.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(500, 560));
+            _paxCard.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(500, 500));
             _paxCard.GetComponent<Image>().raycastTarget = true;
             _paxText = Ui.Label("Text", _paxCard, "", 26, Color.white, TextAnchor.UpperLeft, false);
             _paxText.rectTransform.Fill(); _paxText.rectTransform.offsetMin = new Vector2(24, 16); _paxText.rectTransform.offsetMax = new Vector2(-20, -18);
@@ -168,9 +168,30 @@ namespace Crosswind.Game
             return Mathf.Clamp01(value + noise * 0.3f);
         }
 
+        GameObject _paxRing;
+        /// <summary>A bright disc under the passenger whose card is open, so you can see who is talking.</summary>
+        void PaxRing(bool on, Vector3 at)
+        {
+            if (_paxRing == null)
+            {
+                if (!on) return;
+                _paxRing = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                Destroy(_paxRing.GetComponent<Collider>());
+                var mr = _paxRing.GetComponent<MeshRenderer>();
+                mr.sharedMaterial = new Material(Shader.Find("Sprites/Default")) { color = new Color(1f, 0.82f, 0.25f, 0.75f) };
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            if (_paxRing.activeSelf != on) _paxRing.SetActive(on);
+            if (!on) return;
+            float r = 1.5f + Mathf.Sin(Time.unscaledTime * 5) * 0.15f;
+            _paxRing.transform.position = at + Vector3.up * 0.04f;
+            _paxRing.transform.localScale = new Vector3(r, 0.01f, r);
+        }
+
         void UpdateTerminalUi()
         {
             bool inside = CameraRig.Inside;
+            if (_pax == null || !inside || !_paxCard.gameObject.activeSelf) PaxRing(false, Vector3.zero);
             if (!inside && (_placing != null || _picked != null || _pax != null)) { StopPlacing(); ClosePick(); _pax = null; _paxCard.gameObject.SetActive(false); }
             if (!inside && _tab == ShopTab) OpenTab(-1);
             _termBar.gameObject.SetActive(inside && _placing == null);
@@ -256,6 +277,7 @@ namespace Crosswind.Game
                         : needs[worst].Want == Want.Shopping ? "\"I wanted a present. There's nothing to buy.\""
                         : "\"Which way is my gate?\"";
                     _paxText.text = "<size=36><b>" + name + "</b></size>\n<color=#FFFFFFA0>" + trip + "</color>\n<color=" + (mood >= 0.65f ? "#5ED58A" : mood >= 0.45f ? "#FFC83D" : "#FF7A6B") + ">" + moodWord + "</color>\n\n" + sb + "\n<i>" + think + "</i>";
+                    PaxRing(true, Interior.Instance.AgentWorld(_pax));
                     CameraRig.Instance.Focus = Vector3.Lerp(CameraRig.Instance.Focus, new Vector3(Interior.Instance.AgentWorld(_pax).x, 0, Interior.Instance.AgentWorld(_pax).z), Time.unscaledDeltaTime * 2);
                 }
             }

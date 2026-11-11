@@ -69,7 +69,7 @@ namespace Crosswind.Core
 
         public string HireBlocked(string facility)
         {
-            if (!Content.Facilities.ContainsKey(facility) || Content.Facilities[facility].Group != "Services") return "No manager for this";
+            if (facility != "fuel" && facility != "baggage" && facility != "catering" && facility != "cleaning") return "No manager for this";
             if (State.managers.Contains(facility)) return "Already hired";
             if (Level(facility) <= 0) return "Build it first";
             if (State.money < ManagerCost(facility)) return "Need " + Format.Money(ManagerCost(facility) - State.money) + " more";

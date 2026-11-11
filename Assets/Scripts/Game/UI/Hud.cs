@@ -31,7 +31,9 @@ namespace Crosswind.Game
         sealed class ServiceButton { public RectTransform Rt; public Image Bg; public Text Label; public int Flight; public Service Service; }
         sealed class Pop { public RectTransform Rt; public Text Text; public Vector3 World; public float Age; }
 
-        static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF" };
+        static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE" };
+        Text _gems, _weather, _chips, _oppText;
+        RectTransform _opp, _empireDot;
 
         public static Hud Create()
         {
@@ -77,7 +79,11 @@ namespace Crosswind.Game
             coin.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(28, -28), new Vector2(66, 66));
             Ui.Label("C", coin.transform, "$", 46, Ui.Ink).rectTransform.Fill();
             _rate = Ui.Label("Rate", top, "", 36, Ui.Green, TextAnchor.MiddleLeft, false);
-            _rate.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(32, 18), new Vector2(560, 50));
+            _rate.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(32, 18), new Vector2(360, 50));
+            var gem = Ui.Img("Gem", top, new Color(0.45f, 0.85f, 0.95f)); gem.sprite = Ui.Circle;
+            gem.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(400, 24), new Vector2(40, 40));
+            _gems = Ui.Label("Gems", top, "0", 36, Color.white, TextAnchor.MiddleLeft);
+            _gems.rectTransform.Place(new Vector2(0, 0), new Vector2(0, 0), new Vector2(450, 18), new Vector2(160, 50));
             _starText = Ui.Label("Stars", top, "", 52, Ui.Gold, TextAnchor.MiddleRight);
             _starText.rectTransform.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-30, -22), new Vector2(380, 70));
             var bar = Ui.Img("StarBar", top, new Color(0, 0, 0, 0.45f), true).rectTransform;
@@ -100,6 +106,20 @@ namespace Crosswind.Game
             _goalClaim = Ui.Button("Claim", _goal, "CLAIM", Ui.Green, () => { if (_sim.ClaimGoal()) { Toast("Reward collected"); _dirty = true; } }, 44);
             ((RectTransform)_goalClaim.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-24, 0), new Vector2(210, 104));
 
+            // Under the guide: the weather, and what is running (a boost, a rush).
+            _weather = Ui.Label("Weather", _root, "", 34, Color.white, TextAnchor.MiddleLeft);
+            _weather.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -440), new Vector2(500, 50));
+            Outline(_weather);
+            _chips = Ui.Label("Chips", _root, "", 34, Ui.Gold, TextAnchor.MiddleRight);
+            _chips.rectTransform.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -440), new Vector2(620, 50));
+            Outline(_chips);
+            // An opportunity: a big button on the right that counts down.
+            var opp = Ui.Button("Opportunity", _root, "", Ui.Gold, () => { if (_sim.TakeOpportunity()) _dirty = true; }, 38);
+            _opp = (RectTransform)opp.transform;
+            _opp.Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-24, 240), new Vector2(330, 150));
+            _oppText = opp.GetComponentInChildren<Text>(); _oppText.color = Ui.Ink;
+            _opp.gameObject.SetActive(false);
+
             // Bottom bar and the sheet it opens.
             var bottom = Ui.Img("Bottom", _root, Ui.Panel).rectTransform;
             bottom.Band(false, 0, 190);
@@ -107,11 +127,15 @@ namespace Crosswind.Game
             for (int i = 0; i < TabNames.Length; i++)
             {
                 int k = i;
-                var b = Ui.Button(TabNames[i], bottom, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 46);
+                var b = Ui.Button(TabNames[i], bottom, TabNames[i], Ui.Card, () => OpenTab(_tab == k ? -1 : k), 34);
                 var rt = (RectTransform)b.transform;
-                rt.anchorMin = new Vector2(i / 3f, 0); rt.anchorMax = new Vector2((i + 1) / 3f, 1); rt.offsetMin = new Vector2(i == 0 ? 20 : 10, 54); rt.offsetMax = new Vector2(i == 2 ? -20 : -10, -18);
+                float n = TabNames.Length;
+                rt.anchorMin = new Vector2(i / n, 0); rt.anchorMax = new Vector2((i + 1) / n, 1); rt.offsetMin = new Vector2(i == 0 ? 16 : 6, 54); rt.offsetMax = new Vector2(i == n - 1 ? -16 : -6, -18);
                 _tabs.Add(b);
             }
+            // A dot on EMPIRE when a task or an achievement is waiting to be claimed.
+            var dot = Ui.Img("Dot", _tabs[4].transform, Ui.Red); dot.sprite = Ui.Circle;
+            _empireDot = dot.rectTransform; _empireDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-6, -6), new Vector2(30, 30));
             _sheet = Ui.Img("Sheet", _root, Ui.Panel, true).rectTransform;
             _sheet.anchorMin = new Vector2(0, 0); _sheet.anchorMax = new Vector2(1, 0); _sheet.pivot = new Vector2(0.5f, 0);
             _sheet.offsetMin = new Vector2(16, 0); _sheet.offsetMax = new Vector2(-16, 0); _sheet.anchoredPosition = new Vector2(0, 196); _sheet.sizeDelta = new Vector2(-32, 860);
@@ -168,12 +192,27 @@ namespace Crosswind.Game
                 _goalCount.text = g.Target > 1 ? Format.Money(_sim.GoalProgress) + " / " + Format.Money(g.Target) : "+" + Format.Money(g.Money);
             }
 
+            _gems.text = _sim.State.gems.ToString();
+            var w = _sim.Weather;
+            _weather.text = w == Weather.Clear ? "" : (w == Weather.Rain ? "RAIN" : w == Weather.Fog ? "FOG" : w == Weather.Storm ? "STORM" : "SNOW") + "  <size=28>runway at " + Mathf.RoundToInt(_sim.WeatherFactor * 100) + "%</size>";
+            _chips.text = (_sim.Rush ? "RUSH x2  " + Format.Time(_sim.State.rushUntil - _sim.State.time) + "   " : "") + (_sim.Boosted ? "BOOST x2  " + Format.Time(_sim.BoostLeft) : "");
+            var o = _sim.State.opportunity;
+            _opp.gameObject.SetActive(o != null && _tab < 0);
+            if (o != null)
+            {
+                _oppText.text = (o.kind == "charter" ? "CHARTER\n<size=44>+" + Format.Money(o.value) + "</size>" : o.kind == "rush" ? "RUSH HOUR\n<size=34>double pay</size>" : "LUCKY FIND\n<size=34>+" + (int)o.value + " gems</size>")
+                    + "\n<size=26>" + Mathf.CeilToInt((float)(o.expiresAt - _sim.State.time)) + "s</size>";
+                _opp.localScale = Vector3.one * (1 + Mathf.Sin(Time.unscaledTime * 6) * 0.03f);
+            }
+            _empireDot.gameObject.SetActive(_sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateServiceButtons();
             UpdatePops();
             if ((_refreshIn -= Time.unscaledDeltaTime) <= 0 || _dirty) { _refreshIn = 0.5f; if (_tab >= 0) RefreshSheet(); _dirty = false; }
             if (_toastT > 0 && (_toastT -= Time.unscaledDeltaTime) <= 0) _toast.gameObject.SetActive(false);
             if (_bannerT > 0 && (_bannerT -= Time.unscaledDeltaTime) <= 0) _banner.gameObject.SetActive(false);
         }
+
+        static void Outline(Text t) { var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.75f); o.effectDistance = new Vector2(2, -2); }
 
         public void Toast(string text)
         {

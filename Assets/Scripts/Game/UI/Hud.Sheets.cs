@@ -100,6 +100,8 @@ namespace Crosswind.Game
                 var next = Content.Routes.Values.Where(r => !s.Signed(r.Id) && r.Stars > s.Stars).OrderBy(r => r.Stars).FirstOrDefault();
                 if (next != null) Entry(Content.Airlines[next.Airline].Name, "AT " + next.Stars + " STARS", "\"" + Content.Airlines[next.Airline].Motto + "\"  They are watching how you run the place.", null, null, null);
             }
+            else if (_tab == 3) ResearchSheet();
+            else if (_tab == 4) EmpireSheet();
             else
             {
                 Header("MANAGERS RUN A DEPARTMENT FOR YOU, EVEN WHILE YOU'RE AWAY");
@@ -108,12 +110,103 @@ namespace Crosswind.Game
                     var d = Content.Facilities[id];
                     if (d.Group != "Services") continue;
                     bool hired = s.State.managers.Contains(id);
-                    Entry(d.Name + " manager", hired ? "HIRED" : null, hired ? "Sends the crews out the moment an aircraft parks." : "No more tapping for this service, and its flights earn while the app is closed.",
-                        hired ? null : "HIRE\n<size=34>" + Format.Money(s.ManagerCost(id)) + "</size>", hired ? null : s.HireBlocked(id), () => { if (s.Hire(id)) Toast(d.Name + " now runs itself"); }, Ui.Gold);
+                    if (d.Group != "Services" || id == "hangar" || id == "cargo") continue;
+                    int ml = s.ManagerLevel(id);
+                    if (hired)
+                        Entry(d.Name + " manager", "LEVEL " + ml, "Sends the crews out the moment an aircraft parks. Crews work " + (ml * 10) + "% faster; training adds 10%.",
+                            ml >= Sim.MaxManagerLevel ? null : "TRAIN\n<size=34>" + Format.Money(s.TrainCost(id)) + "</size>", s.TrainBlocked(id), () => { if (s.Train(id)) Toast(d.Name + " manager trained to level " + (ml + 1)); }, Ui.Blue);
+                    else
+                        Entry(d.Name + " manager", null, "No more tapping for this service, and its flights earn while the app is closed.",
+                            "HIRE\n<size=34>" + Format.Money(s.ManagerCost(id)) + "</size>", s.HireBlocked(id), () => { if (s.Hire(id)) Toast(d.Name + " now runs itself"); }, Ui.Gold);
                 }
-                Entry("Earning while away", null, "With every service on a route managed, that route keeps flying for up to " + Content.OfflineHours + " hours with the app closed. Right now: " + Format.Money(s.IdleRate() * 60) + " a minute.", null, null, null);
+                Entry("Earning while away", null, "With every service on a route managed, that route keeps flying for up to " + Format.Time(s.OfflineCapSeconds) + " with the app closed. Right now: " + Format.Money(s.IdleRate() * 60) + " a minute.", null, null, null);
             }
             _sheetList.sizeDelta = new Vector2(0, _rowY);
+        }
+
+        void ResearchSheet()
+        {
+            var s = _sim;
+            if (s.State.research != null)
+            {
+                var r = Content.ResearchById(s.State.research.id);
+                Header("UNDER WAY");
+                Entry(r.Name, Format.Time(s.ResearchLeft) + " LEFT", r.Blurb, "FINISH\n<size=34>" + s.ResearchSkipGems + " gems</size>", s.State.gems < s.ResearchSkipGems ? "Not enough gems" : null,
+                    () => { s.SkipResearch(); }, Ui.Blue);
+            }
+            foreach (var branch in Content.Research.Select(r => r.Branch).Distinct())
+            {
+                Header(branch.ToUpper());
+                foreach (var r in Content.Research.Where(x => x.Branch == branch))
+                {
+                    if (s.Researched(r.Id)) { Entry(r.Name, "DONE", r.Blurb, null, null, null); continue; }
+                    if (s.State.research != null && s.State.research.id == r.Id) continue;
+                    // Only the next project of a branch and the one after it are shown: the rest is a surprise.
+                    if (r.Requires != null && !s.Researched(r.Requires) && Content.ResearchById(r.Requires).Requires != null && !s.Researched(Content.ResearchById(r.Requires).Requires)) continue;
+                    Entry(r.Name, Format.Time(r.Seconds), r.Blurb, "RESEARCH\n<size=34>" + Format.Money(s.ResearchCost(r)) + "</size>", s.ResearchBlocked(r.Id),
+                        () => { if (s.StartResearch(r.Id)) Toast("Research started: " + r.Name); }, Ui.Blue);
+                }
+            }
+        }
+
+        void EmpireSheet()
+        {
+            var s = _sim;
+            Header("TODAY");
+            for (int i = 0; i < s.State.tasks.Count; i++)
+            {
+                var task = s.State.tasks[i]; int k = i;
+                bool done = task.progress >= task.target;
+                Entry(Sim.TaskText(task), task.claimed ? "CLAIMED" : Format.Money(task.progress) + " / " + Format.Money(task.target), "Reward: " + task.gems + " gems. New tasks every day.",
+                    task.claimed ? null : "CLAIM\n<size=34>" + task.gems + " gems</size>", done ? null : "Not done yet", () => { if (s.ClaimTask(k)) Toast("+" + task.gems + " gems"); }, Ui.Blue);
+            }
+            Header("BOOST");
+            Entry("Double income", s.Boosted ? Format.Time(s.BoostLeft) + " LEFT" : null, "Everything the airport earns is doubled for " + Content.BoostMinutes + " minutes. Stacks up to 4 hours.",
+                "BOOST\n<size=34>" + Content.BoostGems + " gems</size>", s.State.gems < Content.BoostGems ? "Not enough gems" : null, () => { if (s.BuyBoost()) Toast("Income doubled for " + Content.BoostMinutes + " minutes"); }, Ui.Gold);
+
+            Header(s.Map.Name.ToUpper() + "  ·  " + s.State.wings + " WINGS (+" + Mathf.RoundToInt(s.State.wings * Content.WingBonus * 100) + "% income)");
+            Entry("Sell your stake", s.Stars >= Content.SellStars ? "WORTH " + s.WingsOnSale + " WINGS" : null,
+                "Sell this airport for Wings, which raise all income for good, and start a new one somewhere harder and richer. Research, gems and achievements stay with you."
+                + (s.Stars < Content.SellStars ? " Reach " + Content.SellStars + " stars first." : ""), null, null, null);
+            foreach (var m in Content.Maps)
+            {
+                if (m.Id == s.State.map) continue;
+                bool run = s.State.mapsRun.Contains(m.Id);
+                Entry(m.Name, run ? "RUN BEFORE" : m.WingsToOpen > 0 ? m.WingsToOpen + " WINGS" : null, m.Blurb + " " + m.Twist + "  Income x" + Format.Money(m.IncomeScale) + ".",
+                    "MOVE", s.SellBlocked(m.Id), () => ConfirmSell(m), Ui.Gold);
+            }
+
+            Header("ACHIEVEMENTS");
+            foreach (var a in Sim.Achievements.OrderBy(a => s.AchievementClaimed(a) ? 2 : s.AchievementDone(a) ? 0 : 1))
+            {
+                bool claimed = s.AchievementClaimed(a), done = s.AchievementDone(a);
+                Entry(a.Name, claimed ? "CLAIMED" : Format.Money(System.Math.Min(a.Target, a.Progress(s))) + " / " + Format.Money(a.Target), a.Text,
+                    claimed ? null : "CLAIM\n<size=34>" + a.Gems + " gems</size>", done ? null : "Not done yet", () => { if (s.ClaimAchievement(a.Id)) Toast(a.Name + ": +" + a.Gems + " gems"); }, Ui.Blue);
+            }
+        }
+
+        RectTransform _confirm;
+
+        /// <summary>Selling is for good: say what goes and what stays, and ask.</summary>
+        void ConfirmSell(MapDef m)
+        {
+            if (_confirm != null) Destroy(_confirm.gameObject);
+            _confirm = Ui.Img("Confirm", _root, new Color(0, 0, 0, 0.7f)).rectTransform;
+            _confirm.Fill(); _confirm.GetComponent<Image>().raycastTarget = true;
+            var box = Ui.Img("Box", _confirm, Ui.Panel, true).rectTransform;
+            box.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(920, 720));
+            Ui.Label("T", box, "MOVE TO " + m.Name.ToUpper() + "?", 58, Color.white).rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -40), new Vector2(840, 80));
+            Ui.Label("B", box, "You sell " + _sim.Map.Name + " for <color=#FFC83D>" + _sim.WingsOnSale + " Wings</color> (+" + Mathf.RoundToInt(_sim.WingsOnSale * Content.WingBonus * 100) + "% income, for good).\n\n"
+                + "Its buildings, routes, managers and money stay behind.\nYour Wings, gems, research and achievements come with you.\n\n" + m.Twist, 36, Ui.Dim, TextAnchor.UpperCenter, false)
+                .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(820, 380));
+            var yes = Ui.Button("Yes", box, "SELL AND MOVE", Ui.Gold, () =>
+            {
+                if (_sim.SellAndMove(m.Id)) { Toast("Welcome to " + m.Name); GameRoot.Instance.Save(); OpenTab(-1); }
+                Destroy(_confirm.gameObject); _confirm = null;
+            }, 46);
+            ((RectTransform)yes.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(210, 50), new Vector2(400, 120));
+            var no = Ui.Button("No", box, "STAY", Ui.Off, () => { Destroy(_confirm.gameObject); _confirm = null; }, 46);
+            ((RectTransform)no.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-210, 50), new Vector2(400, 120));
         }
 
         // ------------------------------------------------------------------ welcome back
@@ -130,7 +223,7 @@ namespace Crosswind.Game
             var box = Ui.Img("Box", _away, Ui.Panel, true).rectTransform;
             box.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900, 640));
             Ui.Label("T", box, "WELCOME BACK", 64, Color.white).rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -40), new Vector2(820, 80));
-            Ui.Label("S", box, "Your managers kept the airport running for " + Format.Time(System.Math.Min(away, Content.OfflineHours * 3600)) + (away > Content.OfflineHours * 3600 ? " (the most they can without you)" : ""), 36, Ui.Dim, TextAnchor.MiddleCenter, false)
+            Ui.Label("S", box, "Your managers kept the airport running for " + Format.Time(System.Math.Min(away, _sim.OfflineCapSeconds)) + (away > _sim.OfflineCapSeconds ? " (the most they can without you)" : ""), 36, Ui.Dim, TextAnchor.MiddleCenter, false)
                 .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(800, 110));
             Ui.Label("M", box, "+" + Format.Money(earned), 120, Ui.Gold).rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(820, 150));
             var ok = Ui.Button("Collect", box, "COLLECT", Ui.Green, () =>

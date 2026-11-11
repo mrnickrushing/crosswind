@@ -483,7 +483,7 @@ namespace Crosswind.Game
 
             // Service depots south of the apron: a works building each, tanks for the fuel farm.
             float dx = Layout.TaxiX + 10;
-            foreach (var (id, model) in new[] { ("fuel", "works_a"), ("baggage", "works_d"), ("catering", "works_h"), ("cleaning", "works_m"), ("pushback", "works_f"), ("deice", "works_k") })
+            foreach (var id in Content.Departments)
             {
                 int l = s.Level(id);
                 DepotAt[id] = new Vector3(dx, 0, -62);
@@ -540,6 +540,31 @@ namespace Crosswind.Game
             mb.Sphere(tp + new Vector3(1.6f, th + 7.6f, 0.8f), Vector3.one * 0.3f, 6, Palette.Hex(0xFF4A3A));
             mb.Cylinder(tp + Vector3.up * (th + 1.4f), tp + Vector3.up * (th + 1.9f), 3.08f, 3.2f, 14, Palette.Hex(0xBFE6FF));
             mb.Glow = false;
+
+            // What makes it read as a tower: the flare under the walkway, a handrail, the cab's mullions and roof
+            // overhang, vertical fins up the shaft, and a radar turning head on the roof.
+            mb.Smoothness = 0.25f;
+            mb.Cylinder(tp + Vector3.up * (th - 2.6f), tp + Vector3.up * th, 1.42f, 3.3f, 14, Palette.Hex(0xDDDAD2));
+            for (int k = 0; k < 6; k++)
+            {
+                float a = k * 60f * Mathf.Deg2Rad;
+                var foot = tp + new Vector3(Mathf.Cos(a) * 1.95f, 0, Mathf.Sin(a) * 1.95f); var head = tp + new Vector3(Mathf.Cos(a) * 1.42f, th - 2.6f, Mathf.Sin(a) * 1.42f);
+                mb.Cylinder(foot, head, 0.16f, 0.12f, 4, Palette.Hex(0xC4C0B6));
+            }
+            for (int k = 0; k < 14; k++)
+            {
+                float a = (k + 0.5f) * (360f / 14f) * Mathf.Deg2Rad; var dir = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
+                mb.Cylinder(tp + dir * 3.62f + Vector3.up * (th + 0.5f), tp + dir * 3.62f + Vector3.up * (th + 1.45f), 0.04f, 4, Palette.Steel);                       // rail posts
+                mb.Cylinder(tp + dir * 2.72f + Vector3.up * (th + 0.5f), tp + dir * 3.32f + Vector3.up * (th + 2.9f), 0.07f, 4, Palette.Hex(0x1E2A36));             // mullions
+            }
+            mb.Cylinder(tp + Vector3.up * (th + 1.4f), tp + Vector3.up * (th + 1.46f), 3.66f, 3.66f, 14, Palette.Steel, false);
+            mb.Cylinder(tp + Vector3.up * (th + 3.3f), tp + Vector3.up * (th + 3.36f), 3.9f, 3.9f, 14, Palette.Hex(0xC9CED3));
+            // Radar: a pedestal and a curved bar antenna (it faces down the runway).
+            mb.Cylinder(tp + new Vector3(0, th + 4.2f, 0), tp + new Vector3(0, th + 5.0f, 0), 0.14f, 6, Palette.Steel);
+            mb.Push().Translate(tp + new Vector3(0, th + 5.1f, 0)).RotateY(25);
+            mb.Box(Vector3.zero, new Vector3(3.2f, 0.5f, 0.12f), Palette.Hex(0xE8372E)); mb.Box(new Vector3(0, 0.05f, 0.2f), new Vector3(2.8f, 0.3f, 0.3f), Palette.Hex(0xD9D9D9));
+            mb.Pop();
+            mb.Smoothness = 0.3f;
 
             // A windsock by the runway: every airfield has one.
             var ws = new Vector3(Layout.RunwayX + w * 0.5f + 5, 0, -half + 20);

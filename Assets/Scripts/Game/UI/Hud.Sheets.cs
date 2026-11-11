@@ -308,8 +308,7 @@ namespace Crosswind.Game
                 : "Sign in to iCloud in the iPhone's Settings to keep your airport safe and move it to a new phone.", null, null, null);
             Ico("trash", TintRed).Entry("Erase everything", null, "Deletes your airports, team and progress from this device and from your iCloud, and gives the statistics a new anonymous id. This can't be undone.", "ERASE", null, ConfirmErase, Ui.Red);
             Header("CREDITS");
-            Ico("stands", TintAir).Entry("Aircraft models", "CC BY 4.0", "Kestrel 9: MaX3Dd  ·  Heron 50: StarlingVoxel  ·  Albatross 160: Crimexix  ·  Condor 300: Vitos545  ·  Leviathan 520: maurogsw. From Sketchfab, recoloured and resized.", null, null, null);
-            Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Trucks, vans and town buildings by Kenney. Ground and floor textures from Poly Haven and ambientCG.", null, null, null);
+            Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Vans, lorries and cones by Kenney. Ground and floor textures from Poly Haven and ambientCG. Aircraft, airport vehicles and buildings are our own.", null, null, null);
             Ico("pen").Entry("Icons and lettering", null, "Menu icons from Font Awesome Free (CC BY 4.0, fontawesome.com). Lettering in Barlow by Jeremy Tribby (SIL Open Font License).", null, null, null);
             Ico("star", TintGold).Entry("Crosswind", "RUSHING TECHNOLOGIES", "Thank you for playing.", null, null, null);
             Header("ACHIEVEMENTS");

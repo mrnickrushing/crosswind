@@ -34,14 +34,14 @@ and in the game); never paid AI art without asking.
   `Tools/art/models.py` converts the ones listed in it through `Tools/blender/model_import.py` into
   `Resources/Models/<id>.fbx`: vertex-coloured, one unit on the longest side (aircraft: one unit long, nose +Z via
   `--nose`; people: one unit tall, frozen in a clip frame via `--pose walk:4`). Kit cars and people face -Z. Draw
-  them with `Models.Kit(id, parent, at, yaw, size)`. Sketchfab aircraft are CC BY: keep `CREDITS.md` current.
+  them with `Models.Kit(id, parent, at, yaw, size)`. Keep `CREDITS.md` and the in-game credits (EMPIRE) current with what is actually shipped.
   `App/Look` is the post-processing and weather grading; `World/Life` the passengers and traffic; `World/WeatherFx`
   rain and snow; `App/Sfx` sound (interface clips + synthesised aircraft).
 - Look: isometric `CameraRig` (pitch 40, yaw -42, FOV 22); `Ground` lays textured quads with world-space UVs
   (`Materials.Surface(name, tint)`: Asphalt, Tarmac, Concrete, Grass from `Tools/art/surfaces.py`; tints are separate
   materials because URP Lit ignores vertex colours); HDRI sky in `Resources/Sky`; SSAO added to the renderers by
   `Crosswind.EditorTools.UrpSetup.Run()`. `World/Aircraft` builds every aircraft in code with a livery per airline
-  (the imported Sketchfab planes are no longer drawn). `World/Interior` is the terminal cutaway at
+  (the imported Sketchfab planes and the Kenney works buildings were removed). `World/Interior` is the terminal cutaway at
   `Interior.Origin` (INSIDE button, `CameraRig.SetInside`): furniture by level, a crowd drawn with
   `Graphics.DrawMeshInstanced`. `UI/Hud.Guide` is the first-minute pointer and the tap-an-aircraft card.
   `App/Store` stubs purchases in the Editor and development builds (`Sim.Grant` is the real grant, once per

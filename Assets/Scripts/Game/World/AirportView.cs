@@ -18,6 +18,7 @@ namespace Crosswind.Game
         /// <summary>Where passengers go in and out of the terminal on the apron side, the landside road, and each depot's yard.</summary>
         public Vector3 TerminalDoor { get; private set; }
         public float RoadX { get; private set; }
+        public Vector3 TowerTop { get; private set; }
         public readonly Dictionary<string, Vector3> DepotAt = new Dictionary<string, Vector3>();
         string _built = "";
         Sim _sim;
@@ -148,6 +149,55 @@ namespace Crosswind.Game
                 mb.Box(new Vector3(p.x - 9.6f, y, p.z + 1.6f), new Vector3(1.8f, 0.02f, 1.4f), Palette.Black);
                 mb.Box(new Vector3(p.x - 9.6f, y + 0.005f, p.z + 1.6f), new Vector3(1.2f, 0.02f, 0.8f), Palette.PaintYellow);
             }
+            // Ground equipment parked at each stand: a baggage-cart train, steps, a power unit, cones round the wingtips.
+            var kitEarly = new GameObject("Kit").transform;
+            _kitRoot = kitEarly;
+            for (int i = 0; i < s.StandCount; i++)
+            {
+                var p = Layout.Stand(i);
+                var prng = new System.Random(100 + i);
+                if (s.Level("baggage") > 0)
+                    for (int k = 0; k < 3; k++)
+                    {
+                        var cp = new Vector3(p.x - 6.6f + k * 1.9f, 0, p.z - 4.6f);
+                        mb.Smoothness = 0.3f;
+                        mb.Box(cp + Vector3.up * 0.45f, new Vector3(1.6f, 0.12f, 1.1f), Palette.Hex(0x3C4652));
+                        mb.Box(cp + new Vector3(0, 0.85f, 0), new Vector3(1.5f, 0.7f, 1.0f), k == 1 ? Palette.Hex(0x2F6FB5) : Palette.Hex(0xC9CED3));
+                        foreach (float wx in new[] { -0.6f, 0.6f }) foreach (float wz in new[] { -0.45f, 0.45f })
+                            mb.Cylinder(cp + new Vector3(wx, 0.18f, wz - 0.05f), cp + new Vector3(wx, 0.18f, wz + 0.05f), 0.18f, 6, Palette.Tyre);
+                    }
+                if (paved)
+                {
+                    // Ground power unit (yellow) and a set of steps.
+                    mb.Box(new Vector3(p.x + 4.6f, 0.55f, p.z - 4.4f), new Vector3(1.5f, 1.0f, 1.0f), Palette.PaintYellow, Palette.Hex(0xC79A1E));
+                    mb.Box(new Vector3(p.x + 4.6f, 1.12f, p.z - 4.4f), new Vector3(0.5f, 0.14f, 0.5f), Palette.SteelDark);
+                    if (s.Level("gates") < 3)
+                        for (int k = 0; k < 5; k++) mb.Box(new Vector3(p.x + 1.6f + k * 0.32f, 0.2f + k * 0.2f, p.z + 4.9f), new Vector3(0.34f, 0.4f + k * 0.4f, 1.0f), Palette.Hex(0xE4E7EA), Palette.Hex(0x9AA0A6));
+                    for (int k = 0; k < 4; k++)
+                        Models.Kit("cone", kitEarly, new Vector3(p.x - 1 + (k % 2) * 3.4f, 0.04f, p.z + (k < 2 ? -5.2f : 5.2f) + (float)prng.NextDouble() * 0.3f), prng.Next(360), 0.75f);
+                }
+            }
+            if (paved)
+            {
+                // Chain-link fence along the airside boundary (posts and a faint mesh band).
+                float fx = Layout.RunwayX - w * 0.5f - 16, fz0 = -half - 30, fz1 = half + 30;
+                for (float z = fz0; z <= fz1; z += 6) mb.Box(new Vector3(fx, 1.1f, z), new Vector3(0.12f, 2.2f, 0.12f), Palette.Steel);
+                mb.Box(new Vector3(fx, 1.3f, (fz0 + fz1) * 0.5f), new Vector3(0.04f, 1.7f, fz1 - fz0), new Color(0.62f, 0.66f, 0.7f, 1));
+            }
+            if (rl >= 4)
+            {
+                // Threshold numbers (blocks of paint), aiming points, and PAPI lights beside the touchdown zone.
+                foreach (float e in new[] { -1f, 1f })
+                {
+                    foreach (float sx in new[] { -1f, 1f })
+                    {
+                        mb.Box(new Vector3(Layout.RunwayX + sx * w * 0.14f, 0.045f, e * (half - 16)), new Vector3(w * 0.1f, 0.02f, 5f), Palette.Paint);
+                        mb.Box(new Vector3(Layout.RunwayX + sx * w * 0.27f, 0.045f, e * (half - 32)), new Vector3(w * 0.14f, 0.02f, 9f), Palette.Paint);
+                    }
+                    for (int k = 0; k < 4; k++)
+                        mb.Box(new Vector3(Layout.RunwayX - w * 0.5f - 3 - k * 1.3f, 0.3f, e * (half - 30)), new Vector3(0.7f, 0.5f, 0.7f), k < 2 ? Palette.Hex(0xE8372E) : Palette.White);
+                }
+            }
             if (paved)
             {
                 // The apron's taxilane (yellow centre line down each column's lane) and a service road along the terminal (white edges).
@@ -213,6 +263,20 @@ namespace Crosswind.Game
                 mb.Box(new Vector3(c.x + tDepth * 0.5f + 3.2f, 3.4f, c.z), new Vector3(5.5f, 0.3f, Mathf.Min(tLen * 0.7f, 40)), Palette.White);
                 for (float z = c.z - Mathf.Min(tLen * 0.3f, 18); z <= c.z + Mathf.Min(tLen * 0.3f, 18) + 0.1f; z += 6)
                     mb.Cylinder(new Vector3(c.x + tDepth * 0.5f + 5.4f, 0, z), new Vector3(c.x + tDepth * 0.5f + 5.4f, 3.3f, z), 0.16f, 8, Palette.Steel);
+                if (tLevel >= 4)
+                {
+                    // The departures hall: a taller glass volume in the middle, with a curved white roof.
+                    float hl = Mathf.Min(tLen * 0.42f, 34), hh = tH + 4.5f;
+                    var hc = new Vector3(c.x + tDepth * 0.5f + 1.5f, 0, c.z);
+                    mb.Smoothness = 0.92f;
+                    mb.Box(hc + Vector3.up * hh * 0.5f, new Vector3(6.5f, hh, hl), Palette.Hex(0x4A8FB5));
+                    mb.Smoothness = 0.3f;
+                    for (float z = hc.z - hl * 0.5f; z <= hc.z + hl * 0.5f + 0.1f; z += hl / 8f)
+                        mb.Box(new Vector3(hc.x + 3.3f, hh * 0.5f, z), new Vector3(0.2f, hh, 0.3f), Palette.White);
+                    for (float y = 3; y < hh; y += 3) mb.Box(new Vector3(hc.x + 3.3f, y, hc.z), new Vector3(0.16f, 0.16f, hl), Palette.White);
+                    mb.Cylinder(new Vector3(hc.x, hh - 1.6f, hc.z - hl * 0.5f - 0.6f), new Vector3(hc.x, hh - 1.6f, hc.z + hl * 0.5f + 0.6f), 4.6f, 4.6f, 16, Palette.White);
+                    mb.Box(new Vector3(hc.x + 3.45f, hh * 0.86f, hc.z), new Vector3(0.14f, 1.3f, hl * 0.5f), Palette.Hex(0x1F5FA8));     // the airport's sign board
+                }
                 // Skylights along the roof; the shopping concourse is a glass atrium that lengthens with its level.
                 mb.Smoothness = 0.92f;
                 for (float z = c.z - tLen * 0.5f + 3; z < c.z + tLen * 0.5f - 3; z += 4.5f)
@@ -258,8 +322,7 @@ namespace Crosswind.Game
             float lotW = 16 + Mathf.Min(6, park) * 3, lotL = 26 + Mathf.Min(10, park) * 5;
             var lot = new Vector3(roadX + 5 + lotW * 0.5f, 0, -46 + lotL * 0.5f);
             g.Rect("Tarmac", lot.x, lot.z, lotW, lotL, 0.03f, 0, new Color(1.25f, 1.25f, 1.25f));
-            var kit = new GameObject("Kit").transform;
-            _kitRoot = kit;
+            var kit = kitEarly;
             var rng = new System.Random(11);
             string[] cars = { "sedan", "suv", "hatchback", "taxi", "van", "sedan", "suv" };
             int rows = Mathf.Max(1, Mathf.FloorToInt(lotW / 6.5f)), perRow = Mathf.FloorToInt(lotL / 3.2f);
@@ -330,16 +393,24 @@ namespace Crosswind.Game
                     mb.Box(new Vector3(Layout.RunwayX, 0.4f, -half - k * 7), new Vector3(k % 3 == 0 ? 6 : 0.4f, 0.8f, 0.4f), Palette.PaintYellow);
             }
 
-            // Tower.
+            // Tower: a tapered concrete shaft, a base building, a glass cab with a walkway, antennas and a beacon.
             int tower = s.Level("tower");
-            float th = 6 + tower * 2.2f;
-            var tp = new Vector3(Layout.TaxiX + 4, 0, 58);
-            mb.Smoothness = 0.2f;
-            mb.Cylinder(tp, tp + Vector3.up * th, 1.5f, 1.2f, 10, Palette.Concrete);
-            mb.Smoothness = 0.85f;
-            mb.Cylinder(tp + Vector3.up * th, tp + Vector3.up * (th + 2.2f), 2.6f, 3.0f, 10, Palette.Glass);
-            mb.Smoothness = 0.2f;
-            mb.Cylinder(tp + Vector3.up * (th + 2.2f), tp + Vector3.up * (th + 2.5f), 3.2f, 3.2f, 10, Palette.SteelDark);
+            float th = 9 + tower * 2.4f;
+            var tp = new Vector3(Layout.TaxiX + 4, 0, 60);
+            TowerTop = tp + Vector3.up * (th + 4.4f);
+            mb.Smoothness = 0.25f;
+            Models.Block(mb, tp + new Vector3(3.5f, 0, 0), new Vector3(9, 3.6f, 7), Palette.Hex(0xE4E1D9), Palette.Hex(0x4A5058));
+            mb.Cylinder(tp, tp + Vector3.up * th, 1.9f, 1.35f, 14, Palette.Hex(0xE9E6DE));
+            for (float y = 3; y < th - 1; y += 2.4f) mb.Box(tp + new Vector3(0, y, -1.75f + y * 0.02f), new Vector3(0.5f, 1.0f, 0.12f), Palette.Hex(0x2B3A48));   // slit windows
+            mb.Cylinder(tp + Vector3.up * th, tp + Vector3.up * (th + 0.5f), 3.5f, 3.7f, 14, Palette.Hex(0xC9CED3));                                             // walkway
+            mb.Smoothness = 0.95f;
+            mb.Cylinder(tp + Vector3.up * (th + 0.5f), tp + Vector3.up * (th + 2.9f), 2.7f, 3.3f, 14, Palette.Hex(0x3E7FA6));                                   // the cab's glass, leaning out
+            mb.Smoothness = 0.3f;
+            mb.Cylinder(tp + Vector3.up * (th + 2.9f), tp + Vector3.up * (th + 3.3f), 3.6f, 3.5f, 14, Palette.White);
+            mb.Cylinder(tp + Vector3.up * (th + 3.3f), tp + Vector3.up * (th + 4.2f), 0.8f, 0.6f, 8, Palette.Hex(0xAEB4BA));
+            mb.Cylinder(tp + new Vector3(1.6f, th + 3.3f, 0.8f), tp + new Vector3(1.6f, th + 7.5f, 0.8f), 0.05f, 4, Palette.Steel);
+            mb.Cylinder(tp + new Vector3(-1.4f, th + 3.3f, -1f), tp + new Vector3(-1.4f, th + 6f, -1f), 0.05f, 4, Palette.Steel);
+            mb.Sphere(tp + new Vector3(1.6f, th + 7.6f, 0.8f), Vector3.one * 0.18f, 6, Palette.Hex(0xE8372E));
 
             // A windsock by the runway: every airfield has one.
             var ws = new Vector3(Layout.RunwayX + w * 0.5f + 5, 0, -half + 20);
@@ -356,6 +427,7 @@ namespace Crosswind.Game
                 float h = 3 + (float)rng.NextDouble() * 4;
                 mb.Smoothness = 0.05f;
                 mb.Cylinder(new Vector3(x, 0, z), new Vector3(x, h * 0.4f, z), 0.3f, 0.25f, 5, Palette.Wood);
+                mb.Sphere(new Vector3(x + h * 0.12f, h * 1.02f, z - h * 0.08f), new Vector3(h * 0.27f, h * 0.3f, h * 0.27f), 6, MeshBuilder.Lighten(tree, 0.08f));
                 mb.Sphere(new Vector3(x, h * 0.75f, z), new Vector3(h * 0.38f, h * 0.45f, h * 0.38f), 6, i % 3 == 0 ? MeshBuilder.Darken(tree, 0.85f) : tree);
             }
 

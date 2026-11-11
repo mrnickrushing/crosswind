@@ -50,9 +50,26 @@ namespace Crosswind.Game
             return l;
         }
 
+        GameObject _radar;
+
+        void Radar(AirportView view)
+        {
+            if (_radar == null)
+            {
+                var mb = new MeshBuilder { Smoothness = 0.4f };
+                mb.Box(new Vector3(0, 0.5f, 0), new Vector3(3.2f, 1.0f, 0.12f), Palette.Hex(0xE8372E));
+                mb.Box(new Vector3(0, 0.5f, 0.02f), new Vector3(2.9f, 0.7f, 0.12f), Palette.White);
+                mb.Cylinder(Vector3.zero, new Vector3(0, 0.3f, 0), 0.12f, 6, Palette.Steel);
+                _radar = mb.ToObject("Radar", transform);
+            }
+            _radar.transform.position = view.TowerTop;
+            _radar.transform.rotation = Quaternion.Euler(0, Time.time * 70, 0);
+        }
+
         void Update()
         {
             var view = AirportView.Instance;
+            if (view != null) Radar(view);
             if (view == null || _walk == null || _walk[0][0] == null) return;
             float dt = Time.deltaTime * Mathf.Max(1, GameRoot.Speed);
 

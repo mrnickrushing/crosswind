@@ -44,8 +44,9 @@ and in the game); never paid AI art without asking.
   (the imported Sketchfab planes and the Kenney works buildings were removed). `World/Interior` is the terminal cutaway at
   `Interior.Origin` (INSIDE button, `CameraRig.SetInside`): furniture by level, a crowd drawn with
   `Graphics.DrawMeshInstanced`. `UI/Hud.Guide` is the first-minute pointer and the tap-an-aircraft card.
-  `App/Store` stubs purchases in the Editor and development builds (`Sim.Grant` is the real grant, once per
-  transaction); the App Store products in `Sim.Products` still have to be created and wired to RevenueCat.
+  `App/Store` buys through RevenueCat on device and a test store in the Editor and development builds (`Sim.Grant`
+  is the real grant, once per transaction); Game Center is `Platform/GameCenter`. Purchases, Game Center, the App
+  Store Connect setup scripts (`Tools/appstore`), the Codemagic jobs and the listing: see `docs/STORE.md`.
 - `Game/Debug/PlayBot` (Editor): `PlayBot.Begin(30)` plays the real game greedily at 30x; `PlayBot.Report()`.
 - In the Editor: `Crosswind.Game.GameRoot.Speed` fast-forwards the simulation; delete
   `~/.config/unity3d/Rushing Technologies/Crosswind/crosswind_save.json` for a new game.

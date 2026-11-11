@@ -153,7 +153,7 @@ namespace Crosswind.Game
     public sealed class RevenueCatStore : IStore
     {
         /// <summary>RevenueCat, project Crosswind, API keys: the Apple App Store public SDK key (made to ship in the app).</summary>
-        public const string ApiKey = "appl_REPLACE";
+        public const string ApiKey = "appl_OHyIQYGESuVukxcactrmtOmAnjx"; // public by design (ships in the app)
         public static bool Configured { get { return ApiKey.StartsWith("appl_") && !ApiKey.Contains("REPLACE"); } }
 
         Purchases _purchases;

@@ -236,7 +236,7 @@ namespace Crosswind.Game
                 var plane = Content.Aircraft[(AircraftClass)b.plane];
                 var row = Row(112);
                 Plate(row, 0f, 0.17f, b.airline);
-                CellText(row, 0.17f, 0.33f, s.FlightNo(b) + "  <size=24><color=#FFFFFF90>" + Sim.KindName(b) + (b.kind == 1 ? " · " + b.flights + " flights" : "") + "</color></size>\n<size=24><color=#FFFFFF90>" + Content.Places[b.place % Content.Places.Length] + "</color></size>", 34, Color.white, TextAnchor.MiddleLeft);
+                CellText(row, 0.17f, 0.33f, s.FlightNo(b) + "  <size=24><color=#FFFFFF90>" + (b.kind >= Sim.Freight ? "<color=#FFC83D>" + Sim.KindName(b) + "</color>" : Sim.KindName(b)) + (b.flights > 1 ? " · " + b.flights + " flights" : "") + "</color></size>\n<size=24><color=#FFFFFF90>" + Content.Places[b.place % Content.Places.Length] + "</color></size>", 34, Color.white, TextAnchor.MiddleLeft);
                 CellText(row, 0.33f, 0.46f, plane.Name + "\n<size=24><color=#FFFFFF90>" + plane.Seats + " seats</color></size>", 30, Color.white);
                 PartChip(row, 0.46f, 0.57f, b.part);
                 NeedTiles(row, 0.57f, 0.72f, Content.NeedsOf(b.needs));
@@ -459,7 +459,7 @@ namespace Crosswind.Game
                 var row = Row(100);
                 CellText(row, 0f, 0.13f, Content.Airlines[r.airline].Code + " " + r.number + "\n<size=20><color=#FFFFFF80>day " + r.day + "</color></size>", 30, Color.white);
                 Plate(row, 0.13f, 0.31f, r.airline);
-                CellText(row, 0.31f, 0.47f, plane.Name + "\n<size=22><color=#FFFFFF90>" + (r.kind == 0 ? "charter" : "series of " + r.flights) + "</color></size>", 28, Color.white);
+                CellText(row, 0.31f, 0.47f, plane.Name + "\n<size=22><color=#FFFFFF90>" + (Sim.KindName(r.kind).ToLower() + (r.flights > 1 ? " of " + r.flights : "")) + "</color></size>", 28, Color.white);
                 CellText(row, 0.47f, 0.59f, r.dropped ? "dropped" : "all " + r.flights, 26, Ui.Dim);
                 Mark(row, 0.59f, 0.69f, r.dropped ? 0 : r.punctual ? 1 : -1, r.dropped ? null : r.onTime + "/" + r.flights);
                 Mark(row, 0.69f, 0.79f, r.dropped ? 0 : r.serviced ? 1 : -1, r.dropped ? null : r.served + "/" + r.flights);

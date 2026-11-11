@@ -165,6 +165,35 @@ namespace Crosswind.Tests
         }
 
         [Test]
+        public void FreightNeedsTheCargoTerminalAndVipALounge()
+        {
+            var s = Airport();
+            var b = Offer(s);
+            b.kind = Sim.Freight;
+            StringAssert.Contains("Cargo Terminal", s.SignContractBlocked(b.id));
+            Assert.IsFalse(s.SignContract(b.id));
+            b.kind = Sim.Vip;
+            StringAssert.Contains("Premium Lounge", s.SignContractBlocked(b.id));
+            s.State.ratingXp = Content.StarXp[6];
+            Assert.IsTrue(s.PlaceAnywhere("lounge"));
+            Assert.IsNull(s.SignContractBlocked(b.id));
+            Assert.AreEqual("VIP", Sim.KindName(b));
+            // Specials turn up on the market, and only from the airlines that fly them.
+            bool freight = false, vip = false;
+            for (int i = 0; i < 60; i++)
+            {
+                s.RollMarket();
+                foreach (var o in s.State.market)
+                {
+                    if (o.kind == Sim.Freight) { freight = true; Assert.IsTrue(Content.Airlines[o.airline].Kind == 3 || o.airline == "puffin", o.airline); Assert.Greater(o.flights, 1); }
+                    if (o.kind == Sim.Vip) { vip = true; Assert.LessOrEqual(Content.Airlines[o.airline].Grade, 1, o.airline); Assert.AreEqual(1, o.flights); Assert.AreEqual(0, o.grade); }
+                }
+            }
+            Assert.IsTrue(freight, "freight contracts are offered");
+            Assert.IsTrue(vip, "VIP flights are offered");
+        }
+
+        [Test]
         public void DroppingAContractCostsReputation()
         {
             var s = Airport();

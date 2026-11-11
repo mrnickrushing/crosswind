@@ -156,6 +156,9 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   studio light, shadow catcher, trimmed to a 256 square). Add an icon: put it in `ICONS`, fetch, `render <name>`, and
   update the credits (`CREDITS.md` and the "Picture icons" row under EMPIRE). `World/Studio.cs` still photographs the
   game's own terminal items for the catalogue (`Interior.Picture`).
+- Contract kinds (`Booking.kind`: `Sim.Charter`, `Series`, `Freight`, `Vip`): freight (the freight and mail airlines,
+  2-4 flights, by night where the runway is lit) needs the cargo terminal; a VIP flight (airlines that ask for grade A
+  or B; one flight, standard A) needs a Premium Lounge placed; both pay and earn more (`KindNeeds` is the reason shown).
 - Contracts are in the guide (`first_contract`, `contract_done`, `rep_first`, `rep_known`, `contracts_10`,
   `rep_trusted`: any bot that plays the chain must sign contracts, as `PacingTests.Greedy` and `PlayBot` do), the
   achievements (`contracts_*`, `full_marks_10`, `rep_trusted`, `rep_flagship`; counters `State.contractsSigned`,

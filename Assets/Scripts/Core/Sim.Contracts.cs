@@ -68,7 +68,19 @@ namespace Crosswind.Core
         public Booking Booking(int id) { return State.bookings.Find(b => b.id == id); }
         public Booking OfferById(int id) { return State.market.Find(b => b.id == id); }
         public RouteDef RouteOf(Booking b) { return Content.ContractRoute(b.airline, (AircraftClass)b.plane, b.needs, b.place); }
-        public static string KindName(Booking b) { return b.kind == 0 ? "CHARTER" : "SERIES"; }
+        /// <summary>The kinds of contract: a single charter, a series, a freight run (needs the cargo terminal), a VIP flight (needs a premium lounge).</summary>
+        public const int Charter = 0, Series = 1, Freight = 2, Vip = 3;
+        static readonly string[] KindNames = { "CHARTER", "SERIES", "FREIGHT", "VIP" };
+        public static string KindName(int kind) { return KindNames[Math.Max(0, Math.Min(KindNames.Length - 1, kind))]; }
+        public static string KindName(Booking b) { return KindName(b.kind); }
+
+        /// <summary>What a contract of this kind needs beyond its services, in words (null: nothing more).</summary>
+        public string KindNeeds(Booking b)
+        {
+            if (b.kind == Freight && Level("cargo") <= 0) return "Needs the Cargo Terminal";
+            if (b.kind == Vip && LoungeLevel <= 0) return "Needs a Premium Lounge in the terminal";
+            return null;
+        }
 
         // ------------------------------------------------------------------ flight numbers and weekdays
 
@@ -210,13 +222,18 @@ namespace Crosswind.Core
                     id = State.nextBookingId++, airline = airline, plane = (int)like.Class, needs = Content.NeedsMask(like.Needs), grade = line.Grade,
                     place = (int)(MarketRand() * Content.Places.Length), number = 1000 + (int)(MarketRand() * 9000),
                 };
-                b.kind = MarketRand() < 0.35 ? 0 : 1;
-                b.flights = b.kind == 0 ? 1 : 3 + (int)(MarketRand() * 4) + tier;
+                // One in five is a special: freight for the freight and mail airlines, a VIP flight for the ones that ask for the best.
+                double roll = MarketRand();
+                b.kind = roll < 0.3 ? Charter : roll < 0.8 ? Series : line.Kind == 3 || airline == "puffin" ? Freight : line.Grade <= 1 ? Vip : Series;
+                b.flights = b.kind == Charter || b.kind == Vip ? 1 : b.kind == Freight ? 2 + (int)(MarketRand() * 3) : 3 + (int)(MarketRand() * 4) + tier;
+                if (b.kind == Vip) b.grade = 0;
                 b.part = line.Likes[(int)(MarketRand() * line.Likes.Length) % line.Likes.Length];
                 if (b.part == 4 && !NightOps) b.part = line.Likes.FirstOrDefault(p => p != 4);
                 if (b.part <= 0) b.part = 1;
-                b.reward = Math.Floor(ContractMinute * (b.kind == 0 ? CharterMinutes : SeriesMinutes * b.flights) * (1 + 0.1 * tier) * (0.7 + 0.3 * (b.plane + 1) / ((int)top + 1)));
-                b.rep = b.kind == 0 ? 12 + 6 * b.plane : b.flights * (4 + 2 * b.plane);
+                if (b.kind == Freight && NightOps) b.part = 4;          // freight flies by night where it can
+                double special = b.kind == Vip ? 2.2 : b.kind == Freight ? 1.5 : 1;
+                b.reward = Math.Floor(ContractMinute * (b.flights == 1 ? CharterMinutes : SeriesMinutes * b.flights) * (1 + 0.1 * tier) * (0.7 + 0.3 * (b.plane + 1) / ((int)top + 1)) * special);
+                b.rep = (int)Math.Round((b.flights == 1 ? 12 + 6 * b.plane : b.flights * (4 + 2 * b.plane)) * (b.kind == Vip ? 2 : b.kind == Freight ? 1.3 : 1));
                 State.market.Add(b);
             }
             Changed?.Invoke();
@@ -241,7 +258,7 @@ namespace Crosswind.Core
             if (Heavy(plane.Class) && HeavyStands == 0) return "Needs a Wide-body Stand";
             foreach (var n in Content.NeedsOf(b.needs)) if (Crews(n) == 0) return "Needs " + Content.Facilities[Content.ServiceFacility(n)].Name;
             if (b.part == 4 && !NightOps) return "Night flights need runway lights";
-            return null;
+            return KindNeeds(b);
         }
 
         /// <summary>Signs an offer into the book and plans it into the quietest hour that is free.</summary>

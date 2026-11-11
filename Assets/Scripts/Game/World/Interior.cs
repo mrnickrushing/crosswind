@@ -71,7 +71,7 @@ namespace Crosswind.Game
             var g = new Ground();
             // Floors: pale stone in the hall, a warmer tone in the concourse, carpet blue at the gates.
             g.Rect("Concrete", 0, 0, W, L, 0.0f, 0, new Color(1.25f, 1.27f, 1.3f));
-            g.Rect("Concrete", x0 + W * 0.86f, 0, W * 0.26f, L, 0.01f, 0, new Color(0.6f, 0.78f, 1.15f));
+            g.Rect("Concrete", x0 + W * 0.86f, 0, W * 0.26f, L, 0.01f, 0, new Color(0.62f, 0.72f, 0.86f));      // a grey-blue carpet, not a swimming pool
             g.Rect("Concrete", x0 + W * 0.56f, 0, W * 0.3f, L, 0.012f, 0, new Color(1.35f, 1.2f, 0.98f));
             // Walls: full height at the back and the ends, cut low toward the camera so the floor shows.
             Color wall = Palette.Hex(0xE7E3DA), trim = Palette.Hex(0x1F5FA8);
@@ -163,6 +163,8 @@ namespace Crosswind.Game
             }
             _static = mb.ToObject("Static", transform);
             g.Build(_static.transform);
+            foreach (var l in _labels) Lettering(l.text, l.at, l.yaw, l.size, l.color);
+            _labels.Clear();
         }
 
         void Update()
@@ -280,6 +282,29 @@ namespace Crosswind.Game
             return h.ToString();
         }
 
+        readonly List<(string text, Vector3 at, float yaw, float size, Color color)> _labels = new List<(string, Vector3, float, float, Color)>();
+        static Material _textMat;
+
+        /// <summary>Lettering standing in the hall (a shop's name on its fascia), leaning back so it reads from above.</summary>
+        void Lettering(string text, Vector3 at, float yaw, float size, Color color)
+        {
+            var go = new GameObject("Sign " + text);
+            go.transform.SetParent(_static.transform, false);
+            go.transform.localPosition = at;
+            // TextMesh reads along +x facing -z; the fascia faces the unit's -x: turn it, then lean it back toward the sky.
+            go.transform.localRotation = Quaternion.Euler(0, yaw + 90, 0) * Quaternion.Euler(38, 0, 0);
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = Ui.Bold; tm.text = text; tm.fontSize = 72; tm.characterSize = size * 10f / 72f; tm.anchor = TextAnchor.MiddleCenter; tm.alignment = TextAlignment.Center; tm.color = color;
+            if (_textMat == null)
+            {
+                var sh = Resources.Load<Shader>("Shaders/Text3D");
+                _textMat = sh != null ? new Material(sh) : new Material(Ui.Bold.material);
+            }
+            _textMat.mainTexture = Ui.Bold.material.mainTexture;
+            go.GetComponent<MeshRenderer>().sharedMaterial = _textMat;
+            go.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
         void DrawFloor(MeshBuilder mb, Ground g, float x0, float z0)
         {
             var corner = FloorCorner;
@@ -299,10 +324,29 @@ namespace Crosswind.Game
                 mb.Push().Translate(c).RotateY(p.rot * 90);
                 Amenity(mb, d, d.W * Sim.Cell, d.D * Sim.Cell, p.level, p.x * 7 + p.z * 13);
                 mb.Pop();
+                // Its name over the front, for the units that have a fascia.
+                string sign = SignText(d.Id);
+                if (sign != null)
+                {
+                    var rot = Quaternion.Euler(0, p.rot * 90, 0);
+                    float sw = d.D * Sim.Cell;
+                    _labels.Add((sign, c + rot * new Vector3(-d.W * Sim.Cell * 0.5f - 0.05f, 3.25f, 0), p.rot * 90, Mathf.Min(0.62f, sw * 0.95f / Mathf.Max(4, sign.Length) * 1.7f), Color.white));
+                }
                 // Where passengers stop: in front of it (toward check-in), or on it for seats.
                 var stop = c + new Vector3(-w * Sim.Cell * 0.5f - 0.7f, 0, 0);
                 if (d.Gives == Want.Seating || d.Gives == Want.Lounge) _seats.Add(c); else _shops.Add(stop);
             }
+        }
+
+        /// <summary>What is written over a unit's front (null: it has no fascia).</summary>
+        static string SignText(string id)
+        {
+            switch (id)
+            {
+                case "cafe": return "COFFEE"; case "noodle": return "NOODLES"; case "restaurant": return "BRASSERIE"; case "newsstand": return "NEWS";
+                case "gifts": return "GIFTS"; case "fashion": return "FASHION"; case "dutyfree": return "DUTY FREE"; case "lounge": return "LOUNGE";
+            }
+            return null;
         }
 
         static readonly Color[] Brand = { Palette.Hex(0xD9432F), Palette.Hex(0x2F8F5B), Palette.Hex(0xE2A521), Palette.Hex(0x6B4FBB), Palette.Hex(0x1E8FB0), Palette.Hex(0xC2417C) };
@@ -320,10 +364,19 @@ namespace Crosswind.Game
             void Unit(Color c)       // a shop unit: back and side walls, a fascia, a canopy at level 3
             {
                 mb.Box(new Vector3(hx - 0.15f, 1.5f, 0), new Vector3(0.3f, 3.0f, d - 0.1f), wall);
-                foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(0, 1.2f, e * (hz - 0.1f)), new Vector3(w - 0.3f, 2.4f, 0.2f), wall);
+                // Side partitions are glass above a low plinth, so what is inside shows.
+                foreach (float e in new[] { -1f, 1f })
+                {
+                    mb.Box(new Vector3(0, 0.25f, e * (hz - 0.1f)), new Vector3(w - 0.3f, 0.5f, 0.16f), wall);
+                    mb.Smoothness = 0.92f; mb.Box(new Vector3(0, 1.3f, e * (hz - 0.1f)), new Vector3(w - 0.3f, 1.6f, 0.05f), Palette.Hex(0x9FD3E8)); mb.Smoothness = 0.3f;
+                    mb.Box(new Vector3(0, 2.15f, e * (hz - 0.1f)), new Vector3(w - 0.3f, 0.1f, 0.16f), c);
+                    mb.Box(new Vector3(-hx + 0.12f, 1.25f, e * (hz - 0.1f)), new Vector3(0.24f, 2.5f, 0.24f), c);       // the fascia's posts
+                }
+                mb.Box(new Vector3(hx - 0.32f, 1.5f, 0), new Vector3(0.05f, 2.9f, d - 0.3f), MeshBuilder.Lighten(c, 0.25f));       // the back wall in its colour
                 Sign(2.75f, c);
                 if (level >= 3) mb.Box(new Vector3(-hx - 0.5f, 2.35f, 0), new Vector3(1.2f, 0.08f, d - 0.2f), c);
             }
+            void Counter(float x, float len, Color body, Color top) { mb.Box(new Vector3(x, 0.52f, 0), new Vector3(0.75f, 1.04f, len), body); mb.Box(new Vector3(x, 1.07f, 0), new Vector3(0.85f, 0.06f, len + 0.1f), top); }
             void Table(Vector3 at) { mb.Cylinder(at, at + Vector3.up * 0.72f, 0.06f, 5, steel); mb.Cylinder(at + Vector3.up * 0.72f, at + Vector3.up * 0.78f, 0.5f, 10, Palette.Hex(0xD9C9A8)); foreach (float e in new[] { -0.75f, 0.75f }) mb.Box(at + new Vector3(0, 0.25f, e), new Vector3(0.42f, 0.5f, 0.42f), brand); }
             void Seat(Vector3 at, Color c) { mb.Box(at + Vector3.up * 0.42f, new Vector3(0.6f, 0.1f, 0.6f), c); mb.Box(at + new Vector3(0.28f, 0.75f, 0), new Vector3(0.08f, 0.6f, 0.6f), c); }
             mb.Smoothness = 0.3f;
@@ -332,18 +385,113 @@ namespace Crosswind.Game
                 case "vending":
                     for (int k = 0; k < level; k++) { float z = (k - (level - 1) * 0.5f) * 0.62f; mb.Box(new Vector3(0.3f, 1.0f, z), new Vector3(0.8f, 2.0f, 0.58f), k % 2 == 0 ? Palette.Hex(0xC8362E) : Palette.Hex(0x1F5FA8)); mb.Glow = true; mb.Box(new Vector3(-0.12f, 1.2f, z), new Vector3(0.05f, 1.2f, 0.4f), Palette.Hex(0xDFF4FF)); mb.Glow = false; }
                     break;
-                case "cafe": case "noodle": case "restaurant":
-                    Unit(brand);
-                    mb.Box(new Vector3(hx - 1.1f, 0.55f, 0), new Vector3(0.8f, 1.1f, d - 0.8f), wood, Palette.Hex(0xD9C9A8));          // counter
-                    mb.Box(new Vector3(hx - 0.45f, 1.9f, 0), new Vector3(0.1f, 0.7f, d - 1f), dark);                                   // menu board
-                    for (int k = 0; k < (int)(d / 1.6f); k++) mb.Cylinder(new Vector3(hx - 1.1f, 1.1f, -hz + 0.9f + k * 1.5f), new Vector3(hx - 1.1f, 1.45f, -hz + 0.9f + k * 1.5f), 0.14f, 8, steel);
-                    if (w > 4.5f) for (int k = 0; k < (int)(d / 1.9f); k++) Table(new Vector3(-hx + 1.2f + (k % 2) * 1.5f, 0, -hz + 1.0f + k * 1.8f));
+                case "cafe":
+                    Unit(Palette.Hex(0x4A2E20));
+                    Counter(hx - 1.2f, d - 1.0f, wood, Palette.Hex(0xE8DCC4));
+                    // The pastry case, the machine, cups.
+                    mb.Smoothness = 0.9f; mb.Box(new Vector3(hx - 1.2f, 1.3f, -hz * 0.35f), new Vector3(0.7f, 0.4f, d * 0.3f), Palette.Hex(0xBFE3F2)); mb.Smoothness = 0.6f;
+                    mb.Box(new Vector3(hx - 1.2f, 1.36f, hz * 0.4f), new Vector3(0.6f, 0.5f, 0.8f), steel, dark);
+                    for (int k = 0; k < 4; k++) mb.Box(new Vector3(hx - 0.32f, 2.0f, -hz + 0.9f + k * (d - 1.8f) / 3f), new Vector3(0.06f, 0.6f, 0.9f), dark);       // menu boards
+                    mb.Smoothness = 0.3f;
+                    for (float z = -hz + 1.0f; z <= hz - 0.9f; z += 1.9f) Table(new Vector3(-hx + 1.3f, 0, z));
                     break;
-                case "newsstand": case "gifts": case "fashion": case "dutyfree":
-                    Unit(brand);
-                    int racks = Mathf.Max(1, (int)(w / 1.3f));
-                    for (int k = 0; k < racks; k++) mb.Box(new Vector3(-hx + 0.9f + k * 1.25f, 0.7f, 0), new Vector3(0.5f, 1.4f, d * 0.6f), Palette.Hex(0xF4F1EA), brand);
-                    if (def.Id == "dutyfree") { mb.Smoothness = 0.9f; mb.Box(new Vector3(-hx + 0.3f, 1.2f, 0), new Vector3(0.08f, 2.4f, d - 1.5f), Palette.Hex(0x9FD3E8)); mb.Smoothness = 0.3f; }
+                case "noodle":
+                    Unit(Palette.Hex(0xB3261E));
+                    // An open kitchen: a long bar with stools, pots steaming behind, red lanterns over it.
+                    Counter(hx - 1.5f, d - 0.9f, Palette.Hex(0x2B2622), Palette.Hex(0x8A5A3A));
+                    for (float z = -hz + 0.9f; z <= hz - 0.8f; z += 0.85f)
+                    {
+                        mb.Cylinder(new Vector3(hx - 2.25f, 0, z), new Vector3(hx - 2.25f, 0.62f, z), 0.05f, 5, steel, false);
+                        mb.Cylinder(new Vector3(hx - 2.25f, 0.62f, z), new Vector3(hx - 2.25f, 0.7f, z), 0.2f, 8, Palette.Hex(0xB3261E));
+                    }
+                    for (int k = 0; k < 3; k++) mb.Cylinder(new Vector3(hx - 0.7f, 1.0f, -hz + 1.2f + k * (d - 2.4f) / 2f), new Vector3(hx - 0.7f, 1.35f, -hz + 1.2f + k * (d - 2.4f) / 2f), 0.3f, 0.32f, 10, steel);
+                    mb.Glow = true;
+                    for (float z = -hz + 1.0f; z <= hz - 0.9f; z += 1.5f) mb.Sphere(new Vector3(hx - 1.9f, 2.45f, z), new Vector3(0.22f, 0.28f, 0.22f), 6, Palette.Hex(0xFF5A3C));
+                    mb.Glow = false;
+                    if (w > 5f) for (float z = -hz + 1.0f; z <= hz - 0.9f; z += 2.0f) Table(new Vector3(-hx + 1.2f, 0, z));
+                    break;
+                case "restaurant":
+                    Unit(Palette.Hex(0x1F3A36));
+                    // Laid tables for four, a banquette along the back wall, the host's stand at the door.
+                    mb.Box(new Vector3(hx - 0.7f, 0.45f, 0), new Vector3(0.7f, 0.9f, d - 0.9f), Palette.Hex(0x7A2E2E), Palette.Hex(0x8F3A3A));
+                    mb.Box(new Vector3(hx - 0.4f, 1.1f, 0), new Vector3(0.16f, 0.7f, d - 0.9f), Palette.Hex(0x7A2E2E));
+                    for (float x = -hx + 1.5f; x <= hx - 2.0f; x += 2.2f)
+                        for (float z = -hz + 1.3f; z <= hz - 1.2f; z += 2.3f)
+                        {
+                            mb.Box(new Vector3(x, 0.74f, z), new Vector3(1.0f, 0.06f, 1.0f), Palette.White);
+                            mb.Box(new Vector3(x, 0.37f, z), new Vector3(0.12f, 0.74f, 0.12f), dark);
+                            foreach (float ex in new[] { -1f, 1f }) { mb.Push().Translate(x + ex * 0.8f, 0, z).RotateY(ex < 0 ? 180 : 0); Seat(Vector3.zero, Palette.Hex(0x3A2E26)); mb.Pop(); }
+                            mb.Glow = true; mb.Box(new Vector3(x, 0.84f, z), new Vector3(0.08f, 0.12f, 0.08f), Palette.Hex(0xFFD98A)); mb.Glow = false;     // a candle
+                        }
+                    mb.Box(new Vector3(-hx + 0.5f, 0.6f, hz - 0.7f), new Vector3(0.5f, 1.2f, 0.6f), wood, dark);
+                    break;
+                case "newsstand":
+                    Unit(Palette.Hex(0x1E5FA8));
+                    // A wall of magazines, a drinks fridge that glows, the till by the door.
+                    Color[] mags = { Palette.Hex(0xD9432F), Palette.Hex(0xE2A521), Palette.Hex(0x2F8F5B), Palette.White, Palette.Hex(0x6B4FBB), Palette.Hex(0x1E8FB0) };
+                    for (int r = 0; r < 4; r++)
+                        for (int k = 0; k < (int)((d - 1.2f) / 0.34f); k++)
+                            mb.Box(new Vector3(hx - 0.36f - r * 0.02f, 0.5f + r * 0.5f, -hz + 0.8f + k * 0.34f), new Vector3(0.06f, 0.36f, 0.26f), mags[(k * 3 + r * 5 + seed) % mags.Length]);
+                    mb.Box(new Vector3(0.2f, 0.95f, hz - 0.55f), new Vector3(1.4f, 1.9f, 0.6f), Palette.White, steel);
+                    mb.Glow = true; mb.Box(new Vector3(0.2f, 1.0f, hz - 0.88f), new Vector3(1.2f, 1.5f, 0.05f), Palette.Hex(0xCFEFFF)); mb.Glow = false;
+                    mb.Box(new Vector3(-hx + 0.9f, 0.5f, -hz + 0.7f), new Vector3(1.0f, 1.0f, 0.6f), Palette.Hex(0x1E5FA8), Palette.White);
+                    break;
+                case "gifts":
+                    Unit(Palette.Hex(0xC2417C));
+                    // Shelves of small bright things, two spinners of postcards, a table of soft toys.
+                    Color[] toys = { Palette.Hex(0xF2C230), Palette.Hex(0xD9432F), Palette.Hex(0x4CB8A0), Palette.Hex(0x8A70D6), Palette.Hex(0xF08A3C) };
+                    for (int r = 0; r < 3; r++)
+                    {
+                        mb.Box(new Vector3(hx - 0.5f, 0.6f + r * 0.65f, 0), new Vector3(0.5f, 0.06f, d - 0.9f), Palette.Hex(0xF4F1EA));
+                        for (int k = 0; k < (int)((d - 1.2f) / 0.45f); k++) mb.Box(new Vector3(hx - 0.5f, 0.8f + r * 0.65f, -hz + 0.8f + k * 0.45f), new Vector3(0.3f, 0.32f, 0.3f), toys[(k + r * 2 + seed) % toys.Length]);
+                    }
+                    foreach (float e in new[] { -1f, 1f })
+                    {
+                        var sp = new Vector3(-hx + 1.0f, 0, e * hz * 0.45f);
+                        mb.Cylinder(sp, sp + Vector3.up * 1.7f, 0.04f, 5, steel, false);
+                        for (int k = 0; k < 4; k++) mb.Cylinder(sp + Vector3.up * (0.6f + k * 0.3f), sp + Vector3.up * (0.82f + k * 0.3f), 0.3f, 0.3f, 6, toys[(k + seed) % toys.Length]);
+                    }
+                    if (w > 4.5f) { mb.Box(new Vector3(0, 0.4f, 0), new Vector3(1.4f, 0.8f, 1.4f), wood, Palette.Hex(0xF4F1EA)); for (int k = 0; k < 4; k++) mb.Sphere(new Vector3(-0.3f + (k % 2) * 0.6f, 1.0f, -0.3f + (k / 2) * 0.6f), Vector3.one * 0.24f, 6, toys[k]); }
+                    break;
+                case "fashion":
+                    Unit(Palette.Hex(0x22262C));
+                    // Rails of clothes, two mannequins at the front, a mirror and a fitting room at the back.
+                    Color[] cloth = { Palette.Hex(0xE8E2D6), Palette.Hex(0x2D4E7C), Palette.Hex(0x9B2D3A), Palette.Hex(0x3E6E5A), Palette.Hex(0xD9B24A), Palette.Hex(0x30343A) };
+                    for (float z = -hz + 1.0f; z <= hz - 0.9f; z += 1.5f)
+                    {
+                        mb.Box(new Vector3(0.4f, 1.5f, z), new Vector3(w - 2.6f, 0.05f, 0.05f), steel);
+                        foreach (float ex in new[] { -1f, 1f }) mb.Box(new Vector3(0.4f + ex * (w - 2.6f) * 0.5f, 0.75f, z), new Vector3(0.05f, 1.5f, 0.05f), steel);
+                        for (float x = 0.4f - (w - 2.9f) * 0.5f; x <= 0.4f + (w - 2.9f) * 0.5f; x += 0.24f) mb.Box(new Vector3(x, 1.05f, z), new Vector3(0.1f, 0.8f, 0.42f), cloth[(int)((x + 9) * 7 + z * 3 + seed) % cloth.Length]);
+                    }
+                    foreach (float e in new[] { -1f, 1f })
+                    {
+                        var m = new Vector3(-hx + 0.8f, 0, e * hz * 0.5f);
+                        mb.Cylinder(m, m + Vector3.up * 0.1f, 0.3f, 0.3f, 8, Palette.White);
+                        mb.Cylinder(m + Vector3.up * 0.1f, m + Vector3.up * 1.45f, 0.17f, 0.2f, 6, cloth[(seed + (e > 0 ? 2 : 4)) % cloth.Length], false);
+                        mb.Sphere(m + Vector3.up * 1.62f, Vector3.one * 0.14f, 6, Palette.Hex(0xE4DCCB));
+                    }
+                    mb.Smoothness = 0.92f; mb.Box(new Vector3(hx - 0.34f, 1.2f, -hz * 0.4f), new Vector3(0.05f, 1.9f, 0.9f), Palette.Hex(0xCFE3EE)); mb.Smoothness = 0.3f;
+                    mb.Box(new Vector3(hx - 0.8f, 1.1f, hz - 0.8f), new Vector3(1.0f, 2.2f, 1.0f), Palette.Hex(0x6B4FBB));
+                    break;
+                case "dutyfree":
+                    // Walk-through: no walls at the sides, a bright floor, gondolas of bottles, glass perfume counters.
+                    mb.Box(new Vector3(0, 0.025f, 0), new Vector3(w - 0.1f, 0.03f, d - 0.1f), Palette.Hex(0xF4F1EA));
+                    mb.Box(new Vector3(hx - 0.15f, 1.5f, 0), new Vector3(0.3f, 3.0f, d - 0.1f), Palette.Hex(0x15191F));
+                    Sign(2.75f, Palette.Hex(0x15191F));
+                    Color[] bottle = { Palette.Hex(0xC98A2B), Palette.Hex(0x2F6E4A), Palette.Hex(0x8C2B3A), Palette.Hex(0xE8D9A8), Palette.Hex(0x2B4E8C) };
+                    for (float z = -hz + 1.2f; z <= hz - 1.1f; z += 2.0f)
+                        for (float x = -hx + 1.6f; x <= hx - 1.6f; x += 2.4f)
+                        {
+                            mb.Smoothness = 0.3f;
+                            mb.Box(new Vector3(x, 0.5f, z), new Vector3(1.6f, 1.0f, 0.7f), Palette.White, Palette.Hex(0xE8ECF0));
+                            mb.Glow = true; mb.Box(new Vector3(x, 0.08f, z), new Vector3(1.66f, 0.06f, 0.76f), Palette.Hex(0xFFE9B0)); mb.Glow = false;
+                            mb.Smoothness = 0.85f;
+                            for (int k = 0; k < 5; k++) mb.Cylinder(new Vector3(x - 0.6f + k * 0.3f, 1.0f, z), new Vector3(x - 0.6f + k * 0.3f, 1.34f, z), 0.07f, 0.045f, 6, bottle[(k + (int)(x * 3 + z) + seed + 50) % bottle.Length]);
+                        }
+                    mb.Smoothness = 0.9f;
+                    foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(-hx + 0.8f, 0.55f, e * hz * 0.5f), new Vector3(0.7f, 1.1f, hz * 0.6f), Palette.Hex(0xBFE3F2), Palette.Hex(0xE8F4FA));
+                    mb.Smoothness = 0.3f;
+                    mb.Glow = true; for (float z = -hz + 0.8f; z <= hz - 0.7f; z += 1.6f) mb.Box(new Vector3(hx - 0.32f, 1.9f, z), new Vector3(0.05f, 1.0f, 1.1f), Palette.Hex(0xFFF2C8)); mb.Glow = false;      // lit posters
                     break;
                 case "seats":
                     for (float z = -hz + 0.5f; z <= hz - 0.4f; z += 0.72f) { Seat(new Vector3(-0.5f, 0, z), Palette.Hex(0x2D4E7C)); if (level >= 2) { mb.Push().Translate(0.6f, 0, z).RotateY(180); Seat(Vector3.zero, Palette.Hex(0x2D4E7C)); mb.Pop(); } }

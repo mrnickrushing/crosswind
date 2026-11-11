@@ -14,6 +14,11 @@ namespace Crosswind.Game
 
         readonly Dictionary<int, PlaneView> _planes = new Dictionary<int, PlaneView>();
         GameObject _static;
+        Transform _kitRoot;
+        /// <summary>Where passengers go in and out of the terminal on the apron side, the landside road, and each depot's yard.</summary>
+        public Vector3 TerminalDoor { get; private set; }
+        public float RoadX { get; private set; }
+        public readonly Dictionary<string, Vector3> DepotAt = new Dictionary<string, Vector3>();
         string _built = "";
         Sim _sim;
 
@@ -26,6 +31,7 @@ namespace Crosswind.Game
             v._sim = GameRoot.Sim;
             v._sim.FlightChanged += v.OnFlight;
             v.Rebuild();
+            Life.Create(go.transform);
             foreach (var f in v._sim.State.flights) v.OnFlight(f);
             return v;
         }
@@ -56,7 +62,7 @@ namespace Crosswind.Game
             // The levels that shape the airport, as one key: rebuild only when it changes.
             var s = _sim;
             string key = s.Level("runway") + "|" + s.Level("stands") + "|" + s.Level("taxiways") + "|" + s.Level("tower") + "|" + s.Level("fuel") + "|" + s.Level("baggage") + "|"
-                + s.Level("catering") + "|" + s.Level("cleaning") + "|" + s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.Level("shops");
+                + s.Level("catering") + "|" + s.Level("cleaning") + "|" + s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.Level("shops") + "|" + s.Level("lounge") + "|" + s.Level("parking") + "|" + s.Level("hangar") + "|" + s.Level("cargo") + "|" + s.Level("ils") + "|" + s.Stars + "|" + s.State.map;
             if (key != _built) Rebuild();
             _built = key;
         }
@@ -73,6 +79,8 @@ namespace Crosswind.Game
             // Ground: grass, with a darker mown strip round the runway.
             mb.Box(new Vector3(20, -0.3f, 0), new Vector3(1400, 0.5f, 1400), Palette.Grass);
             mb.Box(new Vector3(Layout.RunwayX, -0.04f, 0), new Vector3(w + 14, 0.04f, half * 2 + 30), Palette.GrassDark);
+            for (int k = -14; k <= 14; k++)
+                mb.Box(new Vector3(20, -0.045f, k * 44f), new Vector3(1400, 0.02f, 22), Palette.Hex(0x669246));        // mowing stripes
 
             // Runway: grass strip, gravel, asphalt, then concrete with full markings.
             Color surface = rl <= 1 ? Palette.GrassWorn : rl <= 2 ? Palette.Gravel : rl <= 9 ? Palette.Asphalt : Palette.AsphaltPale;
@@ -114,52 +122,156 @@ namespace Crosswind.Game
                 mb.Box(new Vector3(p.x + 5.2f, 0.04f, p.z - 5.2f), new Vector3(1.6f, 0.02f, 1.6f), Palette.Paint);         // stand number pad
             }
 
-            // Terminal: grows along the stands with the check-in, security and gate levels; shops add a glass front.
+            // Terminal: a shed at first, then a hall with a glass front to the apron that grows along the stands.
             int tLevel = Mathf.Min(s.Level("checkin"), Mathf.Min(s.Level("security"), s.Level("gates")));
-            float tLen = Mathf.Min(108, 16 + tLevel * 6 + s.StandCount * 3f), tDepth = 9 + Mathf.Min(10, tLevel) * 0.9f, tH = 4 + Mathf.Min(6, tLevel / 3) * 1.6f;
-            if (tLevel <= 1 && s.StandCount <= 1)
+            float tLen = Mathf.Min(108, 16 + tLevel * 6 + s.StandCount * 3f), tDepth = 9 + Mathf.Min(10, tLevel) * 0.9f, tH = 4.5f + Mathf.Min(6, tLevel / 3) * 1.6f;
+            float tMidZ = -45.5f + tLen * 0.5f - 6;
+            TerminalDoor = new Vector3(termX, 0, Mathf.Clamp(-45.5f, tMidZ - tLen * 0.5f + 3, tMidZ + tLen * 0.5f - 3));
+            bool shed = tLevel <= 1 && s.StandCount <= 1;
+            if (shed)
             {
-                // The shed you inherit: boards and a tin roof.
+                mb.Smoothness = 0.1f;
                 mb.Box(new Vector3(termX + 4, 1.5f, -45.5f), new Vector3(7, 3, 9), Palette.WoodPale);
                 mb.GableRoof(new Vector3(termX + 4, 3f, -45.5f), new Vector3(7, 1.6f, 9), Palette.Roof, Palette.WoodPale, 0.5f);
+                mb.Box(new Vector3(termX + 0.4f, 1.1f, -45.5f), new Vector3(0.2f, 2.2f, 1.4f), Palette.Hex(0x4A3A2A));     // the door
+                mb.Box(new Vector3(termX + 4, 4.9f, -43f), new Vector3(0.12f, 2.2f, 0.12f), Palette.Steel);              // aerial
             }
             else
             {
-                Models.Block(mb, new Vector3(termX + tDepth * 0.5f, 0, -45.5f + tLen * 0.5f - 6), new Vector3(tDepth, tH, tLen), Palette.Concrete, Palette.ConcreteDark);
+                var c = new Vector3(termX + tDepth * 0.5f, 0, tMidZ);
+                mb.Smoothness = 0.25f;
+                mb.Box(c + Vector3.up * tH * 0.5f, new Vector3(tDepth, tH, tLen), Palette.Hex(0xE9E6DE), Palette.Hex(0xCFCBC2));
+                // Glass curtain walls, apron side and landside, between white mullions.
+                mb.Smoothness = 0.92f;
+                foreach (float side in new[] { -1f, 1f })
+                    mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 0.06f), tH * 0.52f, c.z), new Vector3(0.14f, tH * 0.72f, tLen - 2.4f), Palette.Hex(0x4E86A8));
+                mb.Smoothness = 0.3f;
+                for (float z = c.z - tLen * 0.5f + 1.2f; z <= c.z + tLen * 0.5f - 1.1f; z += 3f)
+                    foreach (float side in new[] { -1f, 1f })
+                        mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 0.12f), tH * 0.52f, z), new Vector3(0.18f, tH * 0.74f, 0.22f), Palette.White);
+                // The roof: a white slab with an overhang, plant on top.
+                mb.Box(c + Vector3.up * (tH + 0.25f), new Vector3(tDepth + 2.4f, 0.5f, tLen + 1.6f), Palette.White, Palette.Hex(0xD8D6CF));
+                for (float z = c.z - tLen * 0.5f + 5; z < c.z + tLen * 0.5f - 4; z += 9)
+                    mb.Box(new Vector3(c.x + 1, tH + 1.0f, z), new Vector3(2.4f, 1.0f, 3f), Palette.Steel, Palette.SteelDark);
+                // A canopy over the drop-off, and the doors.
+                mb.Box(new Vector3(c.x + tDepth * 0.5f + 3.2f, 3.4f, c.z), new Vector3(5.5f, 0.3f, Mathf.Min(tLen * 0.7f, 40)), Palette.White);
+                for (float z = c.z - Mathf.Min(tLen * 0.3f, 18); z <= c.z + Mathf.Min(tLen * 0.3f, 18) + 0.1f; z += 6)
+                    mb.Cylinder(new Vector3(c.x + tDepth * 0.5f + 5.4f, 0, z), new Vector3(c.x + tDepth * 0.5f + 5.4f, 3.3f, z), 0.16f, 8, Palette.Steel);
+                // Skylights along the roof; the shopping concourse is a glass atrium that lengthens with its level.
+                mb.Smoothness = 0.92f;
+                for (float z = c.z - tLen * 0.5f + 3; z < c.z + tLen * 0.5f - 3; z += 4.5f)
+                    mb.Box(new Vector3(c.x - tDepth * 0.22f, tH + 0.55f, z), new Vector3(tDepth * 0.28f, 0.14f, 2.6f), Palette.Hex(0x5E9CBE));
                 if (s.Level("shops") > 0)
                 {
-                    mb.Smoothness = 0.85f;
-                    mb.Box(new Vector3(termX + tDepth + 1.5f, tH * 0.4f, -45.5f + tLen * 0.5f - 6), new Vector3(3, tH * 0.8f, Mathf.Min(tLen, 10 + s.Level("shops") * 4)), Palette.Glass);
-                    mb.Smoothness = 0.2f;
+                    float sl = Mathf.Min(tLen - 8, 8 + s.Level("shops") * 2.5f);
+                    mb.Box(new Vector3(c.x + tDepth * 0.2f, tH + 1.6f, c.z), new Vector3(tDepth * 0.34f, 2.4f, sl), Palette.Hex(0x6FB0CC));
+                    mb.Smoothness = 0.3f;
+                    mb.Box(new Vector3(c.x + tDepth * 0.2f, tH + 2.9f, c.z), new Vector3(tDepth * 0.34f + 0.5f, 0.25f, sl + 0.5f), Palette.White);
+                    for (float z = c.z - sl * 0.5f; z <= c.z + sl * 0.5f + 0.1f; z += sl / 4f)
+                        mb.Box(new Vector3(c.x + tDepth * 0.2f, tH + 1.6f, z), new Vector3(tDepth * 0.34f + 0.2f, 2.5f, 0.18f), Palette.White);
                 }
-                // Jet bridges from the terminal to the first column of stands once the gates are worth it.
-                if (s.Level("gates") >= 4 && cols == 1)
-                    for (int i = 0; i < Mathf.Min(s.StandCount, Layout.PerColumn); i++)
-                        mb.Box(new Vector3(termX - 3.5f, 2.2f, Layout.Stand(i).z + 3.2f), new Vector3(7, 1.4f, 1.3f), Palette.Steel);
+                mb.Smoothness = 0.3f;
+                if (s.Level("lounge") > 0)
+                {
+                    mb.Smoothness = 0.9f;
+                    mb.Box(new Vector3(c.x, tH + 1.6f, c.z + tLen * 0.5f - 6), new Vector3(tDepth * 0.8f, 2.4f, 8), Palette.Hex(0x9A7ACB));
+                    mb.Smoothness = 0.3f;
+                }
+                // Jet bridges to the nearest column of stands once the gates are worth it; steps before that.
+                int lastCol = Layout.Columns(s) - 1;
+                for (int i = lastCol * Layout.PerColumn; i < s.StandCount; i++)
+                {
+                    var p = Layout.Stand(i);
+                    if (p.z > c.z + tLen * 0.5f || p.z < c.z - tLen * 0.5f) continue;
+                    if (s.Level("gates") >= 3)
+                    {
+                        mb.Box(new Vector3((termX + p.x + 5) * 0.5f, 2.6f, p.z + 3.4f), new Vector3(termX - p.x - 5, 1.5f, 1.4f), Palette.Hex(0xDADDE0), Palette.Steel);
+                        mb.Cylinder(new Vector3(p.x + 5.4f, 0, p.z + 3.4f), new Vector3(p.x + 5.4f, 1.9f, p.z + 3.4f), 0.3f, 8, Palette.SteelDark);
+                        mb.Cylinder(new Vector3(p.x + 5.2f, 1.8f, p.z + 3.4f), new Vector3(p.x + 5.2f, 3.5f, p.z + 3.4f), 1.1f, 1.1f, 10, Palette.Hex(0xDADDE0));
+                    }
+                }
             }
-            // Car park and road landside.
-            float roadX = termX + tDepth + 9;
-            mb.Box(new Vector3(roadX, 0.0f, 0), new Vector3(6, 0.05f, 130), Palette.Asphalt);
-            mb.Box(new Vector3(roadX + 12, 0.0f, -30), new Vector3(14, 0.05f, 30 + tLevel * 3), Palette.AsphaltPale);
 
-            // Service depots south of the apron, each in its colour, each growing with its level.
-            float dx = Layout.TaxiX + 8;
-            foreach (var (id, color) in new[] { ("fuel", Palette.Fuel), ("baggage", Palette.Baggage), ("catering", Palette.Catering), ("cleaning", Palette.Cleaning) })
+            // Landside: the road, the car park (cars by its level), and the town beyond, which grows with the stars.
+            float roadX = termX + tDepth + 12;
+            RoadX = roadX;
+            mb.Smoothness = 0.08f;
+            mb.Box(new Vector3(roadX, 0.0f, 0), new Vector3(7, 0.05f, 420), Palette.Asphalt);
+            for (float z = -200; z < 200; z += 8) mb.Box(new Vector3(roadX, 0.04f, z), new Vector3(0.2f, 0.02f, 3.5f), Palette.Paint);
+            int park = s.Level("parking");
+            float lotW = 16 + Mathf.Min(6, park) * 3, lotL = 26 + Mathf.Min(10, park) * 5;
+            var lot = new Vector3(roadX + 5 + lotW * 0.5f, 0, -46 + lotL * 0.5f);
+            mb.Box(lot, new Vector3(lotW, 0.05f, lotL), Palette.AsphaltPale);
+            var kit = new GameObject("Kit").transform;
+            _kitRoot = kit;
+            var rng = new System.Random(11);
+            string[] cars = { "sedan", "suv", "hatchback", "taxi", "van", "sedan", "suv" };
+            int rows = Mathf.Max(1, Mathf.FloorToInt(lotW / 6.5f)), perRow = Mathf.FloorToInt(lotL / 3.2f);
+            int wantCars = Mathf.Min(rows * perRow, 3 + park * 5 + s.Stars * 2);
+            for (int r = 0, placed = 0; r < rows && placed < wantCars; r++)
+                for (int k = 0; k < perRow && placed < wantCars; k++)
+                {
+                    mb.Box(new Vector3(lot.x - lotW * 0.5f + 3.2f + r * 6.5f, 0.04f, lot.z - lotL * 0.5f + 0.4f + k * 3.2f), new Vector3(4.6f, 0.02f, 0.12f), Palette.Paint);
+                    if (rng.NextDouble() < 0.25) continue;
+                    Models.Kit(cars[rng.Next(cars.Length)], kit, new Vector3(lot.x - lotW * 0.5f + 3.2f + r * 6.5f, 0.05f, lot.z - lotL * 0.5f + 2f + k * 3.2f), rng.Next(2) * 180 + 90, 4.2f);
+                    placed++;
+                }
+            // The town.
+            string[] town = { "shop_a", "shop_b", "shop_c", "shop_d", "shop_e", "shop_f", "shop_g", "shop_h", "shop_i", "shop_j", "shop_k", "shop_l", "shop_m", "shop_n" };
+            string[] high = { "tower_a", "tower_b", "tower_c", "tower_d", "tower_e" };
+            int blocks = 6 + s.Stars * 5;
+            for (int i = 0; i < blocks; i++)
+            {
+                float bx = roadX + lotW + 22 + (i % 5) * 17 + (float)rng.NextDouble() * 4, bz = -150 + (i / 5) * 24 + (float)rng.NextDouble() * 6;
+                bool tall = s.Stars >= 4 && rng.NextDouble() < 0.12 + s.Stars * 0.03;
+                if (tall) Models.Kit(high[rng.Next(high.Length)], kit, new Vector3(bx, 0, bz), rng.Next(4) * 90, 26 + rng.Next(22));
+                else Models.Kit(town[rng.Next(town.Length)], kit, new Vector3(bx, 0, bz), rng.Next(4) * 90, 11 + rng.Next(5));
+            }
+
+            // Service depots south of the apron: a works building each, tanks for the fuel farm.
+            float dx = Layout.TaxiX + 10;
+            foreach (var (id, model) in new[] { ("fuel", "works_a"), ("baggage", "works_d"), ("catering", "works_h"), ("cleaning", "works_m") })
             {
                 int l = s.Level(id);
+                DepotAt[id] = new Vector3(dx, 0, -62);
                 if (l > 0)
                 {
-                    float size = 4 + Mathf.Min(8, l) * 0.5f;
+                    float size = 7 + Mathf.Min(8, l) * 0.5f;
                     if (id == "fuel")
-                        for (int k = 0; k < 1 + Mathf.Min(3, l / 3); k++)
-                        {
-                            mb.Smoothness = 0.5f;
-                            mb.Cylinder(new Vector3(dx + k * 3.2f, 0, -64), new Vector3(dx + k * 3.2f, 2.5f + l * 0.12f, -64), 1.4f, 1.4f, 12, Palette.White);
-                            mb.Cylinder(new Vector3(dx + k * 3.2f, 1.2f, -64), new Vector3(dx + k * 3.2f, 1.7f, -64), 1.43f, 1.43f, 12, color);
-                        }
-                    else Models.Block(mb, new Vector3(dx + size * 0.5f, 0, -64), new Vector3(size, 3 + l * 0.1f, 6), color, Palette.ConcreteDark, false);
+                    {
+                        for (int k = 0; k < 1 + Mathf.Min(3, l / 3); k++) Models.Kit(l >= 6 ? "tank_large" : "tank", kit, new Vector3(dx + k * 4.5f - 2, 0, -70), 0, l >= 6 ? 5.5f : 4f);
+                        Models.Kit("works_s", kit, new Vector3(dx - 7, 0, -70), 90, 6);
+                    }
+                    else Models.Kit(model, kit, new Vector3(dx, 0, -71), 0, size);
+                    mb.Box(new Vector3(dx, 0.0f, -66), new Vector3(14, 0.05f, 16), Palette.AsphaltPale);
                 }
-                dx += 16;
+                dx += 19;
+            }
+            // North of the apron: the hangar and the cargo terminal.
+            if (s.Level("hangar") > 0)
+            {
+                float hw = 18 + Mathf.Min(10, s.Level("hangar")) * 1.2f;
+                var hp = new Vector3(Layout.TaxiX + 18, 0, 78);
+                mb.Smoothness = 0.35f;
+                mb.Box(hp + Vector3.up * 4, new Vector3(hw, 8, 20), Palette.Hex(0xC8CCD0), Palette.Steel);
+                mb.Cylinder(hp + new Vector3(-hw * 0.5f, 8, 0), hp + new Vector3(hw * 0.5f, 8, 0), 10f, 10f, 14, Palette.Hex(0xAEB4BA));
+                mb.Box(hp + new Vector3(0, 3.2f, -10.1f), new Vector3(hw * 0.8f, 6.4f, 0.2f), Palette.Hex(0x38424C));
+                mb.Box(hp + new Vector3(0, 0, -16), new Vector3(hw, 0.05f, 12), Palette.Concrete);
+            }
+            if (s.Level("cargo") > 0)
+            {
+                var cp = new Vector3(Layout.TaxiX + 52, 0, 76);
+                Models.Kit("works_q", kit, cp, 180, 14);
+                string[] boxes = { "container_a", "container_b", "container_c" };
+                for (int k = 0; k < Mathf.Min(14, 3 + s.Level("cargo")); k++)
+                    Models.Kit(boxes[k % 3], kit, cp + new Vector3(12 + (k % 4) * 3.2f, (k / 8) * 2.6f, -6 + (k / 4 % 2) * 7.5f), 0, 6);
+                mb.Box(cp + new Vector3(8, 0, -2), new Vector3(40, 0.05f, 22), Palette.AsphaltPale);
+            }
+            if (s.Level("ils") > 0)
+            {
+                // Approach lights off the south end, and the radar by the tower.
+                for (int k = 1; k <= 4 + s.Level("ils"); k++)
+                    mb.Box(new Vector3(Layout.RunwayX, 0.4f, -half - k * 7), new Vector3(k % 3 == 0 ? 6 : 0.4f, 0.8f, 0.4f), Palette.PaintYellow);
             }
 
             // Tower.
@@ -179,11 +291,11 @@ namespace Crosswind.Game
             mb.Cylinder(ws + Vector3.up * 4.8f, ws + new Vector3(0, 4.5f, 2.6f), 0.45f, 0.15f, 8, Palette.Fuel);
 
             // Trees round the edge so the field sits in a landscape.
-            var rng = new System.Random(7);
+            rng = new System.Random(7);
             for (int i = 0; i < 520; i++)
             {
                 float x = (float)rng.NextDouble() * 900 - 430, z = (float)rng.NextDouble() * 900 - 450;
-                bool clear = x > Layout.RunwayX - 22 && x < roadX + 34 && z > -half - 55 && z < half + 55;
+                bool clear = x > Layout.RunwayX - 22 && x < roadX + 150 && z > -half - 85 && z < half + 110;
                 if (clear) continue;
                 float h = 3 + (float)rng.NextDouble() * 4;
                 mb.Smoothness = 0.05f;
@@ -192,6 +304,7 @@ namespace Crosswind.Game
             }
 
             _static = mb.ToObject("Static", transform);
+            kit.SetParent(_static.transform, false);
         }
     }
 }

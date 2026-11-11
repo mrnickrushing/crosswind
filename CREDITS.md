@@ -15,3 +15,7 @@ Each was converted to a vertex-coloured mesh, rescaled and re-oriented (`Tools/b
 ## Fonts
 
 - Barlow Condensed and Barlow Semi Condensed by Jeremy Tribby, SIL Open Font License 1.1 (`Assets/Resources/Fonts/Barlow-OFL.txt`).
+
+## Vehicles, buildings, people (Kenney, CC0: https://kenney.nl)
+
+Car Kit, City Kit (Commercial, Industrial, Roads), Mini Characters. Public domain; listed with thanks.

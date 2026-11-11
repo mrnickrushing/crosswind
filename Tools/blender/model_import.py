@@ -38,6 +38,24 @@ meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
 arm = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
 
 
+# --pose action:frame  freezes a rigged character in one frame of one of its clips (a walking stride, sitting), so
+# crowds can be drawn as plain meshes and animated by swapping a few of them.
+pose = arg("--pose", None, str)
+if pose and arm is not None:
+    name, frame = pose.split(":")
+    act = bpy.data.actions.get(name)
+    if act is not None:
+        arm.animation_data_create()
+        arm.animation_data.action = act
+        bpy.context.scene.frame_set(int(frame))
+        bpy.context.view_layer.update()
+        for o in meshes:
+            bpy.context.view_layer.objects.active = o
+            for mod in list(o.modifiers):
+                if mod.type == "ARMATURE":
+                    bpy.ops.object.modifier_apply(modifier=mod.name)
+
+
 def to_linear(c):
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 

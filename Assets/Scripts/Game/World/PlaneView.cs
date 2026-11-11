@@ -105,28 +105,46 @@ namespace Crosswind.Game
             Trucks();
         }
 
-        /// <summary>A truck stands by the aircraft for each service that is under way.</summary>
+        static string TruckModel(Service s) { return s == Service.Fuel ? "truck" : s == Service.Baggage ? "tractor" : s == Service.Catering ? "delivery" : "van"; }
+        readonly Dictionary<Service, float> _truckT = new Dictionary<Service, float>();
+
+        /// <summary>
+        /// Each service under way has its vehicle: it drives out from its depot, works beside the aircraft, and drives
+        /// home when the job is done.
+        /// </summary>
         void Trucks()
         {
             int k = 0;
+            float L = Models.Length(Route.Class);
             foreach (var j in Flight.jobs)
             {
                 bool working = _phase == Phase.Service && j.dispatched && !j.done;
-                GameObject t;
-                if (!_trucks.TryGetValue(j.service, out t))
+                GameObject t; float at;
+                _trucks.TryGetValue(j.service, out t);
+                _truckT.TryGetValue(j.service, out at);
+                if (t == null)
                 {
                     if (!working) { k++; continue; }
-                    t = Models.Truck(j.service).ToObject("Truck " + j.service, transform.parent);
-                    _trucks[j.service] = t;
+                    t = Models.Kit(TruckModel(j.service), transform.parent, Vector3.zero, 0, j.service == Service.Baggage ? 3.2f : 5f) ?? Models.Truck(j.service).ToObject("Truck", transform.parent);
+                    _trucks[j.service] = t; at = 0;
                 }
-                t.SetActive(working);
-                if (working)
-                {
-                    float L = Models.Length(Route.Class);
-                    var side = (k % 2 == 0 ? 1 : -1) * Vector3.forward * (L * 0.2f + 2.2f) + Vector3.left * (k / 2 * 3f - 1f);
-                    t.transform.position = Layout.Stand(StandOrLast()) + side;
-                    t.transform.rotation = Quaternion.LookRotation(k % 2 == 0 ? Vector3.back : Vector3.forward);
-                }
+                // 0 at the depot, 1 beside the aircraft.
+                at = Mathf.MoveTowards(at, working ? 1 : 0, Time.deltaTime * Mathf.Max(1, GameRoot.Speed) * 0.55f);
+                _truckT[j.service] = at;
+                var side = Layout.Stand(StandOrLast()) + (k % 2 == 0 ? 1 : -1) * Vector3.forward * (L * 0.2f + 2.6f) + Vector3.left * (k / 2 * 3.4f - 1f);
+                Vector3 depot;
+                if (AirportView.Instance == null || !AirportView.Instance.DepotAt.TryGetValue(Content.ServiceFacility(j.service), out depot)) depot = side + Vector3.back * 30;
+                // Out along the apron's south edge, then up the stand's lane.
+                var corner = new Vector3(side.x - 6, 0, depot.z + 6);
+                float e = Mathf.SmoothStep(0, 1, at);
+                Vector3 pos, dir;
+                if (e < 0.5f) { pos = Vector3.Lerp(depot, corner, e * 2); dir = corner - depot; }
+                else if (e < 0.9f) { var mid = new Vector3(side.x - 6, 0, side.z); pos = Vector3.Lerp(corner, mid, (e - 0.5f) / 0.4f); dir = mid - corner; }
+                else { var mid = new Vector3(side.x - 6, 0, side.z); pos = Vector3.Lerp(mid, side, (e - 0.9f) / 0.1f); dir = side - mid; }
+                if (!working) dir = -dir;
+                t.SetActive(at > 0.001f || working);
+                t.transform.position = pos + Vector3.up * 0.05f;
+                if (dir.sqrMagnitude > 0.01f) t.transform.rotation = Quaternion.Slerp(t.transform.rotation, Quaternion.LookRotation(-dir.normalized), 1 - Mathf.Exp(-10 * Time.deltaTime));   // kit vehicles face -Z
                 k++;
             }
         }

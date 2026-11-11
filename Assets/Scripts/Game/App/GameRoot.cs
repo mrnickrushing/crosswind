@@ -41,9 +41,10 @@ namespace Crosswind.Game
             var sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
             sun.color = new Color(1f, 0.96f, 0.88f);
-            sun.intensity = 1.25f;
+            sun.intensity = 1.35f;
+            sun.shadowBias = 0.6f; sun.shadowNormalBias = 0.5f;
             sun.shadows = LightShadows.Soft;
-            sun.transform.rotation = Quaternion.Euler(48, -35, 0);
+            sun.transform.rotation = Quaternion.Euler(42, -128, 0);   // low from behind the camera's left: long shadows toward the viewer's right
             RenderSettings.ambientMode = AmbientMode.Trilight;
             RenderSettings.ambientSkyColor = new Color(0.62f, 0.72f, 0.86f);
             RenderSettings.ambientEquatorColor = new Color(0.55f, 0.58f, 0.56f);
@@ -53,7 +54,8 @@ namespace Crosswind.Game
             RenderSettings.fogColor = new Color(0.72f, 0.82f, 0.9f);
             RenderSettings.fogStartDistance = 420; RenderSettings.fogEndDistance = 1100;
 
-            CameraRig.Create();
+            var rig = CameraRig.Create();
+            Look.Create(rig.Cam, sun);
             AirportView.Create(transform);
             Hud.Create();
         }

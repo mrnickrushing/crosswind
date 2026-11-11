@@ -156,3 +156,19 @@ possible; heavy optional content (extra maps) can ship as on-demand resources la
 4. **Airlines and contracts**, research, weather, incidents.
 5. **Second map and prestige**, events, season, store, saves, statistics.
 6. **Polish, balance bot, TestFlight.**
+
+## Depth target (added 2026-11-10)
+
+The owner pointed at the mobile "Airport Simulator" tycoons as the level of depth wanted. What that genre's deeper
+entries have, as general ideas (nothing of theirs is copied: names, airlines, art, layouts and numbers here are ours):
+
+- airlines as partners with a satisfaction that depends on punctuality and service quality, contracts that are
+  negotiated, and the risk of losing a partner by over-committing: **in** (`Sim.Airlines`: relations, terms, walking);
+- passengers with visible needs, served by check-in, security, gates and amenities (cafes, plants, seating): the
+  terminal is levels today; **next**: a terminal interior you lay out, passengers that walk it, and needs to answer;
+- a flight schedule the player plans against runway and stand capacity: **next** (a day planner over the routes);
+- construction and deliveries that take time and continue while away: research does; **next**: build times;
+- missions and a daily sign-in reward: tasks and achievements are in; **next**: a sign-in calendar.
+
+Reviews of the genre complain about upgrades priced to push purchases and about unclear mechanics, so this game
+keeps: every block says why it is blocked, no pay-only walls, and prices a player can reach by playing.

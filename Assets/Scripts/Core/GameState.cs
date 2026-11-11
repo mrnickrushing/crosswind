@@ -13,6 +13,7 @@ namespace Crosswind.Core
     public sealed class ContractState
     {
         public string route;
+        public int terms;               // 0 standard, 1 busy (more flights, less patience), 2 premium (fewer flights, pays more)
         public double nextArrival;      // game time of the next flight on this route
     }
 
@@ -86,6 +87,8 @@ namespace Crosswind.Core
         public double boostUntil;                                   // real time the 2x income boost ends
         public List<string> achievements = new List<string>();     // claimed
 
+        public List<LevelEntry> relations = new List<LevelEntry>();   // each airline's satisfaction with you, 0..100 (starts at 50)
+
         // The live layer.
         public int weather;                                         // Weather, as a number
         public double weatherUntil;                                 // game time it changes
@@ -131,6 +134,7 @@ namespace Crosswind.Core
             if (research != null && (string.IsNullOrEmpty(research.id) || Content.ResearchById(research.id) == null)) research = null;
             if (managerLevels == null) managerLevels = new List<LevelEntry>();
             if (achievements == null) achievements = new List<string>();
+            if (relations == null) relations = new List<LevelEntry>();
             if (opportunity != null && string.IsNullOrEmpty(opportunity.kind)) opportunity = null;
             if (tasks == null) tasks = new List<TaskState>();
             tasks.RemoveAll(x => x == null || string.IsNullOrEmpty(x.kind));

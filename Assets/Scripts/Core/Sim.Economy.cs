@@ -42,8 +42,11 @@ namespace Crosswind.Core
         void Pay(FlightState f)
         {
             var r = Content.Routes[f.route];
-            bool onTime = State.time - f.parkedAt <= OnTimeTarget(r);
-            double paid = FlightValue(r, onTime) * (State.time < State.rushUntil ? 2 : 1);
+            var contract = State.contracts.Find(c => c.route == f.route);
+            int terms = contract != null ? contract.terms : 0;
+            bool onTime = State.time - f.parkedAt <= OnTimeTarget(r) * TermsPatience(terms);
+            double paid = FlightValue(r, onTime) * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * RelationPay(r.Airline);
+            Relate(r.Airline, onTime ? 0.4f : -2.5f);
             Earn(paid, true);
             State.flightsHandled++;
             Count("flights", 1);

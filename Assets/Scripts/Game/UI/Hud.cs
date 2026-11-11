@@ -46,6 +46,7 @@ namespace Crosswind.Game
             h._sim.Toast += h.Toast;
             h._sim.FlightPaid += h.OnPaid;
             h._sim.StarGained += h.OnStar;
+            h._sim.RouteLost += r => h._dirty = true;
             h._shownMoney = h._sim.State.money;
             h.OfferAway();
             return h;

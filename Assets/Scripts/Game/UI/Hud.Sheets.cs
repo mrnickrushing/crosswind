@@ -81,11 +81,21 @@ namespace Crosswind.Game
             else if (_tab == 1)
             {
                 Header("YOUR ROUTES");
-                foreach (var c in s.State.contracts)
+                foreach (var c in s.State.contracts.ToList())
                 {
                     var r = Content.Routes[c.route]; var plane = Content.Aircraft[r.Class];
-                    Entry(r.Destination, Content.Airlines[r.Airline].Name, plane.Name + " (" + plane.Seats + " seats)  ·  " + r.FlightsPerHour + " flights an hour  ·  " + Format.Money(s.FlightValue(r)) + " a flight on time",
-                        null, null, null);
+                    float mood = s.Relation(r.Airline);
+                    int next = (c.terms + 1) % 3;
+                    Entry(r.Destination, Content.Airlines[r.Airline].Name + " · " + Sim.Mood(mood).ToUpper(),
+                        plane.Name + "  ·  " + Mathf.RoundToInt(r.FlightsPerHour * Sim.TermsFlights(c.terms)) + " flights an hour  ·  " + Format.Money(s.FlightValue(r) * Sim.TermsPay(c.terms) * s.RelationPay(r.Airline)) + " a flight on time  ·  terms: " + Sim.TermsName[c.terms],
+                        "TERMS\n<size=30>" + Sim.TermsName[next] + "</size>", null, () => { s.SetTerms(r.Id, next); Toast(r.Destination + ": " + Sim.TermsBlurb[next]); }, Ui.Card);
+                }
+                Header("AIRLINES: ON-TIME FLIGHTS PLEASE THEM, LATE ONES COST YOU");
+                foreach (var line in s.State.contracts.Select(c => Content.Routes[c.route].Airline).Distinct())
+                {
+                    float mood = s.Relation(line);
+                    Entry(Content.Airlines[line].Name, Sim.Mood(mood).ToUpper() + "  " + Mathf.RoundToInt(mood) + "/100", "\"" + Content.Airlines[line].Motto + "\"  Pays " + Mathf.RoundToInt((float)s.RelationPay(line) * 100) + "% of its fees."
+                        + (mood < 20 ? "  One more bad day and they cancel a route." : mood >= 85 ? "  Your best partner." : ""), null, null, null);
                 }
                 var offers = s.Offers.ToList();
                 Header(offers.Count > 0 ? "ON OFFER" : "NO NEW OFFERS: RAISE YOUR STAR RATING");

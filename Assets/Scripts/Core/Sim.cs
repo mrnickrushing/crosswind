@@ -147,11 +147,11 @@ namespace Crosswind.Core
             return null;
         }
 
-        public bool Sign(string route)
+        public bool Sign(string route, int terms = 0)
         {
             if (SignBlocked(route) != null) return false;
             var r = Content.Routes[route];
-            State.contracts.Add(new ContractState { route = route, nextArrival = State.time + 3 });
+            State.contracts.Add(new ContractState { route = route, nextArrival = State.time + 3, terms = Math.Max(0, Math.Min(2, terms)) });
             Earn(r.SigningBonus * Map.IncomeScale, false);
             AddRating(10 * r.Stars);
             Changed?.Invoke();
@@ -190,7 +190,7 @@ namespace Crosswind.Core
             {
                 if (State.time < c.nextArrival) continue;
                 var r = Content.Routes[c.route];
-                double gap = 3600.0 / (r.FlightsPerHour * (1 + Fx(Effect.Demand)));
+                double gap = 3600.0 / (r.FlightsPerHour * (1 + Fx(Effect.Demand)) * TermsFlights(c.terms));
                 // Never more waiting than the tower can watch: a full pattern sends the next one round again.
                 if (State.flights.Count >= TowerSlots) { c.nextArrival = State.time + Math.Min(gap, 5); continue; }
                 c.nextArrival = State.time + gap * (0.85 + Rand() * 0.3);

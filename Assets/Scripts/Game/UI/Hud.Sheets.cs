@@ -215,6 +215,13 @@ namespace Crosswind.Game
                     var pl = Content.Aircraft[ac]; var own = Content.Routes["own_" + ac.ToString().ToLower()];
                     Ico("stands", TintAir).Entry(pl.Name, s.Owned(ac) > 0 ? "OWN " + s.Owned(ac) : null, pl.Seats + " seats on your " + own.Destination + " route  ·  " + Format.Money(s.FlightValue(own) * Sim.OwnPay) + " a flight  ·  each one you own adds flights",
                         "BUY\n<size=34>" + Format.Money(s.AircraftCost(ac)) + "</size>", s.BuyAircraftBlocked(ac), () => { if (s.BuyAircraft(ac)) Toast(pl.Name + " joins your fleet"); }, Ui.Gold);
+                    if (s.Owned(ac) > 0)
+                    {
+                        float cp = s.CheckProgress(ac); bool due = s.CheckOverdue(ac); string cb = s.CheckBlocked(ac);
+                        Ico("hangar", due ? TintRed : cp > 0.75f ? TintGold : TintPlain).Bar(1 - cp, due ? Ui.Red : cp > 0.75f ? Ui.Gold : Ui.Green).Entry("Maintenance", due ? "OVERDUE · PAYS 75%" : Mathf.RoundToInt((1 - cp) * s.CheckInterval(ac)) + " FLIGHTS TO CHECK",
+                            s.Level("hangar") > 0 ? "Checked in your own hangar. A bigger hangar means longer between checks." : "No hangar: a contractor does the check at twice the price.",
+                            cb == "Not needed yet" ? "FINE" : "CHECK\n<size=34>" + Format.Money(s.CheckCost(ac)) + "</size>", cb == "Not needed yet" ? null : cb, () => { if (s.DoCheck(ac)) { Sfx.Play("build"); Toast(pl.Name + " fleet checked and released"); } }, due ? Ui.Gold : (Color?)null);
+                    }
                 }
                 var offers = s.Offers.ToList();
                 Header(offers.Count > 0 ? "ON OFFER" : "NO NEW OFFERS: RAISE YOUR STAR RATING");

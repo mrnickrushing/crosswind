@@ -49,6 +49,7 @@ namespace Crosswind.Tests
                 if (s.PlannerOpen && (s.State.plansMade == 0 || (int)(t / 60) % 10 == 0)) s.AutoPlan();
                 // What a contract on offer is waiting for comes first, then the cheapest thing.
                 if (s.ReportWaiting) s.ClaimReport();
+                foreach (AircraftClass mc in System.Enum.GetValues(typeof(AircraftClass))) if (s.CheckProgress(mc) >= 0.9f && s.CheckBlocked(mc) == null) s.DoCheck(mc);
                 if (s.RunwayCondition < 0.45f && s.ResurfaceBlocked() == null && s.ResurfaceCost < s.State.money * 0.3) s.Resurface();
                 if (s.FuelFill < 0.3f && (s.FuelPrice <= 1.05f || s.FuelFill < 0.08f)) s.BuyFuel(s.FuelPrice < 0.95f ? 1f : 0.6f);
                 var wanted = Content.Routes.Values.Where(r => !s.Signed(r.Id) && s.Stars >= r.Stars)

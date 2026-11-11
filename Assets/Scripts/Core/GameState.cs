@@ -140,6 +140,8 @@ namespace Crosswind.Core
         public DayReport report;                                     // the last day closed (null before the first)
         public int gradeStreak, daysAtA;
         public int cheapFills;                                       // tankers bought well below par
+        public List<LevelEntry> fleetHours = new List<LevelEntry>();  // flights since the last check, by aircraft type ("a".."e")
+        public int checksDone;
         public bool fuelWarned;                                      // the low-fuel warning has been given for this tankful
         public List<AirlineDeal> deals = new List<AirlineDeal>();    // each airline's punctuality deal in progress
         public List<LevelEntry> partner = new List<LevelEntry>();    // partner level with each airline, 0..3 (kept at this airport)
@@ -159,6 +161,7 @@ namespace Crosswind.Core
         public void Repair()
         {
             if (levels == null) levels = new List<LevelEntry>();
+            if (fleetHours == null) fleetHours = new List<LevelEntry>();
             if (contracts == null) contracts = new List<ContractState>();
             if (flights == null) flights = new List<FlightState>();
             if (managers == null) managers = new List<string>();

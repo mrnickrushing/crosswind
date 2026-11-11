@@ -103,6 +103,10 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   `State.report` (`ScoreOf`: 50% on time, 30% satisfaction, 10% never dry, 10% runway sound; grades A-E; bonus 5/3/1%
   of the day's takings; `gradeStreak` of B-or-better days pays `StreakGems` every `StreakEvery`). Uncollected bonuses
   roll over. UI: top of EMPIRE, toast and the EMPIRE dot.
+- Fleet maintenance (`Core/Sim.Maintenance.cs`, `MaintenanceTests`): each own-airline flight adds one to
+  `State.fleetHours` for its type; at `CheckInterval` (40 x aircraft owned, +10% per hangar level) the type is
+  overdue and its flights pay `OverduePay` until `DoCheck` (half price with a hangar). UI: a row under each owned
+  type in AIRLINES.
 - Wide-body stands (facility `heavy`, 5 stars, max 6): class D and E (`Sim.Heavy`) park only on the first
   `HeavyStands` stands of the row; smaller aircraft fill the ordinary ones first and leave a wide-body stand at once
   when one is circling (`WideBodyWaiting`). `Sim.Missing(route)` lists the facilities a route still waits for (the

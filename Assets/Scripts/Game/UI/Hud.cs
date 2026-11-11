@@ -53,6 +53,7 @@ namespace Crosswind.Game
             h._sim.RunwayWorn += () => { h.Toast("The runway is worn: it clears slower until it is resurfaced (BUILD)"); h._dirty = true; };
             h._sim.RunwayReopened += () => { h.Toast("Runway open: a fresh surface"); Sfx.Play("build"); h._dirty = true; };
             h._sim.DayEnded += r => { if (GameRoot.Speed <= 3) { h.Toast("Day " + r.day + ": grade " + r.grade + (r.bonus > 0 ? ". Collect your bonus in EMPIRE" : "")); Sfx.Play("chime", 0.6f); } h._dirty = true; };
+            h._sim.CheckDue += c => { h.Toast("Your " + Content.Aircraft[c].Name + " fleet is due a maintenance check (AIRLINES)"); h._dirty = true; };
             h._sim.OpportunityAppeared += o => Sfx.Play("chime", 0.6f);
             h._sim.WeatherChanged += w => { if (w != Weather.Clear) h.Toast(w + ": the runway slows down"); };
             h._shownMoney = h._sim.State.money;

@@ -12,6 +12,8 @@ namespace Crosswind.Tests
         public static List<string> Greedy(Sim s, float seconds, float tapEvery = 1f)
         {
             var log = new List<string>();
+            double clock = 1_800_000_000;
+            s.RealNow = () => clock;
             int stars = s.Stars, goal = s.State.goalIndex;
             float sinceTap = 0;
             for (float t = 0; t < seconds; t += 0.25f)
@@ -19,8 +21,18 @@ namespace Crosswind.Tests
                 sinceTap += 0.25f;
                 if (sinceTap >= tapEvery) { sinceTap = 0; foreach (var (f, j) in s.Waiting.ToList()) s.Dispatch(f.id, j.service); }
                 s.Tick(0.25f);
+                clock += 0.25;
                 if ((int)(t * 4) % 4 != 0) continue;
                 while (s.ClaimGoal()) { }
+                s.TakeOpportunity();
+                for (int k = 0; k < s.State.tasks.Count; k++) s.ClaimTask(k);
+                foreach (var a in Sim.Achievements) s.ClaimAchievement(a.Id);
+                if (s.State.research == null)
+                {
+                    var next = Content.Research.Where(r => s.ResearchBlocked(r.Id) == null).OrderBy(r => r.Cost).FirstOrDefault();
+                    if (next != null && s.State.money > s.ResearchCost(next) * 1.5) s.StartResearch(next.Id);
+                }
+                foreach (var m in s.State.managers.ToList()) if (s.TrainBlocked(m) == null && s.State.money > s.TrainCost(m) * 4) s.Train(m);
                 foreach (var r in s.Offers.ToList()) s.Sign(r.Id);
                 foreach (var id in Content.FacilityOrder) if (s.HireBlocked(id) == null) s.Hire(id);
                 // What a contract on offer is waiting for comes first, then the cheapest thing.
@@ -33,6 +45,18 @@ namespace Crosswind.Tests
                 if (s.State.goalIndex != goal) { goal = s.State.goalIndex; log.Add(Format.Time(t) + ": goal " + goal + " done (" + Goals.All[goal - 1].Id + ")"); }
             }
             return log;
+        }
+
+        [Test]
+        public void ALongSessionReachesTheSecondAirport()
+        {
+            var s = new Sim(GameState.New());
+            var log = Greedy(s, 12 * 3600, 2f);
+            foreach (var l in log.Where(x => x.Contains("stars"))) TestContext.WriteLine(l);
+            TestContext.WriteLine("after 12h: " + s.Stars + " stars, money " + Format.Money(s.State.money) + ", rate/min " + Format.Money(s.State.incomeRate * 60) + ", " + s.State.flightsHandled + " flights, goal " + s.State.goalIndex + "/" + Goals.All.Count
+                + ", research " + s.State.researched.Count + "/" + Content.Research.Count + ", gems " + s.State.gems + ", wings on sale " + s.WingsOnSale + ", routes " + s.State.contracts.Count);
+            Assert.GreaterOrEqual(s.Stars, Content.SellStars, "a day's play can sell the first airport");
+            Assert.Greater(s.WingsOnSale, 0);
         }
 
         [Test]

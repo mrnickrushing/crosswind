@@ -71,7 +71,7 @@ namespace Crosswind.Core
         public const float OnTimeSlack = 1.6f;           // an on-time turnaround takes at most this many times the ideal
 
         /// <summary>Rating XP needed to reach each star level (index 1 = one star, held from the start).</summary>
-        public static readonly double[] StarXp = { 0, 0, 60, 300, 1500, 8000, 40000, 200000, 1e6, 5e6, 2.5e7 };
+        public static readonly double[] StarXp = { 0, 0, 60, 450, 2200, 10000, 50000, 250000, 1.5e6, 8e6, 5e7 };
         public static int MaxStars { get { return StarXp.Length - 1; } }
 
         static Content()
@@ -107,6 +107,12 @@ namespace Crosswind.Core
             Fac("security", "Security Lanes", "Terminal", 260, "Shorter queues: happier passengers who spend more.", start: 1);
             Fac("gates", "Gate Lounges", "Terminal", 320, "Faster boarding and deplaning.", start: 1);
             Fac("shops", "Shops and Cafes", "Terminal", 400, "Every passenger spends more.", stars: 2);
+            Fac("lounge", "Lounges", "Terminal", 6000, "Comfort for the passengers who pay most: the passenger fee rises.", stars: 4);
+            Fac("parking", "Car Park and Transit", "Terminal", 2500, "Parking, buses, and later a rail link: income every minute, flights or not.", stars: 3);
+            // Operations.
+            Fac("ils", "Landing Aids", "Airside", 3000, "Lights, radar and ILS: bad weather slows the runway less with every level.", stars: 3, growth: 1.9f, max: 10);
+            Fac("hangar", "Maintenance Hangar", "Services", 20000, "Aircraft stay for checks and pay rent: a share on top of every landing fee.", stars: 5, growth: 1.8f, max: 20);
+            Fac("cargo", "Cargo Terminal", "Services", 60000, "Freight in the belly of every flight: more for each seat-mile.", stars: 6, growth: 1.8f, max: 20);
 
             void Line(string id, string name, string motto, float fee, float patience) { Airlines[id] = new AirlineDef { Id = id, Name = name, Motto = motto, FeeScale = fee, Patience = patience }; }
             Line("puffin", "Puffin Air Mail", "If it fits in the hold, it flies.", 1.0f, 1.5f);
@@ -114,6 +120,9 @@ namespace Crosswind.Core
             Line("zip", "Zip", "Cheap seats, tight turns.", 0.85f, 0.8f);
             Line("meridian", "Meridian Airways", "The long way, properly.", 1.4f, 1.0f);
             Line("atlas", "Atlas Freight", "Night and day, by the tonne.", 1.25f, 1.3f);
+            Line("fjord", "Fjordlink", "Small fields, big weather.", 1.15f, 1.1f);
+            Line("solstice", "Solstice", "Somewhere it is always summer.", 1.3f, 0.9f);
+            Line("crown", "Crown Executive", "Your time, our business.", 2.2f, 0.7f);
 
             void Route(string id, string airline, string dest, AircraftClass c, float perHour, int stars, double bonus, params Service[] needs)
             {
@@ -130,6 +139,22 @@ namespace Crosswind.Core
             Route("meridian_ocean", "meridian", "Across the Ocean", AircraftClass.D, 14, 5, 220000, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
             Route("meridian_world", "meridian", "Round the World", AircraftClass.E, 10, 7, 2500000, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
             Route("atlas_heavy", "atlas", "Heavy Lift Line", AircraftClass.E, 12, 8, 4000000, Service.Fuel, Service.Baggage);
+            Route("fjord_sound", "fjord", "Kelda Sound", AircraftClass.A, 70, 2, 500, Service.Fuel);
+            Route("fjord_north", "fjord", "Northlight", AircraftClass.B, 36, 3, 4000, Service.Fuel, Service.Baggage);
+            Route("puffin_mail", "puffin", "The Night Mail", AircraftClass.B, 44, 3, 3000, Service.Fuel);
+            Route("zip_west", "zip", "Westmark", AircraftClass.C, 46, 4, 40000, Service.Fuel, Service.Baggage);
+            Route("solstice_keys", "solstice", "The Amber Keys", AircraftClass.C, 28, 4, 60000, Service.Fuel, Service.Baggage, Service.Catering);
+            Route("crown_shuttle", "crown", "Capital Shuttle", AircraftClass.B, 24, 4, 50000, Service.Fuel, Service.Catering, Service.Cleaning);
+            Route("atlas_night", "atlas", "Night Freight", AircraftClass.C, 34, 5, 90000, Service.Fuel, Service.Baggage);
+            Route("solstice_south", "solstice", "The Far South", AircraftClass.D, 18, 6, 600000, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
+            Route("zip_long", "zip", "Zip Long Haul", AircraftClass.D, 26, 6, 500000, Service.Fuel, Service.Baggage, Service.Cleaning);
+            Route("crown_global", "crown", "Crown Global", AircraftClass.D, 12, 7, 2000000, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
+            Route("fjord_polar", "fjord", "Over the Pole", AircraftClass.D, 16, 7, 1500000, Service.Fuel, Service.Baggage, Service.Catering);
+            Route("solstice_world", "solstice", "Endless Summer", AircraftClass.E, 14, 8, 6000000, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
+            Route("zip_jumbo", "zip", "Zip Max", AircraftClass.E, 20, 9, 2.0e7, Service.Fuel, Service.Baggage, Service.Cleaning);
+            Route("crown_flag", "crown", "The Crown Jewel", AircraftClass.E, 10, 10, 1.0e8, Service.Fuel, Service.Baggage, Service.Catering, Service.Cleaning);
+
+            ExtendProgress();
         }
 
         public static string ServiceFacility(Service s)

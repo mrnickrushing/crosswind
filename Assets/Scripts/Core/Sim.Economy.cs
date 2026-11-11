@@ -22,7 +22,7 @@ namespace Crosswind.Core
         {
             var plane = Content.Aircraft[r.Class];
             float ideal = plane.BoardSeconds * 2 + plane.ServiceSeconds + plane.TaxiSeconds + plane.RunwaySeconds;
-            return ideal * Content.OnTimeSlack * Content.Airlines[r.Airline].Patience;
+            return ideal * Content.OnTimeSlack * Content.Airlines[r.Airline].Patience * (1 + Fx(Effect.OnTimeSlack));
         }
 
         /// <summary>What a flight on this route pays when it leaves on time, at today's satisfaction.</summary>
@@ -31,24 +31,24 @@ namespace Crosswind.Core
             var plane = Content.Aircraft[r.Class];
             var line = Content.Airlines[r.Airline];
             float sat = Satisfaction;
-            double landing = plane.LandingFee * line.FeeScale * (onTime ? 1 + Content.OnTimeBonus : Content.LateShare);
-            double pax = plane.Seats * 2 * Content.PassengerFee * sat;
-            double fuel = r.Needs.Contains(Service.Fuel) ? plane.FuelMargin * (1 + 0.05 * (Level("fuel") - 1)) : 0;
-            double retail = plane.Seats * 2 * Content.RetailSpend * Level("shops") * sat;
-            return landing + pax + fuel + retail;
+            double landing = plane.LandingFee * line.FeeScale * (onTime ? 1 + Content.OnTimeBonus : Content.LateShare) * (1 + Fx(Effect.LandingFee)) * (1 + 0.05 * Level("hangar"));
+            double pax = plane.Seats * 2 * Content.PassengerFee * sat * (1 + Fx(Effect.PassengerFee)) * (1 + 0.06 * Level("lounge"));
+            double fuel = r.Needs.Contains(Service.Fuel) ? plane.FuelMargin * (1 + 0.05 * (Level("fuel") - 1)) * (1 + Fx(Effect.FuelMargin)) : 0;
+            double retail = plane.Seats * 2 * Content.RetailSpend * Level("shops") * sat * (1 + Fx(Effect.Retail));
+            double cargo = plane.Seats * 0.8 * Level("cargo") * line.FeeScale;
+            return (landing + pax + fuel + retail + cargo) * IncomeScale;
         }
 
         void Pay(FlightState f)
         {
             var r = Content.Routes[f.route];
             bool onTime = State.time - f.parkedAt <= OnTimeTarget(r);
-            double paid = FlightValue(r, onTime);
-            State.money += paid;
-            State.lifetimeEarned += paid;
+            double paid = FlightValue(r, onTime) * (State.time < State.rushUntil ? 2 : 1);
+            Earn(paid, true);
             State.flightsHandled++;
+            Count("flights", 1);
+            if (onTime) Count("ontime", 1);
             if (onTime) State.onTime++; else State.late++;
-            // The smoothed rate: each payment is spread over the minute the rate remembers.
-            State.incomeRate += paid * Math.Log(2) / 60.0;
             AddRating((onTime ? 2 : 0.5) * (1 + (int)r.Class * 2));
             FlightPaid?.Invoke(f, paid, onTime);
             Changed?.Invoke();
@@ -57,7 +57,7 @@ namespace Crosswind.Core
         void AddRating(double xp)
         {
             int before = Stars;
-            State.ratingXp += xp;
+            State.ratingXp += xp * (1 + Fx(Effect.RatingGain));
             int after = Stars;
             for (int s = before + 1; s <= after; s++) StarGained?.Invoke(s);
         }
@@ -103,27 +103,27 @@ namespace Crosswind.Core
                 var r = Content.Routes[c.route];
                 if (!r.Needs.All(Automated)) continue;
                 var plane = Content.Aircraft[r.Class];
-                double perSec = r.FlightsPerHour / 3600.0;
+                double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) / 3600.0;
                 double ground = BoardTime(plane) * 2 + plane.ServiceSeconds / Math.Max(0.1f, r.Needs.Min(n => CrewSpeed(n))) + plane.TaxiSeconds * 2 / TaxiSpeed;
                 runwayLoad += perSec * 2 * plane.RunwaySeconds / RunwaySpeed;
                 standLoad += perSec * ground;
                 foreach (var n in r.Needs) crewLoad[(int)n] += perSec * plane.ServiceSeconds / Math.Max(0.1f, CrewSpeed(n));
                 perSecond += perSec * FlightValue(r, true);
             }
-            if (perSecond <= 0) return 0;
+            if (perSecond <= 0) return ParkingRate;
             // The tightest bottleneck scales everything down.
             double cap = 1;
             if (runwayLoad > 0) cap = Math.Min(cap, RunwayLanes / runwayLoad);
             if (standLoad > 0) cap = Math.Min(cap, StandCount / standLoad);
             for (int i = 0; i < 4; i++) if (crewLoad[i] > 0) cap = Math.Min(cap, Crews((Service)i) / crewLoad[i]);
-            return perSecond * Math.Min(1, cap);
+            return perSecond * Math.Min(1, cap) + ParkingRate;
         }
 
         /// <summary>What the airport earned while the app was closed for this many real seconds (0 without managers).</summary>
         public double OfflineEarnings(double secondsAway)
         {
-            double counted = Math.Max(0, Math.Min(secondsAway, Content.OfflineHours * 3600));
-            return Math.Floor(IdleRate() * counted * Content.OfflineEfficiency);
+            double counted = Math.Max(0, Math.Min(secondsAway, OfflineCapSeconds));
+            return Math.Floor(IdleRate() * counted * Math.Min(1.0, Content.OfflineEfficiency + Fx(Effect.OfflineEfficiency)));
         }
 
         /// <summary>Pays the offline earnings (the welcome-back card's COLLECT) and returns them.</summary>
@@ -131,8 +131,7 @@ namespace Crosswind.Core
         {
             double got = Math.Floor(OfflineEarnings(secondsAway) * Math.Max(1, multiplier));
             if (got <= 0) return 0;
-            State.money += got;
-            State.lifetimeEarned += got;
+            Earn(got, false);
             Changed?.Invoke();
             return got;
         }

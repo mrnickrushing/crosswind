@@ -42,6 +42,18 @@ namespace Crosswind.Core
     [Serializable]
     public sealed class GoalProgress { public string id; public bool claimed; }
 
+    /// <summary>A research project under way (real time, so it finishes while the app is closed).</summary>
+    [Serializable]
+    public sealed class ResearchJob { public string id; public double doneAt; }
+
+    /// <summary>Something that turns up for a short while and pays if you take it: a rush, a charter, a lucky find.</summary>
+    [Serializable]
+    public sealed class Opportunity { public string kind; public double expiresAt; public double value; }
+
+    /// <summary>One of today's tasks: count something, then claim the gems.</summary>
+    [Serializable]
+    public sealed class TaskState { public string kind; public double target, progress; public int gems; public bool claimed; }
+
     /// <summary>The save. Plain fields and lists only, so Unity's JsonUtility can write it.</summary>
     [Serializable]
     public sealed class GameState
@@ -63,6 +75,27 @@ namespace Crosswind.Core
         public int goalIndex;
         public double incomeRate;           // smoothed income per game second, for the HUD and offline earnings
         public uint seed = 12345;
+
+        // Progress beyond one airport.
+        public string map = "meadow";
+        public int wings;                                           // kept for good: each adds to all income
+        public List<string> mapsRun = new List<string>();           // airports already sold on
+        public List<string> researched = new List<string>();
+        public ResearchJob research;                                // JsonUtility writes an empty one for null: see Repair
+        public List<LevelEntry> managerLevels = new List<LevelEntry>();
+        public double boostUntil;                                   // real time the 2x income boost ends
+        public List<string> achievements = new List<string>();     // claimed
+
+        // The live layer.
+        public int weather;                                         // Weather, as a number
+        public double weatherUntil;                                 // game time it changes
+        public Opportunity opportunity;
+        public double nextOpportunityAt = 150;                      // game time
+        public double rushUntil;                                    // game time a rush (double pay) ends
+        public int taskDay;                                         // the day today's tasks belong to
+        public List<TaskState> tasks = new List<TaskState>();
+        public int upgradesBought;
+        public double sessionEarned;
 
         public static GameState New()
         {
@@ -91,6 +124,16 @@ namespace Crosswind.Core
                 if (d.StartLevel > 0 && !levels.Exists(l => l.id == id)) levels.Add(new LevelEntry { id = id, level = d.StartLevel });
             }
             if (nextFlightId < 1) nextFlightId = 1;
+            if (string.IsNullOrEmpty(map) || !Content.Maps.Exists(m => m.Id == map)) map = "meadow";
+            if (mapsRun == null) mapsRun = new List<string>();
+            if (researched == null) researched = new List<string>();
+            researched.RemoveAll(r => Content.ResearchById(r) == null);
+            if (research != null && (string.IsNullOrEmpty(research.id) || Content.ResearchById(research.id) == null)) research = null;
+            if (managerLevels == null) managerLevels = new List<LevelEntry>();
+            if (achievements == null) achievements = new List<string>();
+            if (opportunity != null && string.IsNullOrEmpty(opportunity.kind)) opportunity = null;
+            if (tasks == null) tasks = new List<TaskState>();
+            tasks.RemoveAll(x => x == null || string.IsNullOrEmpty(x.kind));
             if (seed == 0) seed = 12345;
         }
     }

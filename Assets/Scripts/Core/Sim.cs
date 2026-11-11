@@ -24,6 +24,9 @@ namespace Crosswind.Core
         public event Action Changed;
         public event Action<string> Toast;
 
+        /// <summary>Real time in unix seconds (research, boosts and the day's tasks run on it; tests replace it).</summary>
+        public Func<double> RealNow = () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0;
+
         public Sim(GameState state)
         {
             State = state;
@@ -71,10 +74,14 @@ namespace Crosswind.Core
         public int TowerSlots { get { return 2 + Level("tower") * 2; } }
         /// <summary>Movements the runway handles at once (a second one from tower level 8: a parallel runway).</summary>
         public int RunwayLanes { get { return Level("tower") >= 8 ? 2 : 1; } }
-        public float RunwaySpeed { get { return 1 + (Level("runway") - 1) * 0.06f; } }
-        public float TaxiSpeed { get { return 1 + Level("taxiways") * 0.08f; } }
+        public float RunwaySpeed { get { return (1 + (Level("runway") - 1) * 0.06f) * (1 + Fx(Effect.RunwaySpeed)) * WeatherFactor; } }
+        public float TaxiSpeed { get { return (1 + Level("taxiways") * 0.08f) * (1 + Fx(Effect.TaxiSpeed)) * (0.5f + 0.5f * WeatherFactor); } }
         public int Crews(Service s) { int l = Level(Content.ServiceFacility(s)); return l <= 0 ? 0 : 1 + (l - 1) / 3; }
-        public float CrewSpeed(Service s) { int l = Level(Content.ServiceFacility(s)); return l <= 0 ? 0 : 1 + (l - 1) * 0.1f; }
+        public float CrewSpeed(Service s)
+        {
+            int l = Level(Content.ServiceFacility(s));
+            return l <= 0 ? 0 : (1 + (l - 1) * 0.1f) * (1 + Fx(Effect.CrewSpeed)) * (1 + 0.1f * ManagerLevel(Content.ServiceFacility(s)));
+        }
         public bool Automated(Service s) { return State.managers.Contains(Content.ServiceFacility(s)); }
 
         /// <summary>Passengers a minute the terminal can move, set by its slowest part.</summary>
@@ -96,7 +103,7 @@ namespace Crosswind.Core
         public double Cost(string facility)
         {
             var d = Content.Facilities[facility];
-            return Math.Floor(d.BaseCost * Math.Pow(d.Growth, Level(facility) - d.StartLevel));
+            return Math.Floor(d.BaseCost * Math.Pow(d.Growth, Level(facility) - d.StartLevel) * Map.CostScale * (1 - Math.Min(0.6, Fx(Effect.BuildDiscount))));
         }
 
         /// <summary>Why this can't be built or upgraded right now (null: it can).</summary>
@@ -105,6 +112,7 @@ namespace Crosswind.Core
             FacilityDef d;
             if (!Content.Facilities.TryGetValue(facility, out d)) return "Unknown";
             if (Level(facility) >= d.MaxLevel) return "Fully upgraded";
+            if (facility == "runway" && Level(facility) >= Map.MaxRunway) return "No room for a longer runway at " + Map.Name;
             if (Stars < d.Stars) return "Needs a " + d.Stars + "-star airport";
             if (State.money < Cost(facility)) return "Need " + Format.Money(Cost(facility) - State.money) + " more";
             return null;
@@ -115,6 +123,8 @@ namespace Crosswind.Core
             if (UpgradeBlocked(facility) != null) return false;
             State.money -= Cost(facility);
             SetLevel(facility, Level(facility) + 1);
+            State.upgradesBought++;
+            Count("upgrade", 1);
             AddRating(2 + Level(facility));
             Changed?.Invoke();
             return true;
@@ -142,7 +152,7 @@ namespace Crosswind.Core
             if (SignBlocked(route) != null) return false;
             var r = Content.Routes[route];
             State.contracts.Add(new ContractState { route = route, nextArrival = State.time + 3 });
-            State.money += r.SigningBonus;
+            Earn(r.SigningBonus * Map.IncomeScale, false);
             AddRating(10 * r.Stars);
             Changed?.Invoke();
             return true;
@@ -164,6 +174,7 @@ namespace Crosswind.Core
         void Step(float dt)
         {
             State.time += dt;
+            Live(dt);
             Arrivals();
             int runwayBusy = State.flights.Count(f => f.phase == Phase.Landing || f.phase == Phase.Takeoff);
             // Departures go before arrivals: clearing the ground is what frees a stand.
@@ -179,7 +190,7 @@ namespace Crosswind.Core
             {
                 if (State.time < c.nextArrival) continue;
                 var r = Content.Routes[c.route];
-                double gap = 3600.0 / r.FlightsPerHour;
+                double gap = 3600.0 / (r.FlightsPerHour * (1 + Fx(Effect.Demand)));
                 // Never more waiting than the tower can watch: a full pattern sends the next one round again.
                 if (State.flights.Count >= TowerSlots) { c.nextArrival = State.time + Math.Min(gap, 5); continue; }
                 c.nextArrival = State.time + gap * (0.85 + Rand() * 0.3);
@@ -267,7 +278,7 @@ namespace Crosswind.Core
         float BoardTime(AircraftDef plane)
         {
             float need = plane.Seats / Math.Max(1f, TerminalFlow) * 60f / 10f;   // seconds for the terminal to move them
-            return Math.Max(plane.BoardSeconds, need);
+            return Math.Max(plane.BoardSeconds, need) / (1 + Fx(Effect.BoardSpeed));
         }
 
         // ------------------------------------------------------------------ services

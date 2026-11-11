@@ -66,6 +66,7 @@ namespace Crosswind.Game
             RenderSettings.fogStartDistance = 420; RenderSettings.fogEndDistance = 1100;
 
             Shader.SetGlobalFloat("_NightGlow", 0);
+            gameObject.AddComponent<Telemetry>();   // anonymous play statistics (off in the Editor)
             Sfx.Init(transform);
             var rig = CameraRig.Create();
             Look.Create(rig.Cam, sun);

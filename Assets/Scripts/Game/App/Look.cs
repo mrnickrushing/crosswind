@@ -45,8 +45,9 @@ namespace Crosswind.Game
             var sim = GameRoot.Sim;
             if (sim == null) return;
             var w = sim.Weather;
-            float want = w == Core.Weather.Clear ? 0 : w == Core.Weather.Rain ? 0.45f : w == Core.Weather.Fog ? 0.6f : w == Core.Weather.Storm ? 0.9f : 0.5f;
-            _gloom = Mathf.MoveTowards(_gloom, want, Time.unscaledDeltaTime * 0.4f);
+            bool inside = CameraRig.Inside;      // the terminal has its own steady light: no weather, no dusk
+            float want = inside || w == Core.Weather.Clear ? 0 : w == Core.Weather.Rain ? 0.45f : w == Core.Weather.Fog ? 0.6f : w == Core.Weather.Storm ? 0.9f : 0.5f;
+            _gloom = inside ? 0 : Mathf.MoveTowards(_gloom, want, Time.unscaledDeltaTime * 0.4f);
             _grade.postExposure.Override(Mathf.Lerp(0.35f, Mathf.Lerp(-0.25f, 0.2f, sim.Night), _gloom));     // bad weather darkens the day, not the night
             _grade.saturation.Override(Mathf.Lerp(16f, -30f, _gloom));
             _grade.colorFilter.Override(Color.Lerp(Color.white, w == Core.Weather.Snow ? new Color(0.9f, 0.95f, 1f) : new Color(0.78f, 0.84f, 0.95f), _gloom));
@@ -58,6 +59,7 @@ namespace Crosswind.Game
             {
                 float day = 1 - night;
                 float elev = Mathf.Lerp(8, 62, Mathf.Sin(Mathf.Clamp01(phase / 0.56f) * Mathf.PI));
+                if (inside) { elev = 58; phase = 0.3f; }
                 _sun.transform.rotation = Quaternion.Euler(night > 0.99f ? 50 : elev, -128 + phase * 140, 0);
                 _sun.color = Color.Lerp(new Color(0.55f, 0.65f, 1f), Color.Lerp(new Color(1f, 0.74f, 0.5f), new Color(1f, 0.96f, 0.88f), Mathf.Clamp01((elev - 8) / 25f)), day);
                 _sun.intensity = Mathf.Lerp(0.5f, Mathf.Lerp(1.35f, 0.5f, _gloom), day);
@@ -67,7 +69,7 @@ namespace Crosswind.Game
             RenderSettings.ambientEquatorColor = Color.Lerp(new Color(0.55f, 0.58f, 0.56f), new Color(0.2f, 0.25f, 0.38f), night);
             RenderSettings.ambientGroundColor = Color.Lerp(new Color(0.3f, 0.32f, 0.26f), new Color(0.08f, 0.1f, 0.15f), night);
             RenderSettings.reflectionIntensity = Mathf.Lerp(0.9f, 0.25f, night);
-            float fog = w == Core.Weather.Fog ? 1 : w == Core.Weather.Snow ? 0.6f : w == Core.Weather.Storm ? 0.5f : w == Core.Weather.Rain ? 0.3f : 0;
+            float fog = inside ? 0 : w == Core.Weather.Fog ? 1 : w == Core.Weather.Snow ? 0.6f : w == Core.Weather.Storm ? 0.5f : w == Core.Weather.Rain ? 0.3f : 0;
             // Night fog is lit from below by the airport: a grey glow, never a black wall.
             RenderSettings.fogColor = Color.Lerp(new Color(0.74f, 0.83f, 0.92f), Color.Lerp(new Color(0.05f, 0.07f, 0.13f), new Color(0.17f, 0.19f, 0.25f), fog), night);
             if (RenderSettings.skybox != null) RenderSettings.skybox.SetFloat("_Exposure", Mathf.Lerp(1.05f, 0.16f, night));

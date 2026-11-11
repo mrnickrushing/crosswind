@@ -59,12 +59,15 @@ namespace Crosswind.Game
         void Rebuild()
         {
             if (_static != null) Destroy(_static);
-            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear(); _agents.Clear();
+            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear();
+            float was = Length;
             var s = _sim;
             int checkin = s.Level("checkin"), security = s.Level("security"), gates = s.Level("gates"), shops = s.Level("shops"), seating = s.Level("seating"), info = s.Level("info"), lounge = s.Level("lounge");
             Length = Mathf.Clamp(46 + (checkin + security + gates) * 3.2f + shops * 2f, 50, 190);
+            if (Length < was - 0.5f) _agents.Clear();      // a smaller hall (a new airport): the old crowd would walk through walls. Otherwise people finish their way.
             float L = Length, W = Width, x0 = -W * 0.5f, z0 = -L * 0.5f;
             var mb = new MeshBuilder { Smoothness = 0.25f };
+            mb.Box(new Vector3(0, -0.6f, 0), new Vector3(1600, 0.5f, 1600), Palette.Hex(0x1E242C));     // the table the cutaway stands on
             var g = new Ground();
             // Floors: pale stone in the hall, a warmer tone in the concourse, carpet blue at the gates.
             g.Rect("Concrete", 0, 0, W, L, 0.0f, 0, new Color(1.25f, 1.27f, 1.3f));

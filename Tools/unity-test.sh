@@ -23,7 +23,7 @@ if [ "$open_editor" = "True" ]; then
   "${U[@]}" script eval --result-only 'UnityEditor.EditorApplication.isPlaying = false; return 0;' >/dev/null
   idle=0
   for _ in $(seq 1 120); do
-    if "${U[@]}" script eval --result-only 'return UnityEditor.EditorApplication.isPlaying || UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode || UnityEditor.EditorApplication.isCompiling || UnityEditor.EditorApplication.isUpdating;' | grep -q '"result": false'; then idle=1; break; fi
+    if "${U[@]}" script eval --result-only 'return UnityEditor.EditorApplication.isPlaying || UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode || UnityEditor.EditorApplication.isCompiling || UnityEditor.EditorApplication.isUpdating;' | grep -Eq '("result": false|^false$)'; then idle=1; break; fi
     sleep 1
   done
   if [ "$idle" != 1 ]; then echo "the Editor didn't leave Play mode / finish compiling in 2 minutes"; exit 1; fi

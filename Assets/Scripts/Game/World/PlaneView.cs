@@ -24,7 +24,7 @@ namespace Crosswind.Game
         public static PlaneView Create(Transform parent, FlightState f)
         {
             var route = Content.Routes[f.route];
-            var go = Models.Plane(route.Class, route.Airline).ToObject("Flight " + f.id, parent);
+            var go = Models.PlaneObject(route.Class, route.Airline, "Flight " + f.id, parent);
             var v = go.AddComponent<PlaneView>();
             v.Flight = f; v.Route = route; v._sim = GameRoot.Sim;
             v._holdAngle = f.id * 1.7f;

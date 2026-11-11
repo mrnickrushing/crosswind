@@ -25,6 +25,30 @@ namespace Crosswind.Game
             switch (c) { case AircraftClass.A: return 5.5f; case AircraftClass.B: return 9f; case AircraftClass.C: return 13f; case AircraftClass.D: return 18f; default: return 23f; }
         }
 
+        /// <summary>
+        /// A flight's aircraft: the free model for its class (Resources/Models/plane_a..e, vertex-coloured, one unit
+        /// long, nose toward +Z) with its airline's colour on a tail band, or the built one when the model is missing.
+        /// </summary>
+        public static GameObject PlaneObject(AircraftClass c, string airline, string name, Transform parent)
+        {
+            var mesh = Resources.Load<Mesh>("Models/plane_" + c.ToString().ToLower());
+            if (mesh == null) return Plane(c, airline).ToObject(name, parent);
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            var body = new GameObject("Body");
+            body.transform.SetParent(go.transform, false);
+            body.transform.localScale = Vector3.one * Length(c);
+            body.AddComponent<MeshFilter>().sharedMesh = mesh;
+            body.AddComponent<MeshRenderer>().sharedMaterial = Materials.World;
+            // The airline's colours: a band round the rear fuselage and a flash on the fin.
+            float L = Length(c), h = mesh.bounds.size.y * L;
+            var mb = new MeshBuilder { Smoothness = 0.5f };
+            var livery = AirlineColor(airline);
+            mb.Box(new Vector3(0, h * 0.86f, -L * 0.44f), new Vector3(L * 0.012f, h * 0.26f, L * 0.1f), livery);
+            mb.ToObject("Livery", go.transform, false);
+            return go;
+        }
+
         /// <summary>An aircraft, nose toward +Z, wheels on y = 0.</summary>
         public static MeshBuilder Plane(AircraftClass c, string airline)
         {

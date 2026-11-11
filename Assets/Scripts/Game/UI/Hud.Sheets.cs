@@ -158,6 +158,7 @@ namespace Crosswind.Game
                         Entry(d.Name + " manager", null, "No more tapping for this service, and its flights earn while the app is closed.",
                             "HIRE\n<size=34>" + Format.Money(s.ManagerCost(id)) + "</size>", s.HireBlocked(id), () => { if (s.Hire(id)) Toast(d.Name + " now runs itself"); }, Ui.Gold);
                 }
+                CrewSection();
                 Entry("Earning while away", null, "With every service on a route managed, that route keeps flying for up to " + Format.Time(s.OfflineCapSeconds) + " with the app closed. Right now: " + Format.Money(s.IdleRate() * 60) + " a minute.", null, null, null);
             }
             _sheetList.sizeDelta = new Vector2(0, _rowY);

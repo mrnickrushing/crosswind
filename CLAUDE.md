@@ -27,7 +27,7 @@ and in the game); never paid AI art without asking.
     service buttons over waiting aircraft, pay pop-ups, toasts), `UI/Hud.Sheets` (BUILD, AIRLINES, STAFF, the
     welcome-back card).
 - Depth (Core): `Sim.Progress` (research effects via `Fx`, manager training, boosts, selling up for Wings and the six
-  maps), `Sim.Live` (weather, opportunities, daily tasks, sign-in calendar, achievements), `Sim.Schedule` (the day planner from 3 stars: six-hour slots that pay more and fly 3x the pace, `HourlyLoad` against `HourlyCapacity`, `AutoPlan`; UI in `Hud.Plan`), `Sim.Airlines` (airline
+  maps), `Sim.Live` (weather, opportunities, daily tasks, sign-in calendar, achievements), `Sim.Schedule` (the day planner from 3 stars: six-hour slots that pay more and fly 3x the pace, `HourlyLoad` against `HourlyCapacity`, `AutoPlan`; UI in `Hud.Plan`), `Sim.Crew` (16 collectible team members in four rarities from crates with printed odds and a sure Epic by the tenth; copies level them, only those on duty count through `Fx`; UI in `Hud.Crew`), `Sim.Airlines` (airline
   mood, contract terms, an airline walking), timed builds with two crews (`Sim.Upgrade`, `BuildSeconds`; tests set
   `BuildTimeScale = 0`), passenger `Needs` behind `Satisfaction`. Real time comes from `Sim.RealNow` (tests replace it).
 - Art: free models only. `Tools/art/kenney.py <kit>` downloads Kenney kits (CC0) to `art-src/free`;

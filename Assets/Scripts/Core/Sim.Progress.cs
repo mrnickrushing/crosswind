@@ -9,7 +9,7 @@ namespace Crosswind.Core
     {
         public MapDef Map { get { return Content.Maps.Find(m => m.Id == State.map) ?? Content.Maps[0]; } }
 
-        /// <summary>The total of one effect from finished research and this map's twist.</summary>
+        /// <summary>The total of one effect from finished research, this map's twist and the team on duty.</summary>
         public float Fx(Effect e)
         {
             float v = 0;
@@ -21,7 +21,7 @@ namespace Crosswind.Core
                 case "polar": if (e == Effect.LandingFee) v += 1f; break;
                 case "metro": if (e == Effect.Demand) v += 1f; break;
             }
-            return v;
+            return v + CrewFx(e);
         }
 
         public bool Boosted { get { return RealNow() < State.boostUntil; } }

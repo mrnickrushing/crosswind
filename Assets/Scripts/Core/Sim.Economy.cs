@@ -88,7 +88,7 @@ namespace Crosswind.Core
             int before = Stars;
             State.ratingXp += xp * (1 + Fx(Effect.RatingGain));
             int after = Stars;
-            for (int s = before + 1; s <= after; s++) StarGained?.Invoke(s);
+            for (int s = before + 1; s <= after; s++) { State.crates++; StarGained?.Invoke(s); }     // every star brings a crate
         }
 
         // ------------------------------------------------------------------ managers

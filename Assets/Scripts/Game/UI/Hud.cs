@@ -34,7 +34,7 @@ namespace Crosswind.Game
         static readonly string[] TabNames = { "BUILD", "AIRLINES", "STAFF", "RESEARCH", "EMPIRE" };
         static readonly string[] TabIcons = { "wrench", "plane", "multiplayer", "zoom", "trophy" };
         Text _gems, _weather, _chips, _oppText;
-        RectTransform _opp, _empireDot;
+        RectTransform _opp, _empireDot, _staffDot;
 
         public static Hud Create()
         {
@@ -149,6 +149,8 @@ namespace Crosswind.Game
             // A dot on EMPIRE when a task or an achievement is waiting to be claimed.
             var dot = Ui.Img("Dot", _tabs[4].transform, Ui.Red); dot.sprite = Ui.Circle;
             _empireDot = dot.rectTransform; _empireDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-6, -6), new Vector2(30, 30));
+            var dot2 = Ui.Img("Dot", _tabs[2].transform, Ui.Red); dot2.sprite = Ui.Circle;
+            _staffDot = dot2.rectTransform; _staffDot.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-6, -6), new Vector2(30, 30));
             _sheet = Ui.Img("Sheet", _root, Ui.Panel, true).rectTransform;
             _sheet.anchorMin = new Vector2(0, 0); _sheet.anchorMax = new Vector2(1, 0); _sheet.pivot = new Vector2(0.5f, 0);
             _sheet.offsetMin = new Vector2(16, 0); _sheet.offsetMax = new Vector2(-16, 0); _sheet.anchoredPosition = new Vector2(0, 196); _sheet.sizeDelta = new Vector2(-32, 860);
@@ -220,6 +222,7 @@ namespace Crosswind.Game
                     + "\n<size=26>" + Mathf.CeilToInt((float)(o.expiresAt - _sim.State.time)) + "s</size>";
                 _opp.localScale = Vector3.one * (1 + Mathf.Sin(Time.unscaledTime * 6) * 0.03f);
             }
+            _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
             _empireDot.gameObject.SetActive(_sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateServiceButtons();
             UpdatePops();

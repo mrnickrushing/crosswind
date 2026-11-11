@@ -116,6 +116,10 @@ namespace Crosswind.Core
         public int eventWeek = -1, eventClaimed;                    // the week the progress belongs to, and milestones claimed
         public double eventProgress;                    // the last day claimed, and days in a row
         public double sessionEarned;
+        public List<LevelEntry> crew = new List<LevelEntry>();       // the team: id and copies held
+        public List<string> duty = new List<string>();               // who is on duty, in order
+        public int crates = 1, cratesOpened, sinceEpic;               // unopened crates (one to start), and the count toward a sure Epic
+        public double freeCrateAt;                                   // real time the next free crate is ready
 
         public static GameState New()
         {
@@ -160,6 +164,10 @@ namespace Crosswind.Core
             if (builds == null) builds = new List<BuildJob>();
             builds.RemoveAll(b => b == null || b.facility == null || !Content.Facilities.ContainsKey(b.facility));
             tasks.RemoveAll(x => x == null || string.IsNullOrEmpty(x.kind));
+            if (crew == null) crew = new List<LevelEntry>();
+            crew.RemoveAll(c => c == null || Sim.CrewById(c.id) == null);
+            if (duty == null) duty = new List<string>();
+            duty.RemoveAll(d => !crew.Exists(c => c.id == d));
             if (seed == 0) seed = 12345;
         }
     }

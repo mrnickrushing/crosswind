@@ -32,7 +32,7 @@ namespace Crosswind.Game
             var p = ScriptableObject.CreateInstance<VolumeProfile>();
             vol.profile = p;
             var tone = p.Add<Tonemapping>(); tone.mode.Override(TonemappingMode.ACES);
-            var bloom = p.Add<Bloom>(); bloom.intensity.Override(0.35f); bloom.threshold.Override(1.05f); bloom.scatter.Override(0.6f);
+            var bloom = p.Add<Bloom>(); bloom.intensity.Override(0.18f); bloom.threshold.Override(1.5f); bloom.scatter.Override(0.6f);
             look._grade = p.Add<ColorAdjustments>();
             look._grade.postExposure.Override(0.35f); look._grade.contrast.Override(14f); look._grade.saturation.Override(16f);
             var vig = p.Add<Vignette>(); vig.intensity.Override(0.2f); vig.smoothness.Override(0.5f);

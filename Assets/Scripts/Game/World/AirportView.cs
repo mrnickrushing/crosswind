@@ -191,10 +191,24 @@ namespace Crosswind.Game
                 for (float z = c.z - tLen * 0.5f + 1.2f; z <= c.z + tLen * 0.5f - 1.1f; z += 3f)
                     foreach (float side in new[] { -1f, 1f })
                         mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 0.12f), tH * 0.52f, z), new Vector3(0.18f, tH * 0.74f, 0.22f), Palette.White);
-                // The roof: a white slab with an overhang, plant on top.
+                // The roof: a pale membrane (textured), a parapet round its edge, plant on top.
+                g.Rect("Tarmac", c.x, c.z, tDepth + 2.2f, tLen + 1.4f, tH + 0.52f, 0, new Color(2.3f, 2.3f, 2.35f));
+                foreach (float side in new[] { -1f, 1f })
+                {
+                    mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 1.1f), tH + 0.75f, c.z), new Vector3(0.25f, 0.5f, tLen + 1.6f), Palette.White);
+                    mb.Box(new Vector3(c.x, tH + 0.75f, c.z + side * (tLen * 0.5f + 0.7f)), new Vector3(tDepth + 2.4f, 0.5f, 0.25f), Palette.White);
+                }
+                // A coloured fascia band along both long sides: the airport's own blue.
+                foreach (float side in new[] { -1f, 1f })
+                    mb.Box(new Vector3(c.x + side * (tDepth * 0.5f + 0.1f), tH * 0.93f, c.z), new Vector3(0.2f, tH * 0.12f, tLen - 0.4f), Palette.Hex(0x1F5FA8));
                 mb.Box(c + Vector3.up * (tH + 0.25f), new Vector3(tDepth + 2.4f, 0.5f, tLen + 1.6f), Palette.White, Palette.Hex(0xD8D6CF));
                 for (float z = c.z - tLen * 0.5f + 5; z < c.z + tLen * 0.5f - 4; z += 9)
-                    mb.Box(new Vector3(c.x + 1, tH + 1.0f, z), new Vector3(2.4f, 1.0f, 3f), Palette.Steel, Palette.SteelDark);
+                {
+                    mb.Box(new Vector3(c.x + 1.6f, tH + 1.05f, z), new Vector3(2.4f, 1.0f, 3f), Palette.Hex(0xAEB4BA), Palette.Hex(0x8C9298));
+                    mb.Cylinder(new Vector3(c.x + 1.6f, tH + 1.55f, z - 0.7f), new Vector3(c.x + 1.6f, tH + 1.62f, z - 0.7f), 0.55f, 10, Palette.Hex(0x3A4048));
+                    mb.Cylinder(new Vector3(c.x + 1.6f, tH + 1.55f, z + 0.7f), new Vector3(c.x + 1.6f, tH + 1.62f, z + 0.7f), 0.55f, 10, Palette.Hex(0x3A4048));
+                    mb.Box(new Vector3(c.x + 3.4f, tH + 0.75f, z), new Vector3(0.3f, 0.3f, 6f), Palette.Hex(0x9AA0A6));        // duct
+                }
                 // A canopy over the drop-off, and the doors.
                 mb.Box(new Vector3(c.x + tDepth * 0.5f + 3.2f, 3.4f, c.z), new Vector3(5.5f, 0.3f, Mathf.Min(tLen * 0.7f, 40)), Palette.White);
                 for (float z = c.z - Mathf.Min(tLen * 0.3f, 18); z <= c.z + Mathf.Min(tLen * 0.3f, 18) + 0.1f; z += 6)

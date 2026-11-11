@@ -22,7 +22,7 @@ namespace Crosswind.Game
 
         public static float Length(AircraftClass c)
         {
-            switch (c) { case AircraftClass.A: return 5.5f; case AircraftClass.B: return 9f; case AircraftClass.C: return 13f; case AircraftClass.D: return 18f; default: return 23f; }
+            return Aircraft.Length(c);
         }
 
         /// <summary>
@@ -31,22 +31,7 @@ namespace Crosswind.Game
         /// </summary>
         public static GameObject PlaneObject(AircraftClass c, string airline, string name, Transform parent)
         {
-            var mesh = Resources.Load<Mesh>("Models/plane_" + c.ToString().ToLower());
-            if (mesh == null) return Plane(c, airline).ToObject(name, parent);
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            var body = new GameObject("Body");
-            body.transform.SetParent(go.transform, false);
-            body.transform.localScale = Vector3.one * Length(c);
-            body.AddComponent<MeshFilter>().sharedMesh = mesh;
-            body.AddComponent<MeshRenderer>().sharedMaterial = Materials.World;
-            // The airline's colours: a band round the rear fuselage and a flash on the fin.
-            float L = Length(c), h = mesh.bounds.size.y * L;
-            var mb = new MeshBuilder { Smoothness = 0.5f };
-            var livery = AirlineColor(airline);
-            mb.Box(new Vector3(0, h * 0.86f, -L * 0.44f), new Vector3(L * 0.012f, h * 0.26f, L * 0.1f), livery);
-            mb.ToObject("Livery", go.transform, false);
-            return go;
+            return Aircraft.Build(c, airline).ToObject(name, parent);
         }
 
         /// <summary>A free kit model (Resources/Models/{id}: one unit on its longest side, or one unit tall), placed, turned
@@ -61,7 +46,7 @@ namespace Crosswind.Game
             go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
             go.transform.localScale = Vector3.one * size;
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = Materials.World;
+            go.AddComponent<MeshRenderer>().sharedMaterial = Materials.Kit;
             return go;
         }
 

@@ -13,6 +13,20 @@ namespace Crosswind.Game
     /// <summary>Runtime-created materials (shaders live in Resources/Shaders so builds include them).</summary>
     public static class Materials
     {
+        static Material _kit;
+        /// <summary>For the free kit meshes: the same shader, ignoring the surface channel those meshes don't carry
+        /// (reading it as smoothness made some of them shine like mirrors).</summary>
+        public static Material Kit
+        {
+            get
+            {
+                if (_kit != null) return _kit;
+                _kit = new Material(World) { name = "Kit" };
+                _kit.SetFloat("_KitSurface", 1);
+                return _kit;
+            }
+        }
+
         static Material _world;
         static readonly Dictionary<string, Material> _surfaces = new Dictionary<string, Material>();
 

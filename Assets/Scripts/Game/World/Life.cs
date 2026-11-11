@@ -109,8 +109,8 @@ namespace Crosswind.Game
                 w.Go.transform.SetParent(transform, false);
                 w.Mf = w.Go.AddComponent<MeshFilter>();
                 var mr = w.Go.AddComponent<MeshRenderer>();
-                mr.sharedMaterial = Materials.World;
-                w.Go.transform.localScale = Vector3.one * 1.9f;       // a little larger than life, to read from the camera's height
+                mr.sharedMaterial = Materials.Kit;
+                w.Go.transform.localScale = Vector3.one * 1.5f;       // a little larger than life, to read from the camera's height
             }
             w.Kind = Random.Range(0, People); w.From = from; w.To = to; w.T = 0; w.Speed = Random.Range(2.6f, 3.6f); w.Phase = Random.Range(0, 4); w.Flight = flight;
             w.Mf.sharedMesh = _walk[w.Kind][0];

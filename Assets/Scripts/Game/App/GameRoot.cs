@@ -65,6 +65,7 @@ namespace Crosswind.Game
             RenderSettings.fogColor = new Color(0.74f, 0.83f, 0.92f);
             RenderSettings.fogStartDistance = 420; RenderSettings.fogEndDistance = 1100;
 
+            Shader.SetGlobalFloat("_NightGlow", 0);
             Sfx.Init(transform);
             var rig = CameraRig.Create();
             Look.Create(rig.Cam, sun);

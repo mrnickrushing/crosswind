@@ -93,8 +93,16 @@ namespace Crosswind.Game
             {
                 string why = _sim.BuyBayBlocked(_bay);
                 if (why != null) { Toast(why); Sfx.Play("error", 0.5f); return; }
-                _sim.BuyBay(_bay);
-                Sfx.Play("build", 0.8f); Toast("More floor to build on");
+                int bay = _bay, rows = _sim.BayRowsOf(bay), cols = _sim.FloorCols;
+                _sim.BuyBay(bay);
+                Sfx.Play("build", 0.8f); Sfx.Play("claim", 0.5f);
+                // What was gained rises from the middle of the bay.
+                if (Interior.Instance != null)
+                {
+                    var pop = Float(Chip(_world, "+" + (rows * cols) + " floor cells", Ui.Green, "star"), 2.4f);
+                    pop.World = Interior.Instance.FloorPoint(cols / 2, bay * Sim.BayRows + rows / 2, 1, 1) + Vector3.up * 2f;
+                    pop.Drift = new Vector2(0, 110);
+                }
                 GameRoot.Instance.Save();
                 CloseBay();
             }, 30);

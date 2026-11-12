@@ -48,6 +48,35 @@ namespace Crosswind.Tests
         }
 
         [Test]
+        public void ANewAirportIsExactlySatisfiedAndSaysWhatNobodyAsksForYet()
+        {
+            var s = new Sim(GameState.New()); s.RealNow = () => 1_800_000_000;
+            Assert.AreEqual(1f, s.Satisfaction, 0.001f, "every need met reads 100%, not more");
+            var needs = s.Needs;
+            Assert.IsFalse(needs[0].Unasked, "queues are always asked about");
+            Assert.IsTrue(needs.Skip(1).All(n => n.Unasked && n.Value >= 1f), "nothing is placed and nothing is missed yet");
+            // Placing something makes it a need answered, and shops take satisfaction past 100%.
+            s.State.money = 1e9; s.State.ratingXp = Content.StarXp[3];
+            Assert.IsTrue(s.PlaceAnywhere("cafe"));
+            Assert.IsFalse(s.Needs.First(n => n.Want == Want.Food && !n.Queue).Unasked);
+            Assert.Greater(s.Satisfaction, 1f);
+        }
+
+        [Test]
+        public void ABusyAirportAsksForWhatASmallOneDidNot()
+        {
+            var s = Fresh();
+            for (int i = 0; i < 14; i++) { s.Upgrade("stands"); s.Upgrade("checkin"); s.Upgrade("security"); s.Upgrade("gates"); }
+            // Its biggest routes, on the books whatever they would need to be signed.
+            foreach (var r in Content.Routes.Values.Where(r => r.Airline != "own" && r.FlightsPerHour > 0).OrderByDescending(r => Content.Aircraft[r.Class].Seats * r.FlightsPerHour).Take(10))
+                if (!s.State.contracts.Exists(c => c.route == r.Id)) s.State.contracts.Add(new ContractState { route = r.Id });
+            Assert.Greater(s.PassengerDemand, 6, "busier than anything the free allowance covers");
+            var food = s.Needs.First(n => n.Want == Want.Food && !n.Queue);
+            Assert.IsFalse(food.Unasked);
+            Assert.Less(food.Value, 1f, "with nothing to eat, a busy terminal says so");
+        }
+
+        [Test]
         public void ANewAirportHasItsMiddleBaysOpenAndTheRestForSale()
         {
             var s = new Sim(GameState.New()); s.RealNow = () => 1_800_000_000; s.State.money = 1e9; s.State.ratingXp = Content.StarXp[3];

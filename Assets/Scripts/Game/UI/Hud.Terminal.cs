@@ -272,8 +272,8 @@ namespace Crosswind.Game
             for (int i = 0; i < needs.Count && i < _needFills.Count; i++)
             {
                 _needFills[i].rectTransform.anchorMax = new Vector2(Mathf.Max(0.04f, needs[i].Value), 1);
-                _needFills[i].color = Meter(needs[i].Value);
-                _needLabels[i].text = (needs[i].Queue ? "QUEUES" : needs[i].Want == Want.Food ? "FOOD" : needs[i].Want == Want.Shopping ? "SHOPS" : needs[i].Want == Want.Seating ? "SEATS" : needs[i].Want == Want.Toilets ? "TOILETS" : needs[i].Want == Want.Fun ? "FUN" : needs[i].Want == Want.Clean ? "CLEAN" : "SIGNS") + "  <color=#FFFFFF>" + Mathf.RoundToInt(needs[i].Value * 100) + "%</color>";
+                _needFills[i].color = needs[i].Unasked ? Ui.Off : Meter(needs[i].Value);
+                _needLabels[i].text = (needs[i].Queue ? "QUEUES" : needs[i].Want == Want.Food ? "FOOD" : needs[i].Want == Want.Shopping ? "SHOPS" : needs[i].Want == Want.Seating ? "SEATS" : needs[i].Want == Want.Toilets ? "TOILETS" : needs[i].Want == Want.Fun ? "FUN" : needs[i].Want == Want.Clean ? "CLEAN" : "SIGNS") + (needs[i].Unasked ? "  <color=#FFFFFF90>LATER</color>" : "  <color=#FFFFFF>" + Mathf.RoundToInt(needs[i].Value * 100) + "%</color>");
             }
 
             if (_placing != null)

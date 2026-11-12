@@ -202,7 +202,11 @@ namespace Crosswind.Game
                 }
                 Header("PASSENGERS: " + Mathf.RoundToInt(s.Satisfaction * 100) + "% SATISFIED (THEY SPEND MORE WHEN HAPPY)");
                 foreach (var need in s.Needs)
-                    Ico(WantIcon(need.Want, need.Queue), ScoreTint(need.Value)).Bar(need.Value, ScoreTint(need.Value)).Entry(need.Name, Mathf.RoundToInt(need.Value * 100) + "%", need.Value >= 0.999f ? "Passengers have no complaints here." : need.Advice + ".", null, null, null);
+                {
+                    // Something nobody asks for yet at this size is said so, not shown as a need met in full.
+                    if (need.Unasked) Ico(WantIcon(need.Want, need.Queue), Ui.Off).Bar(1f, Ui.Off).Entry(need.Name, "NOT NEEDED YET", "An airport this size gets by without. Passengers will look for it as their numbers grow.", null, null, null);
+                    else Ico(WantIcon(need.Want, need.Queue), ScoreTint(need.Value)).Bar(need.Value, ScoreTint(need.Value)).Entry(need.Name, Mathf.RoundToInt(need.Value * 100) + "%", need.Value >= 0.999f ? "Passengers have no complaints here." : need.Advice + ".", null, null, null);
+                }
                 if (s.Level("fuel") > 0)
                 {
                     // The fuel market: today's price against par, where it is heading, and the tanks.

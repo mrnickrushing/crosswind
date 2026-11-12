@@ -22,7 +22,12 @@ namespace Crosswind.Core
     public sealed class PlacedAmenity { public string id; public int x, z, rot, level = 1; }
 
     /// <summary>One line of the terminal's report: a need, how well it is met (0..1), and what to do about it.</summary>
-    public sealed class Need { public string Name, Advice; public float Value; public bool Queue; public Want Want; }
+    public sealed class Need
+    {
+        public string Name, Advice; public float Value; public bool Queue; public Want Want;
+        /// <summary>Met without anything placed for it: at this size of airport nobody asks for it yet.</summary>
+        public bool Unasked;
+    }
 
     /// <summary>
     /// The terminal you furnish. Check-in, security and the gates are built by level; everything between them is
@@ -367,18 +372,25 @@ namespace Crosswind.Core
                 double demand = Math.Max(1, PassengerDemand);
                 float Fit(double supply) { return (float)Math.Max(0, Math.Min(1, supply / demand)); }
                 var list = new List<Need> { new Need { Name = "Short queues", Queue = true, Value = Fit(TerminalFlow), Advice = "Upgrade the slowest of check-in, security and gates" } };
-                foreach (var r in WantRules) list.Add(new Need { Name = r.name, Want = r.want, Value = Fit(r.free + Supply(r.want) * r.per), Advice = r.advice });
+                foreach (var r in WantRules)
+                {
+                    float placed = Supply(r.want);
+                    list.Add(new Need { Name = r.name, Want = r.want, Value = Fit(r.free + placed * r.per), Advice = r.advice, Unasked = placed <= 0 && r.free >= demand });
+                }
                 return list;
             }
         }
 
-        /// <summary>How pleased passengers are, 0.4..1.5: queues count most, then everything the concourse offers.</summary>
+        /// <summary>
+        /// How pleased passengers are, 0.4..1.5: queues count most, then everything the concourse offers. With every need
+        /// met it is exactly 1 (the weights below add up to it); shops and a lounge beyond that take it higher.
+        /// </summary>
         public float Satisfaction
         {
             get
             {
                 var n = Needs;
-                float v = 0.4f + 0.3f * n[0].Value;
+                float v = 0.38f + 0.3f * n[0].Value;
                 for (int i = 0; i < WantRules.Length; i++) v += WantRules[i].weight * n[i + 1].Value;
                 v += 0.02f * RetailPull + 0.01f * LoungeLevel;
                 v += MoodShift;

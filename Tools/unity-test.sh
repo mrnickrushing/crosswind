@@ -10,12 +10,20 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 U=(unity command --project-path "$ROOT")
 TIMEOUT="${1:-600}"
 
-open_editor=$(unity status --json --project-path "$ROOT" 2>/dev/null | python3 -I -c '
+editor_listed() {
+  unity status --json --project-path "$ROOT" 2>/dev/null | python3 -I -c '
 import json, os, sys
 try: d = json.load(sys.stdin)["data"]["instances"]
 except Exception: d = []
 root = os.path.realpath(sys.argv[1])
-print(any(os.path.realpath(i.get("projectPath") or "") == root for i in d))' "$ROOT" || echo False)
+print(any(os.path.realpath(i.get("projectPath") or "") == root for i in d))' "$ROOT" || echo False
+}
+open_editor=$(editor_listed)
+# An Editor that is reloading its scripts (just after a recompile) drops off that list for a few seconds while it is
+# still running and still holding the project: wait for it to come back instead of trying batch mode against its lock.
+if [ "$open_editor" != "True" ] && pgrep -f -- "-projectpath $ROOT( |\$)" >/dev/null 2>&1; then
+  for _ in $(seq 1 60); do sleep 2; open_editor=$(editor_listed); [ "$open_editor" = "True" ] && break; done
+fi
 
 if [ "$open_editor" = "True" ]; then
   RESULTS="$HOME/.config/unity3d/Rushing Technologies/Crosswind/TestResults.xml"

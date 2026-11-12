@@ -24,6 +24,8 @@ Everything that stands in the terminal (counters, chairs and sofas, shelves and 
 - **Poly by Google** (CC BY 3.0, via poly.pizza): Airplane, Analog clock, Bench, Bottle of wine, Broom, Bucket, Cell phone, Coral, Desk, Fiddle-leaf Plant, Fish, Fountain, Garbage, Goldfish, Jet, Koala, Luggage, Mirror, Panda, Roomba, Rubber Duck, Rubik's cube, Sea anemone, Seahorse, Slide, Swing set, Vacuum.
 - **J-Toastie** (CC BY 3.0, via poly.pizza): ATM.
 - **jeremy** (CC BY 3.0, via poly.pizza): Piano.
+- **Josh** (CC BY 3.0, via poly.pizza): Conveyor (the baggage belts).
+- **dook** (CC BY 3.0, via poly.pizza): Conveyor Thing (the security scanners).
 - **Quaternius** (CC0): Bookcase with Books, Chukaman Steamer, Flag, Houseplant, Light Ceiling, Ramen, Udon.
 
 ## Icons

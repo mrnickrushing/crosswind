@@ -54,6 +54,8 @@ PROPS = {
     # ---- fenced-off bays waiting to be opened
     "c_barrier": "R:construction-barrier", "c_cone": "R:construction-cone", "c_fence": "R:construction-fence", "c_light": "R:construction-light",
     "box": "F:cardboardBoxClosed", "box_open": "F:cardboardBoxOpen",
+    # ---- the hall's own machines: a baggage belt behind the check-in desks, the scanner on each security lane
+    "conveyor": "pp:5f4he3uHyov", "scanner": "pp:SubFCu60Ga",
     # ---- washrooms and cleaning
     "toilet": "F:toiletSquare", "basin": "F:bathroomSinkSquare", "mirror_bath": "F:bathroomMirror", "wheelie": "pp:0QdIPYIA_qe",
     "bucket": "pp:5HPoa3eX0Jb", "broom": "pp:3CZnTJZTcRO", "vacuum": "pp:eJ96_O_dQ2p", "roomba": "pp:5WERTPcyIMn",

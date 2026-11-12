@@ -131,7 +131,11 @@ namespace Crosswind.Game
             {
                 float iz = z0 + L * (i + 0.5f) / islands;
                 int n = Mathf.Min(perIsland, desks - i * perIsland);
-                mb.Box(new Vector3(cx + 1.6f, 0.45f, iz), new Vector3(1.0f, 0.5f, n * 1.9f + 1), Palette.Hex(0x2B3138));                            // belt
+                // The baggage belt behind the desks: lengths of roller conveyor end to end.
+                {
+                    float run = n * 1.9f + 1; int pieces = Mathf.CeilToInt(run / 2f); float each = run / pieces;
+                    for (int k = 0; k < pieces; k++) mb.Fit("conveyor", new Vector3(cx + 1.6f, 0, iz - run * 0.5f + (k + 0.5f) * each), 0, each, 0.62f, 0.9f);
+                }
                 mb.Box(new Vector3(cx + 2.6f, 2.9f, iz), new Vector3(0.25f, 1.1f, n * 1.9f), Palette.Hex(0x12161B));                                // flight board
                 mb.Box(new Vector3(cx + 2.45f, 2.9f, iz), new Vector3(0.05f, 0.8f, n * 1.9f - 0.4f), Palette.Hex(0xF2C230));
                 foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(cx + 2.6f, 1.2f, iz + e * n * 0.95f), new Vector3(0.18f, 2.4f, 0.18f), Palette.Steel);
@@ -155,6 +159,7 @@ namespace Crosswind.Game
                     mb.Tall("chair_desk", new Vector3(cx + 0.8f, 0, dz + 0.3f), 0, 0.95f);
                     mb.Box(new Vector3(cx + 0.9f, 0.3f, dz - 0.5f), new Vector3(0.8f, 0.3f, 0.5f), Palette.Hex(0x9AA0A6));                           // scale
                     if ((k + i) % 2 == 0) mb.Tall("luggage", new Vector3(cx + 0.9f, 0.45f, dz - 0.5f), 90 + k * 25, 0.55f, (k + i) % 4 == 0 ? Color.white : new Color(0.6f, 0.9f, 1.3f));
+                    else if ((k + i) % 3 == 0) mb.Tall("luggage", new Vector3(cx + 1.6f, 0.62f, dz + 0.4f), 20 + k * 40, 0.5f, new Color(1.3f, 0.7f, 0.6f));      // one already on the belt
                     _desks.Add(new Vector3(cx - 1.3f, 0, dz));
                 }
                 // Queue barriers: posts and belts in a zig-zag before the island.
@@ -173,13 +178,14 @@ namespace Crosswind.Game
             {
                 float lz = z0 + L * (i + 0.5f) / lanes;
                 mb.Box(new Vector3(sx, 1.3f, lz), new Vector3(0.5f, 2.7f, Mathf.Min(4.2f, L / lanes - 0.6f)), Palette.Hex(0x2B3138));                  // the opening (dark)
-                mb.Box(new Vector3(sx, 0.5f, lz - 0.8f), new Vector3(5.2f, 0.9f, 0.8f), Palette.Hex(0x4A5058), Palette.Hex(0x1B2028));              // belt
-                mb.Box(new Vector3(sx, 1.25f, lz - 0.8f), new Vector3(1.6f, 1.0f, 1.1f), Palette.Hex(0xDADDE0), Palette.Hex(0x9AA0A6));             // scanner
+                // The X-ray machine astride the wall, a length of roller conveyor feeding it and another taking the trays away.
+                mb.Long("scanner", new Vector3(sx, 0, lz - 1.0f), 0, 2.4f);
+                foreach (float e in new[] { -1f, 1f }) mb.Fit("conveyor", new Vector3(sx + e * 2.2f, 0, lz - 1.0f), 90, 2.0f, 0.62f, 0.8f);
                 foreach (float e in new[] { -0.5f, 0.5f }) mb.Box(new Vector3(sx + 0.3f, 1.1f, lz + 0.8f + e), new Vector3(0.5f, 2.2f, 0.12f), Palette.Hex(0xDADDE0));
                 mb.Box(new Vector3(sx + 0.3f, 2.25f, lz + 0.8f), new Vector3(0.5f, 0.14f, 1.12f), Palette.Hex(0x3FB26A));                            // the arch, green
                 // Bags riding the belt, in and out of the scanner.
-                mb.Tall("luggage", new Vector3(sx - 1.7f, 0.95f, lz - 0.8f), 90 + i * 30, 0.5f, i % 2 == 0 ? Color.white : new Color(0.6f, 0.9f, 1.3f));
-                mb.Tall("luggage", new Vector3(sx + 1.6f, 0.95f, lz - 0.8f), 60 + i * 50, 0.46f, i % 3 == 0 ? new Color(1.3f, 0.7f, 0.6f) : Color.white);
+                mb.Tall("luggage", new Vector3(sx - 2.2f, 0.62f, lz - 1.0f), 90 + i * 30, 0.5f, i % 2 == 0 ? Color.white : new Color(0.6f, 0.9f, 1.3f));
+                mb.Tall("luggage", new Vector3(sx + 2.3f, 0.62f, lz - 1.0f), 60 + i * 50, 0.46f, i % 3 == 0 ? new Color(1.3f, 0.7f, 0.6f) : Color.white);
                 _lanes.Add(new Vector3(sx, 0, lz + 0.8f));
                 // A sign over every lane while there are few, then over every third.
                 if (lanes <= 6 || i % 3 == 1)

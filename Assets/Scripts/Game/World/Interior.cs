@@ -27,8 +27,18 @@ namespace Crosswind.Game
         readonly List<Vector3> _doors = new List<Vector3>(), _desks = new List<Vector3>(), _lanes = new List<Vector3>(), _shops = new List<Vector3>(), _seats = new List<Vector3>(), _gates = new List<Vector3>();
         // What each shop stop and seat belongs to (null: a gate lounge's own seats).
         readonly List<string> _shopIds = new List<string>(), _seatIds = new List<string>();
+        // The people who work here (standing at desks, tills and lanes), the carousels' centres, and the cars passing outside.
+        readonly List<(Vector3 at, float yaw, int kind)> _staff = new List<(Vector3, float, int)>();
+        readonly List<Vector3> _carousels = new List<Vector3>();
+        readonly List<Matrix4x4> _bags = new List<Matrix4x4>();
+        readonly List<(Transform car, float speed)> _traffic = new List<(Transform, float)>();
+        static Mesh[] _bagMeshes;
+        readonly List<Matrix4x4>[] _bagLists = { new List<Matrix4x4>(), new List<Matrix4x4>(), new List<Matrix4x4>(), new List<Matrix4x4>() };
+        float _roadZ0, _roadZ1;
+        static readonly int[] StaffKinds = { 4, 10, 1, 6, 8 };
         // Arrivals: where they come through the security wall, and where they wait for their bags.
         readonly List<Vector3> _reclaim = new List<Vector3>();
+        Vector3 _reclaimOut;      // the way out of baggage reclaim, past the carousels' near ends
         Vector3 _arrivalsOut;
 
         public sealed class Agent { public int Seed; public int Kind; public Vector3 Pos, Target; public int Step; public float Wait, Speed, Phase; public bool Arriving; public Vector3[] Path; public bool[] Stop; public string[] At; }
@@ -84,7 +94,7 @@ namespace Crosswind.Game
         void Rebuild()
         {
             if (_static != null) Destroy(_static);
-            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear(); _shopIds.Clear(); _seatIds.Clear();
+            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear(); _shopIds.Clear(); _seatIds.Clear(); _staff.Clear(); _carousels.Clear(); _traffic.Clear();
             float was = Length, wasDeep = Width;
             var s = _sim;
             int checkin = s.Level("checkin"), security = s.Level("security"), gates = s.Level("gates"), shops = s.Level("shops"), seating = s.Level("seating"), info = s.Level("info"), lounge = s.Level("lounge");
@@ -164,6 +174,7 @@ namespace Crosswind.Game
                     if ((k + i) % 2 == 0) mb.Tall("luggage", new Vector3(cx + 0.9f, 0.45f, dz - 0.5f), 90 + k * 25, 0.55f, (k + i) % 4 == 0 ? Color.white : new Color(0.6f, 0.9f, 1.3f));
                     else if ((k + i) % 3 == 0) mb.Tall("luggage", new Vector3(cx + 1.6f, 0.62f, dz + 0.4f), 20 + k * 40, 0.5f, new Color(1.3f, 0.7f, 0.6f));      // one already on the belt
                     _desks.Add(new Vector3(cx - 1.3f, 0, dz));
+                    if ((k + i * 3) % 3 != 2) _staff.Add((new Vector3(cx + 0.72f, 0, dz - 0.2f), 0, StaffKinds[(k + i) % StaffKinds.Length]));       // two desks in three are open
                 }
                 // Queue barriers: posts and belts in a zig-zag before the island.
                 for (int r = 0; r < 3; r++)
@@ -191,6 +202,7 @@ namespace Crosswind.Game
                 mb.Tall("luggage", new Vector3(sx - 2.2f, 0.62f, lz - 1.0f), 90 + i * 30, 0.5f, i % 2 == 0 ? Color.white : new Color(0.6f, 0.9f, 1.3f));
                 mb.Tall("luggage", new Vector3(sx + 2.3f, 0.62f, lz - 1.0f), 60 + i * 50, 0.46f, i % 3 == 0 ? new Color(1.3f, 0.7f, 0.6f) : Color.white);
                 _lanes.Add(new Vector3(sx, 0, lz + 0.8f));
+                _staff.Add((new Vector3(sx + 1.1f, 0, lz + 1.75f), 20, StaffKinds[(i + 2) % StaffKinds.Length]));      // the officer past the arch
                 // A sign over every lane while there are few, then over every third.
                 if (lanes <= 6 || i % 3 == 1)
                 {
@@ -222,18 +234,13 @@ namespace Crosswind.Game
                 mb.Box(new Vector3(rx, 1.5f, rz), new Vector3(0.12f, 1.8f, 0.12f), Palette.Steel);
                 mb.Box(new Vector3(rx, 2.6f, rz), new Vector3(0.2f, 0.7f, 1.3f), Palette.Hex(0x12161B));
                 _labels.Add(((carousels - i).ToString(), new Vector3(rx - 0.12f, 2.6f, rz), 0, 0.6f, Palette.Hex(0xF2C230)));
-                var bagRng = new System.Random(i * 17 + 3);
-                for (int k = 0; k < 7; k++)
-                {
-                    bool side = k < 5; float e = k % 2 == 0 ? -1f : 1f;
-                    var at = side ? new Vector3(rx + e * 0.85f, 0.5f, rz - 2.6f + (float)bagRng.NextDouble() * 5.2f) : new Vector3(rx - 0.6f + (float)bagRng.NextDouble() * 1.2f, 0.5f, rz + e * 3.4f);
-                    mb.Tall("luggage", at, (float)bagRng.NextDouble() * 360, 0.45f + (float)bagRng.NextDouble() * 0.12f, k % 3 == 0 ? Color.white : k % 3 == 1 ? new Color(0.6f, 0.9f, 1.3f) : new Color(1.3f, 0.7f, 0.6f));
-                }
+                _carousels.Add(new Vector3(rx, 0, rz));
                 // Where they stand to wait for a bag: along both sides.
                 for (float z = rz - 2.4f; z <= rz + 2.41f; z += 1.2f) { _reclaim.Add(new Vector3(rx - 1.75f, 0, z)); _reclaim.Add(new Vector3(rx + 1.75f, 0, z)); }
             }
             // Its sign hangs on two posts at the near end of the carousels, clear of the security lanes behind.
             float signX = x0 + 2.9f;
+            _reclaimOut = new Vector3(x0 + 1.8f, 0, rz - 4.4f);
             foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(signX, 1.5f, rz + e * 3.1f), new Vector3(0.14f, 3.0f, 0.14f), Palette.Steel);
             mb.Box(new Vector3(signX, 3.05f, rz), new Vector3(0.24f, 0.8f, 6.4f), Palette.Hex(0x2F8F5B));
             _labels.Add(("BAGGAGE RECLAIM", new Vector3(signX - 0.16f, 3.05f, rz), 0, 0.55f, Color.white));
@@ -272,6 +279,7 @@ namespace Crosswind.Game
                     }
                 }
                 _gates.Add(new Vector3(W * 0.5f - 2.4f, 0, gz));
+                _staff.Add((new Vector3(W * 0.5f - 0.95f, 0, gz + span * 0.4f - 0.2f), 0, StaffKinds[(i + 1) % StaffKinds.Length]));
                 _labels.Add(("A" + (gateCount - i), new Vector3(W * 0.5f - 0.68f, 3.3f, gz), 0, 0.42f, Palette.Hex(0x12161B)));
                 // A tall plant against the glass between this gate and the next.
                 if (i > 0 && L / gateCount >= 4.6f) mb.Tall("fiddle", new Vector3(W * 0.5f - 1.0f, 0, z0 + L * i / (float)gateCount), i * 40, 2.0f);
@@ -311,7 +319,17 @@ namespace Crosswind.Game
                 for (float z = z0 + 3; z < L * 0.5f - 3; z += 6.2f + (float)rng.NextDouble() * 5f, k++)
                 {
                     bool far = k % 4 == 3;       // one in four is passing in the far lane, the other way
-                    Models.Kit(cars[(k + rng.Next(3)) % cars.Length], _static.transform, new Vector3(kerb - (far ? 13f : 6.6f), 0.02f, z), far ? 180 : 0, 4.5f);
+                    if (far) continue;
+                    Models.Kit(cars[(k + rng.Next(3)) % cars.Length], _static.transform, new Vector3(kerb - 6.6f, 0.02f, z), 0, 4.5f);
+                }
+                // And traffic: a few cars driving past in each lane, round and round.
+                _roadZ0 = z0 - 20; _roadZ1 = L * 0.5f + 20;
+                int moving = Mathf.Clamp((int)(L / 22f), 3, 6);
+                for (int m = 0; m < moving; m++)
+                {
+                    bool far = m % 2 == 0;
+                    var car = Models.Kit(cars[(m * 3 + 1) % cars.Length], _static.transform, new Vector3(kerb - (far ? 12.1f : 8.95f), 0.02f, z0 - 20 + (float)rng.NextDouble() * (L + 40)), far ? 180 : 0, 4.5f);
+                    if (car != null) _traffic.Add((car.transform, (far ? 1 : -1) * (7.5f + (float)rng.NextDouble() * 3f)));
                 }
             }
             g.Build(_static.transform);
@@ -379,6 +397,7 @@ namespace Crosswind.Game
             if (key != _built && (CameraRig.Inside || _static == null)) { _built = key; Rebuild(); }
             if (!CameraRig.Inside || _walk == null || _walk[0][0] == null) return;
             if ((_apronIn -= Time.deltaTime) <= 0) { _apronIn = 0.5f; SyncApron(); }
+            MoveTraffic(Time.deltaTime);
 
             // The crowd grows with the passengers the airport moves, up to what a phone draws comfortably.
             int want = Mathf.Clamp((int)(s.PassengerDemand * 28) + 50, 50, 340);
@@ -417,6 +436,17 @@ namespace Crosswind.Game
                 _shadows.Add(m);
                 if (outside <= 1.4f) _batches[a.Kind * 5 + frame].Add(m);
             }
+            // The staff at their posts: desks, lanes, gates and counters, facing the people they serve.
+            foreach (var st in _staff)
+            {
+                var at = Origin + st.at;
+                float outside = cam != null ? Outside(at + Vector3.up * 0.9f) : 0;
+                if (outside > 5f) continue;
+                var m = Matrix4x4.TRS(at, Quaternion.LookRotation(-(Quaternion.Euler(0, st.yaw, 0) * Vector3.left)), Vector3.one * 1.75f);
+                _shadows.Add(m);
+                if (outside <= 1.4f) _batches[st.kind * 5 + 4].Add(m);
+            }
+            DrawBags(cam);
             bool far = CameraRig.Instance != null && CameraRig.Instance.Distance > FarCrowd;
             for (int k = 0; k < 12; k++)
                 for (int f = 0; f < 5; f++)
@@ -426,6 +456,56 @@ namespace Crosswind.Game
                     if (list.Count > 0 && mesh != null) Graphics.DrawMeshInstanced(mesh, 0, Materials.Kit, list, null, UnityEngine.Rendering.ShadowCastingMode.Off, true);
                 }
             if (_shadows.Count > 0) Graphics.DrawMeshInstanced(_shadow, 0, Materials.Kit, _shadows, null, UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly, false);
+        }
+
+        /// <summary>Cars on the drop-off road drive along their lane and come round again from the far end.</summary>
+        void MoveTraffic(float dt)
+        {
+            float span = _roadZ1 - _roadZ0;
+            if (span <= 0) return;
+            foreach (var (car, speed) in _traffic)
+            {
+                if (car == null) continue;
+                var p = car.localPosition;
+                p.z += speed * dt;
+                if (p.z > _roadZ1) p.z -= span; else if (p.z < _roadZ0) p.z += span;
+                car.localPosition = p;
+            }
+        }
+
+        /// <summary>Bags riding round each carousel: up one run of belt, across the end, down the other.</summary>
+        void DrawBags(Camera cam)
+        {
+            if (_carousels.Count == 0) return;
+            if (_bagMeshes == null)
+            {
+                Color[] tints = { Color.white, new Color(1.6f, 3.2f, 4.6f), new Color(4.6f, 1.4f, 1.2f), new Color(4.2f, 3.4f, 1.6f) };      // the case is near black: black, blue, red, tan
+                _bagMeshes = new Mesh[tints.Length];
+                for (int i = 0; i < tints.Length; i++) { var mb = new MeshBuilder(); mb.Tall("luggage", Vector3.zero, 90, 0.5f, tints[i]); _bagMeshes[i] = mb.ToMesh("Carousel bag " + i); }
+            }
+            foreach (var l in _bagLists) l.Clear();
+            const float hx = 0.85f, hz = 3.4f, loop = 4 * hx + 4 * hz;
+            float t = Time.time * 0.45f;
+            for (int c = 0; c < _carousels.Count; c++)
+            {
+                var centre = Origin + _carousels[c];
+                if (cam != null && Outside(centre + Vector3.up) > 5f) continue;
+                int bags = 4 + (c * 5 + 3) % 4;
+                for (int b = 0; b < bags; b++)
+                {
+                    // Spaced unevenly, as they come off the plane.
+                    float d = Mathf.Repeat(t + loop * (b + 0.37f * Mathf.Sin(b * 2.3f + c)) / bags, loop);
+                    Vector3 p, dir;
+                    if (d < 2 * hz) { p = new Vector3(-hx, 0, -hz + d); dir = Vector3.forward; }
+                    else if ((d -= 2 * hz) < 2 * hx) { p = new Vector3(-hx + d, 0, hz); dir = Vector3.right; }
+                    else if ((d -= 2 * hx) < 2 * hz) { p = new Vector3(hx, 0, hz - d); dir = Vector3.back; }
+                    else { d -= 2 * hz; p = new Vector3(hx - d, 0, -hz); dir = Vector3.left; }
+                    var rot = Quaternion.LookRotation(dir) * Quaternion.Euler(0, (b * 47) % 60 - 30, 0);
+                    _bagLists[(b + c) % _bagLists.Length].Add(Matrix4x4.TRS(centre + p + Vector3.up * 0.5f, rot, Vector3.one));
+                }
+            }
+            for (int i = 0; i < _bagLists.Length; i++)
+                if (_bagLists[i].Count > 0) Graphics.DrawMeshInstanced(_bagMeshes[i], 0, Materials.World, _bagLists[i], null, UnityEngine.Rendering.ShadowCastingMode.On, true);
         }
 
         /// <summary>How far outside the camera's view a point is, in metres (0 or less: in view).</summary>
@@ -441,8 +521,8 @@ namespace Crosswind.Game
             if (_doors.Count == 0 || _gates.Count == 0 || _lanes.Count == 0 || _desks.Count == 0) return;
             Vector3 R(List<Vector3> l) { return l[Random.Range(0, l.Count)] + new Vector3(Random.Range(-0.4f, 0.4f), 0, Random.Range(-0.4f, 0.4f)); }
             // Where they have business, in order; between those they keep to the aisles (see Walk).
-            var goals = new List<Vector3>(); var what = new List<string>();
-            void Go(Vector3 at, string id = null) { goals.Add(at); what.Add(id); }
+            var goals = new List<Vector3>(); var what = new List<string>(); var pass = new List<bool>();
+            void Go(Vector3 at, string id = null, bool through = false) { goals.Add(at); what.Add(id); pass.Add(through); }
             void Visit(List<Vector3> places, List<string> ids) { int k = Random.Range(0, places.Count); Go(places[k] + new Vector3(Random.Range(-0.4f, 0.4f), 0, Random.Range(-0.4f, 0.4f)), ids[k]); }
             if (!arriving)
             {
@@ -458,8 +538,16 @@ namespace Crosswind.Game
                 if (_shops.Count > 0 && Random.value < 0.3f) Visit(_shops, _shopIds);
                 // Out by the arrivals passage at the end of the security wall, to a carousel for the bag, then the doors.
                 Go(_arrivalsOut + new Vector3(2.6f, 0, Random.Range(-0.8f, 0.8f)));
-                Go(_arrivalsOut + new Vector3(-3.2f, 0, Random.Range(-0.8f, 0.8f)));
-                if (_reclaim.Count > 0 && Random.value < 0.8f) Go(R(_reclaim));
+                Go(_arrivalsOut + new Vector3(-3.2f, 0, Random.Range(-0.8f, 0.8f)), null, true);
+                if (_reclaim.Count > 0 && Random.value < 0.8f)
+                {
+                    // Round the belts, never over them: in along the aisle past their far ends, out by their near ends and the sign.
+                    var bag = R(_reclaim);
+                    Go(new Vector3(bag.x, 0, _arrivalsOut.z + Random.Range(-0.6f, 0.6f)), null, true);
+                    Go(bag);
+                    Go(new Vector3(bag.x, 0, _reclaimOut.z + Random.Range(-0.5f, 0.5f)), null, true);
+                    Go(_reclaimOut + new Vector3(0, 0, Random.Range(-0.6f, 0.6f)), null, true);
+                }
                 Go(R(_doors));
             }
             var path = new List<Vector3> { goals[0] };
@@ -468,7 +556,7 @@ namespace Crosswind.Game
             {
                 Walk(goals[i - 1], goals[i], path);
                 while (stop.Count < path.Count - 1) { stop.Add(false); at.Add(null); }
-                stop.Add(true); at.Add(what[i]);
+                stop.Add(!pass[i]); at.Add(what[i]);
             }
             var a = new Agent { Seed = Random.Range(1, 1 << 30), Arriving = arriving, Kind = Random.Range(0, 12), Path = path.ToArray(), Stop = stop.ToArray(), At = at.ToArray(), Speed = Random.Range(1.6f, 2.6f), Phase = Random.Range(0, 4) };
             // Start part-way along, so the hall is full the moment you look in.
@@ -723,6 +811,22 @@ namespace Crosswind.Game
                 // Where passengers stop: in front of it (toward check-in), or on it for seats.
                 var stop = c + new Vector3(-w * Sim.Cell * 0.5f - 0.7f, 0, 0);
                 if (d.Gives == Want.Seating || d.Gives == Want.Lounge) { _seats.Add(c); _seatIds.Add(d.Id); } else { _shops.Add(stop); _shopIds.Add(d.Id); }
+                // Whoever works there, where they stand in the item's own space (x toward the back, z across) and the way they face.
+                float ihx = d.W * Sim.Cell * 0.5f, ihz = d.D * Sim.Cell * 0.5f;
+                var turn = Quaternion.Euler(0, p.rot * 90, 0);
+                void Works(float lx, float lz, float faceYaw) { _staff.Add((c + turn * new Vector3(lx, 0, lz), p.rot * 90 + faceYaw, StaffKinds[(p.x * 3 + p.z + _staff.Count) % StaffKinds.Length])); }
+                switch (d.Id)
+                {
+                    case "cafe": Works(ihx - 1.2f, 0.7f, 0); break;
+                    case "noodle": Works(ihx - 1.35f, -0.4f, 0); Works(ihx - 1.35f, 0.9f, 0); break;
+                    case "restaurant": Works(-ihx + 1.0f, ihz - 0.75f, 0); break;
+                    case "newsstand": Works(-ihx + 1.3f, -0.42f, 0); break;
+                    case "gifts": Works(0.2f, -ihz + 0.15f + 0.9f, 90); break;
+                    case "fashion": Works(ihx - 1.25f, -1.45f, 0); break;
+                    case "dutyfree": Works(-ihx + 1.45f, -2.45f, 0); Works(-ihx + 1.45f, 2.45f, 0); break;
+                    case "lounge": Works(-ihx + 1.35f, ihz - 1.5f, 0); Works(0.8f, ihz - 0.82f, 270); break;
+                    case "infodesk": Works(0.85f, -0.45f, 0); break;
+                }
             }
         }
 

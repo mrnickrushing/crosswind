@@ -27,7 +27,10 @@ namespace Crosswind.Game
         readonly List<Vector3> _doors = new List<Vector3>(), _desks = new List<Vector3>(), _lanes = new List<Vector3>(), _shops = new List<Vector3>(), _seats = new List<Vector3>(), _gates = new List<Vector3>();
         // What each shop stop and seat belongs to (null: a gate lounge's own seats).
         readonly List<string> _shopIds = new List<string>(), _seatIds = new List<string>();
-        readonly List<Vector3> _shopCentres = new List<Vector3>();      // the middle of the unit each of _shops stands before
+        readonly List<Vector3> _shopCentres = new List<Vector3>();
+        /// <summary>Each check-in island's queue (the lanes between its barriers run along z from Za to Zb) and its open desks.</summary>
+        sealed class Island { public float Cx, Za, Zb; public readonly List<Vector3> Desks = new List<Vector3>(); }
+        readonly List<Island> _checkin = new List<Island>();      // the middle of the unit each of _shops stands before
         // The people who work here (standing at desks, tills and lanes), the carousels' centres, and the cars passing outside.
         readonly List<(Vector3 at, float yaw, int kind)> _staff = new List<(Vector3, float, int)>();
         readonly List<Vector3> _carousels = new List<Vector3>();
@@ -98,7 +101,7 @@ namespace Crosswind.Game
         void Rebuild()
         {
             if (_static != null) Destroy(_static);
-            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear(); _shopIds.Clear(); _seatIds.Clear(); _shopCentres.Clear(); _staff.Clear(); _carousels.Clear(); _traffic.Clear();
+            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear(); _shopIds.Clear(); _seatIds.Clear(); _shopCentres.Clear(); _checkin.Clear(); _staff.Clear(); _carousels.Clear(); _traffic.Clear();
             float was = Length, wasDeep = Width;
             var s = _sim;
             int checkin = s.Level("checkin"), security = s.Level("security"), gates = s.Level("gates"), shops = s.Level("shops"), seating = s.Level("seating"), info = s.Level("info"), lounge = s.Level("lounge");
@@ -148,6 +151,9 @@ namespace Crosswind.Game
             {
                 float iz = z0 + checkinWidth * (i + 0.5f) / islands;
                 int n = Mathf.Min(perIsland, desks - i * perIsland);
+                var isle = new Island { Cx = cx, Za = iz - n * 0.9f };
+                isle.Zb = isle.Za + (Mathf.Floor(n * 1.8f / 2.2f + 0.001f) + 1) * 2.2f;      // the belts run on to a post past the last
+                _checkin.Add(isle);
                 // The baggage belt behind the desks: lengths of roller conveyor end to end.
                 {
                     float run = n * 1.9f + 1; int pieces = Mathf.CeilToInt(run / 2f); float each = run / pieces;
@@ -178,7 +184,7 @@ namespace Crosswind.Game
                     if ((k + i) % 2 == 0) mb.Tall("luggage", new Vector3(cx + 0.9f, 0.45f, dz - 0.5f), 90 + k * 25, 0.55f, (k + i) % 4 == 0 ? Color.white : new Color(0.6f, 0.9f, 1.3f));
                     else if ((k + i) % 3 == 0) mb.Tall("luggage", new Vector3(cx + 1.6f, 0.62f, dz + 0.4f), 20 + k * 40, 0.5f, new Color(1.3f, 0.7f, 0.6f));      // one already on the belt
                     _desks.Add(new Vector3(cx - 1.3f, 0, dz));
-                    if ((k + i * 3) % 3 != 2) _staff.Add((new Vector3(cx + 0.72f, 0, dz - 0.2f), 0, StaffKinds[(k + i) % StaffKinds.Length]));       // two desks in three are open
+                    if ((k + i * 3) % 3 != 2) { _staff.Add((new Vector3(cx + 0.72f, 0, dz - 0.2f), 0, StaffKinds[(k + i) % StaffKinds.Length])); isle.Desks.Add(new Vector3(cx - 1.3f, 0, dz)); }       // two desks in three are open
                 }
                 // Queue barriers: posts and belts in a zig-zag before the island.
                 for (int r = 0; r < 3; r++)
@@ -654,7 +660,7 @@ namespace Crosswind.Game
 
         void Spawn(bool arriving, int want = 100)
         {
-            if (_doors.Count == 0 || _gates.Count == 0 || _lanes.Count == 0 || _desks.Count == 0) return;
+            if (_doors.Count == 0 || _gates.Count == 0 || _lanes.Count == 0 || _desks.Count == 0 || _checkin.Count == 0) return;
             Vector3 R(List<Vector3> l) { return l[Random.Range(0, l.Count)] + new Vector3(Random.Range(-0.4f, 0.4f), 0, Random.Range(-0.4f, 0.4f)); }
             // Where they have business, in order; between those they keep to the aisles (see Walk).
             var goals = new List<Vector3>(); var what = new List<string>(); var pass = new List<bool>();
@@ -662,7 +668,18 @@ namespace Crosswind.Game
             void Visit(List<Vector3> places, List<string> ids) { int k = Random.Range(0, places.Count); Go(places[k] + new Vector3(Random.Range(-0.4f, 0.4f), 0, Random.Range(-0.4f, 0.4f)), ids[k]); }
             if (!arriving)
             {
-                Go(R(_doors)); Go(R(_desks));
+                Go(R(_doors));
+                // Into the island's queue: along the outer lane, round the end, back up the inner one, a wait somewhere
+                // in it, then out at the near end to an open desk.
+                var isle = _checkin[Random.Range(0, _checkin.Count)];
+                float outer = isle.Cx - 4.7f, inner = isle.Cx - 3.3f, near = isle.Za - 0.8f, far = isle.Zb + 0.6f;
+                var spot = new Vector3(Random.value < 0.5f ? outer : inner, 0, Random.Range(isle.Za + 0.4f, isle.Zb - 0.4f));
+                Go(new Vector3(isle.Cx - 6.4f, 0, near), null, true); Go(new Vector3(outer, 0, near), null, true);
+                if (spot.x == outer) Go(spot);
+                Go(new Vector3(outer, 0, far), null, true); Go(new Vector3(inner, 0, far), null, true);
+                if (spot.x == inner) Go(spot);
+                Go(new Vector3(inner, 0, near), null, true); Go(new Vector3(isle.Cx - 1.9f, 0, near), null, true);
+                Go(isle.Desks.Count > 0 ? R(isle.Desks) : R(_desks));
                 var lane = R(_lanes); Go(lane + Vector3.left * 3.5f); Go(lane + Vector3.right * 3f);
                 if (_shops.Count > 0 && Random.value < 0.7f) Visit(_shops, _shopIds);
                 if (_seats.Count > 0 && Random.value < 0.6f) Visit(_seats, _seatIds);

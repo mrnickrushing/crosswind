@@ -259,6 +259,12 @@ namespace Crosswind.Game
             if (!inside && (_placing != null || _picked != null || _pax != null || _bay >= 0)) { StopPlacing(); ClosePick(); _pax = null; _paxCard.gameObject.SetActive(false); }
             if (!inside && _tab == ShopTab) OpenTab(-1);
             _termBar.gameObject.SetActive(inside && _placing == null && _tab < 0);
+            // The first look inside with floor still fenced off: say what the fences are.
+            if (inside && _tab < 0 && _away == null && _sim.NextBay >= 0 && PlayerPrefs.GetInt("cw_hint_bays", 0) == 0)
+            {
+                PlayerPrefs.SetInt("cw_hint_bays", 1);
+                Toast("Fenced bays are floor for sale: tap one to open it"); _toastT = 5f;
+            }
             _placeBar.gameObject.SetActive(inside && _placing != null);
             if (!inside) return;
 

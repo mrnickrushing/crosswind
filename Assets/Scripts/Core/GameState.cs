@@ -149,7 +149,7 @@ namespace Crosswind.Core
         public int resurfaced;
         public int dayIndex = -1, dayFlights, dayOnTime, dayDry;     // the airport day being counted, and its tallies
         public double dayIncome;
-        public DayReport report;                                     // the last day closed (null before the first)
+        public DayReport report;                                     // the last day closed (null before the first: see Repair)
         public int gradeStreak, daysAtA;
         public int cheapFills;                                       // tankers bought well below par
         public List<LevelEntry> fleetHours = new List<LevelEntry>();  // flights since the last check, by aircraft type ("a".."e")
@@ -218,6 +218,7 @@ namespace Crosswind.Core
             if (fleet == null) fleet = new List<LevelEntry>();
             if (opportunity != null && string.IsNullOrEmpty(opportunity.kind)) opportunity = null;
             if (incident != null && string.IsNullOrEmpty(incident.id)) incident = null;
+            if (report != null && report.day <= 0) report = null;      // the empty one a save writes before the first day has closed
             if (incidentLog == null) incidentLog = new List<IncidentRecord>();
             incidentLog.RemoveAll(x => x == null || string.IsNullOrEmpty(x.id));
             if (lastIncident == null) lastIncident = "";

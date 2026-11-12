@@ -37,7 +37,14 @@ namespace Crosswind.Game
             _incTitle.resizeTextForBestFit = true; _incTitle.resizeTextMinSize = 18; _incTitle.resizeTextMaxSize = 30;
             _incBtn.gameObject.SetActive(false);
 
-            _sim.IncidentAppeared += i => { _dirty = true; if (GameRoot.Speed <= 3) Sfx.Play("chime", 0.8f); };
+            _sim.IncidentAppeared += i =>
+            {
+                _dirty = true;
+                if (GameRoot.Speed > 3) return;
+                Sfx.Play("chime", 0.8f);
+                // The first time, say what the red button is for.
+                if (PlayerPrefs.GetInt("cw_hint_incident", 0) == 0) { PlayerPrefs.SetInt("cw_hint_incident", 1); Toast("Something needs your decision: tap the red DECISION button"); _toastT = 5f; }
+            };
             _sim.IncidentSettled += line =>
             {
                 _dirty = true;

@@ -25,6 +25,20 @@ namespace Crosswind.Tests
         }
 
         [Test]
+        public void ASaveFromBeforeTheFirstReportHasNoReport()
+        {
+            var st = GameState.New();
+            st.report = new DayReport();        // what the save file holds for "none yet"
+            var s = new Sim(st);
+            Assert.IsNull(s.State.report);
+            Assert.IsFalse(s.ReportWaiting, "nothing to collect, no red dot");
+            // A real one survives.
+            st.report = new DayReport { day = 3, grade = "B", bonus = 100 };
+            st.Repair();
+            Assert.IsNotNull(st.report);
+        }
+
+        [Test]
         public void GradesFollowTheScore()
         {
             Assert.AreEqual(0, Sim.GradeIndex(Sim.ScoreOf(100, 100, 0, 1f, 1f)));

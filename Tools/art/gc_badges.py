@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "docs", "appstore")
 GLYPHS = {"arrival": 0xf5af, "star": 0xf005, "manager": 0xf508, "flask": 0xf0c3, "globe": 0xf0ac, "medal": 0xf5a2,
           "fuel": 0xf52f, "road": 0xf018, "wrench": 0xf0ad, "plane": 0xf072, "heavy": 0xe22d, "wings": 0xf4ba,
-          "handshake": 0xf2b5, "crown": 0xf521}
+          "handshake": 0xf2b5, "crown": 0xf521, "bell": 0xf0f3}
 METALS = [((176, 112, 62), (98, 54, 24)), ((176, 186, 198), (84, 94, 108)), ((240, 190, 66), (150, 96, 12)), ((120, 214, 232), (22, 92, 140))]
 N = 1024
 

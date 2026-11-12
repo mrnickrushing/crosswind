@@ -156,6 +156,16 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   studio light, shadow catcher, trimmed to a 256 square). Add an icon: put it in `ICONS`, fetch, `render <name>`, and
   update the credits (`CREDITS.md` and the "Picture icons" row under EMPIRE). `World/Studio.cs` still photographs the
   game's own terminal items for the catalogue (`Interior.Picture`).
+- Incidents (`Core/Sim.Incidents.cs`, `IncidentTests`; from 2 stars and 15 flights): every 4 to 8 game minutes
+  `IncidentTick` puts one of twelve `Incidents` on the desk (`State.incident`: id, `expiresAt`, `value` = what a minute
+  of the airport is worth, an `airline`); `IncidentStory`, `IncidentDoes(choice)`, `IncidentBlocked(choice)`,
+  `DecideIncident(choice)`. Each has two `IncidentChoice`s whose `Take` moves money (`Pay`, `Earn`), the passengers'
+  mood for a while (`ShiftMood` -> `MoodShift`, added to `Satisfaction`), an airline's mood and reputation (`Please`),
+  the runway (`HoldRunway`, wear), gems or rating; after `IncidentSeconds` (75) it settles as `Default` (always an
+  answer that needs no money). Incidents roll their own dice (`incidentSeed`) so they never shift the rest of a run.
+  The last eight are in `State.incidentLog`; achievements `incidents_10/50`. UI: `UI/Hud.Incidents.cs` (the red
+  DECISION button, the card, the result, OPS page 6 INCIDENTS). Both bots answer them. A new incident: add it in
+  `BuildIncidents` with an icon from `Resources/UI/Icons`; `IncidentTests` then checks both answers and the default.
 - Terminal furniture is free models, never code shapes (the user: "get free models for them. they look crappy"):
   `Tools/art/props.py fetch|build|credits` (`PROPS`: Kenney furniture/market/arcade/food/nature kits and poly.pizza
   ids; `SET` for turn/faces/leaf/double) writes `Resources/Models/Props/<id>.fbx` (one unit on the longest side, front

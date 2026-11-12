@@ -117,6 +117,13 @@ namespace Crosswind.Core
         public Opportunity opportunity;
         public double nextOpportunityAt = 210;                      // game time
         public double rushUntil;                                    // game time a rush (double pay) ends
+        public IncidentState incident;                              // the decision waiting on the manager's desk (see Repair)
+        public double nextIncidentAt = 600;                         // game time the next one may come up
+        public uint incidentSeed;                                   // incidents roll their own dice
+        public string lastIncident = "";                            // so the same one never comes twice running
+        public int incidentsDecided;
+        public List<IncidentRecord> incidentLog = new List<IncidentRecord>();
+        public float moodShift; public double moodUntil;            // a passing lift or dent in the passengers' mood, and the game time it ends
         public int taskDay;                                         // the day today's tasks belong to
         public List<TaskState> tasks = new List<TaskState>();
         public int upgradesBought;
@@ -208,6 +215,10 @@ namespace Crosswind.Core
             if (relations == null) relations = new List<LevelEntry>();
             if (fleet == null) fleet = new List<LevelEntry>();
             if (opportunity != null && string.IsNullOrEmpty(opportunity.kind)) opportunity = null;
+            if (incident != null && string.IsNullOrEmpty(incident.id)) incident = null;
+            if (incidentLog == null) incidentLog = new List<IncidentRecord>();
+            incidentLog.RemoveAll(x => x == null || string.IsNullOrEmpty(x.id));
+            if (lastIncident == null) lastIncident = "";
             if (tasks == null) tasks = new List<TaskState>();
             if (builds == null) builds = new List<BuildJob>();
             builds.RemoveAll(b => b == null || b.facility == null || !Content.Facilities.ContainsKey(b.facility));

@@ -187,6 +187,7 @@ namespace Crosswind.Game
             _opp.Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(-20, 20), new Vector2(310, 140));
             _oppText = opp.GetComponentInChildren<Text>(); _oppText.color = Ui.Ink;
             _opp.gameObject.SetActive(false);
+            BuildIncidentUi();
 
             // The drawer the rail opens: down the right-hand side, the airfield still in view beside it.
             _sheet = Ui.ArtImg("Sheet", _safe, "panel", Color.white).rectTransform;
@@ -267,6 +268,7 @@ namespace Crosswind.Game
             _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
             _opsDot.gameObject.SetActive(_tab != OpsTab && OpsWaiting);
             _empireDot.gameObject.SetActive(_sim.ReportWaiting || _sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
+            UpdateIncidentUi();
             UpdateBoard();
             UpdateTerminalUi();
             UpdateServiceButtons();

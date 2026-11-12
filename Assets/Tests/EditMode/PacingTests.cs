@@ -25,6 +25,7 @@ namespace Crosswind.Tests
                 if ((int)(t * 4) % 4 != 0) continue;
                 while (s.ClaimGoal()) { }
                 s.TakeOpportunity();
+                if (s.State.incident != null && !s.DecideIncident(0)) s.DecideIncident(1);
                 for (int k = 0; k < s.State.tasks.Count; k++) s.ClaimTask(k);
                 foreach (var a in Sim.Achievements) s.ClaimAchievement(a.Id);
                 if (s.State.research == null)

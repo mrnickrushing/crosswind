@@ -377,6 +377,28 @@
    "image": "gamecenter/rep_flagship.png"
   },
   {
+   "id": "crosswind.ach.incidents_10",
+   "ref": "incidents_10",
+   "name": "Cool Head",
+   "before": "Decide 10 incidents.",
+   "after": "You decided 10 incidents.",
+   "points": 10,
+   "glyph": "bell",
+   "tier": 0,
+   "image": "gamecenter/incidents_10.png"
+  },
+  {
+   "id": "crosswind.ach.incidents_50",
+   "ref": "incidents_50",
+   "name": "Seen It All",
+   "before": "Decide 50 incidents.",
+   "after": "You decided 50 incidents.",
+   "points": 25,
+   "glyph": "bell",
+   "tier": 1,
+   "image": "gamecenter/incidents_50.png"
+  },
+  {
    "id": "crosswind.ach.class_c",
    "ref": "class_c",
    "name": "Jet Age",

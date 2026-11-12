@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace Crosswind.Game
 {
     /// <summary>
-    /// The operations centre (OPS on the rail): the whole screen beside the rail, in six pages. CONTRACTS is the
+    /// The operations centre (OPS on the rail): the whole screen beside the rail, in seven pages. CONTRACTS is the
     /// market and the book; PLANNER the day laid out by stand and hour, where a contract is picked up and set down;
     /// RECORD every contract's three marks; AIRLINES what each airline thinks of the airport and a switch to keep it
     /// away; FLIGHTS everything in the pattern and due today; FINANCES the day's books and the last week's.
@@ -15,7 +15,7 @@ namespace Crosswind.Game
     public sealed partial class Hud
     {
         const int OpsTab = 6;
-        static readonly string[] OpsPages = { "CONTRACTS", "PLANNER", "RECORD", "AIRLINES", "FLIGHTS", "FINANCES" };
+        static readonly string[] OpsPages = { "CONTRACTS", "PLANNER", "RECORD", "AIRLINES", "FLIGHTS", "FINANCES", "INCIDENTS" };
         /// <summary>The colour of each part of the day (planner slots: all day, morning, afternoon, evening, night).</summary>
         public static readonly Color[] PartColor = { Palette.Hex(0x52647C), Palette.Hex(0x2FAE98), Palette.Hex(0xD9A92A), Palette.Hex(0xD9567A), Palette.Hex(0x5557B0) };
 
@@ -102,7 +102,8 @@ namespace Crosswind.Game
                 case 2: RecordPage(); break;
                 case 3: AirlinesPage(); break;
                 case 4: FlightsPage(); break;
-                default: FinancesPage(); break;
+                case 5: FinancesPage(); break;
+                default: IncidentsPage(); break;
             }
             _opsList.sizeDelta = new Vector2(0, _rowY);
             _list = null;

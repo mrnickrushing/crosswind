@@ -44,6 +44,7 @@ namespace Crosswind.Game
             _think = 1f;
             while (s.ClaimGoal()) { }
             s.TakeOpportunity();
+            if (s.State.incident != null && !s.DecideIncident(0)) s.DecideIncident(1);
             s.ClaimSignIn();
             s.ClaimEvent();
             for (int k = 0; k < s.State.tasks.Count; k++) s.ClaimTask(k);

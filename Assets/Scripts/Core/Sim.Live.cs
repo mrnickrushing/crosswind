@@ -66,6 +66,7 @@ namespace Crosswind.Core
             if (State.time >= State.weatherUntil) NextWeather();
             if (State.opportunity != null && State.time >= State.opportunity.expiresAt) { State.opportunity = null; Changed?.Invoke(); }
             if (State.opportunity == null && State.time >= State.nextOpportunityAt) NextOpportunity();
+            IncidentTick();
             double park = ParkingRate * dt;
             if (park > 0) Earn(park, true);
             RollTasks();
@@ -233,6 +234,8 @@ namespace Crosswind.Core
             A("full_marks_10", "Clean Sheet", "Finish 10 contracts with all three marks", 10, s => s.State.fullMarks, 20);
             A("rep_trusted", "Good Name", "Become Trusted by an airline", 2, s => s.RepBestTier, 15);
             A("rep_flagship", "Flagship Airport", "Reach the top reputation tier with an airline", RepAt.Length - 1, s => s.RepBestTier, 50);
+            foreach (var (n, g) in new[] { (10, 10), (50, 25) })
+                A("incidents_" + n, n == 10 ? "Cool Head" : "Seen It All", "Decide " + n + " incidents", n, s => s.State.incidentsDecided, g);
             A("class_c", "Jet Age", "Sign an Albatross 160 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class >= AircraftClass.C) ? 1 : 0, 10);
             A("class_e", "Heavy Metal", "Sign a Leviathan 520 route", 1, s => s.State.contracts.Exists(c => Content.Routes[c.route].Class == AircraftClass.E) ? 1 : 0, 40);
             return list;

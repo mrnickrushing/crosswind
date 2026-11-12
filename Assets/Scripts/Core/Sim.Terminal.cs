@@ -246,6 +246,7 @@ namespace Crosswind.Core
                 float v = 0.4f + 0.3f * n[0].Value;
                 for (int i = 0; i < WantRules.Length; i++) v += WantRules[i].weight * n[i + 1].Value;
                 v += 0.02f * RetailPull + 0.01f * LoungeLevel;
+                v += MoodShift;
                 return Math.Max(0.4f, Math.Min(1.5f, v));
             }
         }

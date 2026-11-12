@@ -108,6 +108,89 @@ namespace Crosswind.Core
         /// <summary>The hall's depth in metres, doors to glass.</summary>
         public float TerminalDepth { get { return TerminalFront + FloorCols * Cell + TerminalBack; } }
 
+        // ------------------------------------------------------------------ bays: floor you open as you grow
+
+        /// <summary>
+        /// The floor is divided across the hall into bays of <see cref="BayRows"/> rows. A new airport has the three
+        /// in the middle open; the rest stand fenced off until they are bought, one beside another, each dearer.
+        /// </summary>
+        public const int BayRows = 6, FreeBays = 3;
+        public const double BayBaseCost = 2500, BayCostGrowth = 2.6;
+
+        public int BayCount { get { return (FloorRows + BayRows - 1) / BayRows; } }
+        public static int BayOf(int row) { return row < 0 ? -1 : row / BayRows; }
+        public bool BayOpen(int bay) { return State.bays.Contains(bay); }
+        /// <summary>Rows of a bay that lie on the floor today (the last one may still be growing with the hall).</summary>
+        public int BayRowsOf(int bay) { return Math.Max(0, Math.Min(BayRows, FloorRows - bay * BayRows)); }
+        public double BayCost { get { return Math.Floor(BayBaseCost * Math.Pow(BayCostGrowth, Math.Max(0, State.baysBought)) * Map.CostScale); } }
+
+        public string BuyBayBlocked(int bay)
+        {
+            if (bay < 0 || bay >= BayCount) return "No such bay";
+            if (BayOpen(bay)) return "Already open";
+            if (!BayOpen(bay - 1) && !BayOpen(bay + 1)) return "Open the bay beside it first";
+            if (State.money < BayCost) return "Need " + Format.Money(BayCost - State.money) + " more";
+            return null;
+        }
+
+        /// <summary>Opens a fenced bay: its floor can be built on from now.</summary>
+        public bool BuyBay(int bay)
+        {
+            if (BuyBayBlocked(bay) != null) return false;
+            State.money -= BayCost;
+            State.bays.Add(bay);
+            State.baysBought++;
+            AddRating(10);
+            Count("upgrade", 1);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>The fenced bay that can be opened next, the one nearest the middle (-1: none).</summary>
+        public int NextBay
+        {
+            get
+            {
+                int best = -1, mid = BayOf(FloorRows / 2);
+                for (int b = 0; b < BayCount; b++)
+                    if (!BayOpen(b) && (BayOpen(b - 1) || BayOpen(b + 1)) && (best < 0 || Math.Abs(b - mid) < Math.Abs(best - mid))) best = b;
+                return best;
+            }
+        }
+
+        /// <summary>The share of the open floor that is built on.</summary>
+        public float FloorUse
+        {
+            get
+            {
+                int open = 0, used = 0;
+                for (int b = 0; b < BayCount; b++) if (BayOpen(b)) open += BayRowsOf(b) * FloorCols;
+                foreach (var p in State.terminal) { int w, d; Footprint(AmenityById(p.id), p.rot, out w, out d); used += w * d; }
+                return open > 0 ? Math.Min(1f, used / (float)open) : 1f;
+            }
+        }
+
+        /// <summary>
+        /// A new airport (or a save from before bays) gets its open floor: the middle bays, and every bay that already
+        /// has something standing in it.
+        /// </summary>
+        public void EnsureBays()
+        {
+            if (State.baysSet) return;
+            State.baysSet = true;
+            int mid = BayOf(FloorRows / 2), first = Math.Max(0, Math.Min(mid - FreeBays / 2, BayCount - FreeBays));
+            for (int b = first; b < first + FreeBays && b < BayCount; b++) if (!State.bays.Contains(b)) State.bays.Add(b);
+            foreach (var p in State.terminal)
+            {
+                var d = AmenityById(p.id);
+                if (d == null) continue;
+                int w, depth; Footprint(d, p.rot, out w, out depth);
+                for (int row = p.z; row < p.z + depth && row < FloorRows; row++) if (row >= 0 && !State.bays.Contains(BayOf(row))) State.bays.Add(BayOf(row));
+            }
+            // What was opened for nothing must still be joined up: fill any gap between open bays.
+            if (State.bays.Count > 0) for (int b = State.bays.Min(); b <= State.bays.Max(); b++) if (!State.bays.Contains(b)) State.bays.Add(b);
+        }
+
         public int Placed(string id) { return State.terminal.Count(p => p.id == id); }
 
         /// <summary>What the next one of these costs: each one you already have makes the next dearer.</summary>
@@ -126,6 +209,7 @@ namespace Crosswind.Core
         {
             int w, depth; Footprint(d, rot, out w, out depth);
             if (x < 0 || z < 0 || x + w > FloorCols || z + depth > FloorRows) return false;
+            for (int row = z; row < z + depth; row++) if (!BayOpen(BayOf(row))) return false;
             foreach (var p in State.terminal)
             {
                 if (p == ignore) continue;
@@ -140,7 +224,13 @@ namespace Crosswind.Core
             var d = AmenityById(id);
             if (d == null) return "Unknown";
             if (Stars < d.Stars) return "Needs a " + d.Stars + "-star airport";
-            if (!FloorFree(d, x, z, rot)) return "No room there";
+            if (!FloorFree(d, x, z, rot))
+            {
+                int w, depth; Footprint(d, rot, out w, out depth);
+                bool onFloor = x >= 0 && z >= 0 && x + w <= FloorCols && z + depth <= FloorRows;
+                for (int row = z; onFloor && row < z + depth; row++) if (!BayOpen(BayOf(row))) return "That floor is not open yet";
+                return "No room there";
+            }
             if (State.money < AmenityCost(id)) return "Need " + Format.Money(AmenityCost(id) - State.money) + " more";
             return null;
         }

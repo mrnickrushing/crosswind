@@ -136,6 +136,8 @@ namespace Crosswind.Core
         public List<string> duty = new List<string>();               // who is on duty, in order
         public int crates = 1, cratesOpened, sinceEpic;               // unopened crates (one to start), and the count toward a sure Epic
         public List<PlacedAmenity> terminal = new List<PlacedAmenity>();   // what stands on the concourse floor
+        public List<int> bays = new List<int>();                     // the floor bays that are open (see Sim.EnsureBays)
+        public int baysBought; public bool baysSet;                  // bays paid for (each makes the next dearer), and whether the starting floor has been opened
         public string playerName = "";                             // what friends see (empty: "Airport Manager")
         public List<ResearchJob> gifts = new List<ResearchJob>();    // friend code and when their gift was last collected (real time)
         public int feeLevel = 2;                                     // fee policy, 0 bargain .. 4 premium
@@ -224,6 +226,7 @@ namespace Crosswind.Core
             builds.RemoveAll(b => b == null || b.facility == null || !Content.Facilities.ContainsKey(b.facility));
             tasks.RemoveAll(x => x == null || string.IsNullOrEmpty(x.kind));
             if (terminal == null) terminal = new List<PlacedAmenity>();
+            if (bays == null) bays = new List<int>();
             terminal.RemoveAll(t => t == null || Sim.AmenityById(t.id) == null);
             foreach (var t in terminal) if (t.level < 1) t.level = 1;
             if (playerName == null) playerName = "";

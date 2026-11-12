@@ -40,6 +40,7 @@ namespace Crosswind.Core
             // And one from before wide-bodies needed their own stand keeps the stands it was already using for them.
             if (HeavyStands == 0 && State.contracts.Exists(c => Heavy(Content.Routes[c.route].Class))) SetLevel("heavy", Math.Min(StandCount, 2));
             // And one from when the terminal was a long strip has its furniture moved onto the hall's floor.
+            EnsureBays();
             RefitTerminal();
         }
 

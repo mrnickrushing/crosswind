@@ -164,6 +164,13 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   and z is across; `Interior.Width` is the depth. Inside, `CameraRig` faces the hall square on (yaw 90, pitch 55) and
   `FitInside` fills the screen wall to wall. `Sim.RefitTerminal` (on load) moves furniture from older saves onto the
   floor. Keep the hall under two to one (`TerminalTests`).
+- Floor bays (`Sim.Terminal.cs`): the floor is cut across the hall into bays of `BayRows` (6) rows; `State.bays` are
+  the open ones (`EnsureBays`: the three in the middle of a new airport, plus any bay an older save had built on,
+  free). The rest are fenced (`Interior.DrawFloor`: site fencing, cones, boxes, a "TAP TO OPEN" price) until bought
+  with `BuyBay(bay)` (`BuyBayBlocked`: it must adjoin an open one; `BayCost` = 2.5K x 2.6^bought x map scale).
+  `FloorFree`, `FindSpot` and `PlaceBlocked` ("That floor is not open yet") only use open bays; `NextBay`, `FloorUse`
+  serve the bots, which buy a bay when the open floor is 70% used. UI: a tap on fenced floor opens the bay card
+  (`Hud.Terminal`). Bays are indexed from the hall's -z end and new ones appear at the +z end as it widens.
 - Incidents (`Core/Sim.Incidents.cs`, `IncidentTests`; from 2 stars and 15 flights): every 4 to 8 game minutes
   `IncidentTick` puts one of twelve `Incidents` on the desk (`State.incident`: id, `expiresAt`, `value` = what a minute
   of the airport is worth, an `airline`); `IncidentStory`, `IncidentDoes(choice)`, `IncidentBlocked(choice)`,

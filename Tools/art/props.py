@@ -21,7 +21,7 @@ ICONS = os.path.join(FREE, "icons")          # models already fetched for the pi
 OUT = os.path.join(ROOT, "Assets", "Resources", "Models", "Props")
 UA = {"User-Agent": "Mozilla/5.0 Crosswind-asset-pipeline"}
 KITS = {"F": ("furniture-kit/Models/GLTF format/", "Furniture Kit"), "M": ("mini-market/Models/GLB format/", "Mini Market"),
-        "A": ("mini-arcade/Models/GLB format/", "Mini Arcade"), "O": ("food-kit/Models/GLB format/", "Food Kit"), "N": ("nature-kit/Models/GLTF format/", "Nature Kit")}
+        "A": ("mini-arcade/Models/GLB format/", "Mini Arcade"), "R": ("city-kit-roads/Models/GLB format/", "City Kit (Roads)"), "O": ("food-kit/Models/GLB format/", "Food Kit"), "N": ("nature-kit/Models/GLTF format/", "Nature Kit")}
 
 # id: "<kit letter>:<model>" or "pp:<poly.pizza id>", then optional settings: turn (degrees, so its front faces +Z),
 # faces (a cap on its triangles; poly.pizza models are capped at 1400 anyway).
@@ -51,6 +51,9 @@ PROPS = {
     "bookcase_books": "pp:tACDGJ4CGW", "mirror": "pp:3Cmxakw58Px",
     "clock": "pp:5gAoMR2YHs3", "flag": "pp:FuOkF3WBrx",
     "fountain": "pp:0YTMlW0CUHU", "fountain_tiers": "pp:4KKY7CmNe_r",
+    # ---- fenced-off bays waiting to be opened
+    "c_barrier": "R:construction-barrier", "c_cone": "R:construction-cone", "c_fence": "R:construction-fence", "c_light": "R:construction-light",
+    "box": "F:cardboardBoxClosed", "box_open": "F:cardboardBoxOpen",
     # ---- washrooms and cleaning
     "toilet": "F:toiletSquare", "basin": "F:bathroomSinkSquare", "mirror_bath": "F:bathroomMirror", "wheelie": "pp:0QdIPYIA_qe",
     "bucket": "pp:5HPoa3eX0Jb", "broom": "pp:3CZnTJZTcRO", "vacuum": "pp:eJ96_O_dQ2p", "roomba": "pp:5WERTPcyIMn",

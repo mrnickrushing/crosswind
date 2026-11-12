@@ -21,6 +21,7 @@ namespace Crosswind.Game
             "Contracts are marked three ways: punctual, serviced, standards. Full marks pay the whole reward.",
             "Reputation with an airline raises what every one of its flights pays you.",
             "The terminal grows wider with check-in, security and gates, and deeper with every star.",
+            "Fenced bays in the terminal are floor for sale: tap one to open it. Each makes the next dearer.",
             "An incident waits 75 seconds for your answer. Unanswered, it settles itself the passive way.",
             "Every answer to an incident says what it will cost before you choose.",
             "A surprise inspection looks at the runway surface first: keep it above 60%.",

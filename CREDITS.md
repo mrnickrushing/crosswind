@@ -20,7 +20,7 @@ Road cars (saloon, hatchback, SUV, taxi, pickup, coupe): **Quaternius** (CC0 / p
 
 Everything that stands in the terminal (counters, chairs and sofas, shelves and tills, arcade machines, plants and palms, the piano, the fountain, the fish in the aquarium, the bags on the belts) is a free 3D model. `Tools/art/props.py` downloads them and records each licence, and `Tools/blender/model_import.py` converts them for the game: colours baked into the mesh, some slimmed to fewer triangles, the kits' mint foliage turned leaf green. The game sizes, tints and arranges them (`Assets/Scripts/Game/World/Furnish.cs`).
 
-- **Kenney** (CC0, kenney.nl): Furniture Kit, Mini Market, Mini Arcade, Food Kit, Nature Kit.
+- **Kenney** (CC0, kenney.nl): Furniture Kit, Mini Market, Mini Arcade, Food Kit, Nature Kit, City Kit (Roads) for the site fencing and cones.
 - **Poly by Google** (CC BY 3.0, via poly.pizza): Airplane, Analog clock, Bench, Bottle of wine, Broom, Bucket, Cell phone, Coral, Desk, Fiddle-leaf Plant, Fish, Fountain, Garbage, Goldfish, Jet, Koala, Luggage, Mirror, Panda, Roomba, Rubber Duck, Rubik's cube, Sea anemone, Seahorse, Slide, Swing set, Vacuum.
 - **J-Toastie** (CC BY 3.0, via poly.pizza): ATM.
 - **jeremy** (CC BY 3.0, via poly.pizza): Piano.

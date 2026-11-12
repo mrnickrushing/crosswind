@@ -6,7 +6,8 @@ namespace Crosswind.Tests
 {
     public class TerminalTests
     {
-        static Sim Fresh() { var s = new Sim(GameState.New()); s.RealNow = () => 1_800_000_000; s.BuildTimeScale = 0; s.State.money = 1e9; s.State.ratingXp = Content.StarXp[5]; return s; }
+        /// <summary>A five-star airport with money and its whole floor open.</summary>
+        static Sim Fresh() { var s = new Sim(GameState.New()); s.RealNow = () => 1_800_000_000; s.BuildTimeScale = 0; s.State.money = 1e9; s.State.ratingXp = Content.StarXp[5]; for (int b = 0; b < s.BayCount; b++) if (!s.BayOpen(b)) s.State.bays.Add(b); return s; }
 
         [Test]
         public void ThingsArePlacedOnFreeFloorOnly()
@@ -44,6 +45,63 @@ namespace Crosswind.Tests
             Assert.LessOrEqual(s.TerminalLength, Sim.MaxTerminalWidth);
             Assert.LessOrEqual(s.TerminalLength / s.TerminalDepth, 2f);
             Assert.AreEqual(s.FloorRows * Sim.Cell, s.TerminalLength - 4, 0.01f, "the floor runs the width of the hall, in whole cells");
+        }
+
+        [Test]
+        public void ANewAirportHasItsMiddleBaysOpenAndTheRestForSale()
+        {
+            var s = new Sim(GameState.New()); s.RealNow = () => 1_800_000_000; s.State.money = 1e9; s.State.ratingXp = Content.StarXp[3];
+            Assert.AreEqual(Sim.FreeBays, s.State.bays.Count);
+            int mid = Sim.BayOf(s.FloorRows / 2);
+            Assert.IsTrue(s.BayOpen(mid));
+            Assert.IsFalse(s.BayOpen(0), "the end of the hall is fenced off");
+            // Nothing goes on closed floor, and the game says why.
+            Assert.AreEqual("That floor is not open yet", s.PlaceBlocked("cafe", 0, 0, 0));
+            Assert.IsFalse(s.Place("cafe", 0, 0, 0));
+            // Nor half on it.
+            int edge = s.State.bays.Min() * Sim.BayRows;
+            Assert.IsNotNull(s.PlaceBlocked("cafe", 0, edge - 1, 0));
+            Assert.IsTrue(s.Place("cafe", 0, edge, 0));
+            // Whatever is placed for you lands on open floor.
+            for (int i = 0; i < 12; i++) s.PlaceAnywhere("seats");
+            foreach (var p in s.State.terminal) Assert.IsTrue(s.BayOpen(Sim.BayOf(p.z)));
+        }
+
+        [Test]
+        public void BaysAreBoughtOneBesideAnotherEachDearer()
+        {
+            var s = new Sim(GameState.New()); s.RealNow = () => 1_800_000_000; s.State.money = 1e9;
+            for (int i = 0; i < 12; i++) { s.Upgrade("checkin"); s.Upgrade("security"); s.Upgrade("gates"); }      // a wider hall: more bays
+            Assert.Greater(s.BayCount, Sim.FreeBays + 2);
+            int low = s.State.bays.Min(), high = s.State.bays.Max();
+            Assert.AreEqual("Open the bay beside it first", s.BuyBayBlocked(high + 2));
+            Assert.AreEqual("Already open", s.BuyBayBlocked(low));
+            double first = s.BayCost, money = s.State.money;
+            int next = s.NextBay;
+            Assert.IsTrue(next == low - 1 || next == high + 1);
+            Assert.IsTrue(s.BuyBay(next));
+            Assert.AreEqual(money - first, s.State.money, 0.5);
+            Assert.IsTrue(s.BayOpen(next));
+            Assert.Greater(s.BayCost, first * 2);
+            Assert.IsTrue(s.Place("seats", 0, next * Sim.BayRows, 1), "its floor can be built on");
+            s.State.money = 0;
+            StringAssert.StartsWith("Need", s.BuyBayBlocked(s.NextBay));
+            // Every bay can be had in the end.
+            s.State.money = 1e15;
+            while (s.NextBay >= 0) Assert.IsTrue(s.BuyBay(s.NextBay));
+            for (int b = 0; b < s.BayCount; b++) Assert.IsTrue(s.BayOpen(b));
+        }
+
+        [Test]
+        public void ASaveFromBeforeBaysKeepsTheFloorItBuiltOn()
+        {
+            var st = GameState.New();
+            st.terminal.Add(new PlacedAmenity { id = "cafe", x = 0, z = 0, rot = 0 });       // at the very end of the hall
+            var s = new Sim(st); s.RealNow = () => 1_800_000_000;
+            Assert.IsTrue(s.BayOpen(0), "what was built on stays open");
+            Assert.AreEqual(0, s.State.terminal[0].z, "and nothing moved");
+            for (int b = s.State.bays.Min(); b <= s.State.bays.Max(); b++) Assert.IsTrue(s.BayOpen(b), "with no gap between open bays");
+            Assert.AreEqual(0, s.State.baysBought, "none of it was charged for");
         }
 
         [Test]

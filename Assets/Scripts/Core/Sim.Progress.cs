@@ -202,10 +202,11 @@ namespace Crosswind.Core
             old.time = fresh.time; old.money = Content.StartMoney * Content.Maps.Find(x => x.Id == toMap).CostScale;
             old.ratingXp = 0; old.lifetimeEarned = 0; old.flightsHandled = 0; old.onTime = 0; old.late = 0;
             old.levels = fresh.levels; old.contracts = fresh.contracts; old.flights = fresh.flights;
-            old.managers = new List<string>(); old.managerLevels = new List<LevelEntry>(); old.terminal = new List<PlacedAmenity>(); old.feeLevel = 2; old.incomeBy = new double[5];
+            old.managers = new List<string>(); old.managerLevels = new List<LevelEntry>(); old.terminal = new List<PlacedAmenity>(); old.bays = new List<int>(); old.baysBought = 0; old.baysSet = false; old.feeLevel = 2; old.incomeBy = new double[5];
             old.fleet = new List<LevelEntry>(); old.relations = new List<LevelEntry>(); old.builds = new List<BuildJob>();
             old.goalIndex = Math.Min(Goals.All.Count, 7);    // the guide runs again at each airport, without the first-minute steps
             old.incomeRate = 0; old.weather = 0; old.weatherUntil = 0; old.opportunity = null; old.nextOpportunityAt = 210; old.rushUntil = 0; old.incident = null; old.nextIncidentAt = 600; old.moodShift = 0; old.moodUntil = 0;
+            EnsureBays();
             Count("sell", 1);
             Changed?.Invoke();
             return true;

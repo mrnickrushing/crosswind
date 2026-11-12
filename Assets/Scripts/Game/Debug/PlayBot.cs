@@ -45,6 +45,7 @@ namespace Crosswind.Game
             while (s.ClaimGoal()) { }
             s.TakeOpportunity();
             if (s.State.incident != null && !s.DecideIncident(0)) s.DecideIncident(1);
+            if (s.NextBay >= 0 && s.FloorUse > 0.7f && s.BayCost <= s.State.money * 0.5 && s.BuyBayBlocked(s.NextBay) == null) s.BuyBay(s.NextBay);
             s.ClaimSignIn();
             s.ClaimEvent();
             for (int k = 0; k < s.State.tasks.Count; k++) s.ClaimTask(k);

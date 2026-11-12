@@ -14,7 +14,8 @@ namespace Crosswind.Game
     public sealed partial class Hud
     {
         const int ShopTab = 9;
-        RectTransform _termBar, _placeBar, _itemCard, _paxCard;
+        RectTransform _termBar, _placeBar, _itemCard, _paxCard, _bayCard;
+        Text _bayText; Button _bayBuy; int _bay = -1;
         readonly List<Image> _needFills = new List<Image>();
         readonly List<Text> _needLabels = new List<Text>();
         Text _placeText, _itemText, _paxText;
@@ -81,6 +82,24 @@ namespace Crosswind.Game
             ((RectTransform)sell.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, 0), new Vector2(150, 110));
             _itemCard.gameObject.SetActive(false);
 
+            // A fenced bay, tapped: what opening it gives and costs.
+            _bayCard = Ui.ArtImg("Bay", _safe, "panel", Color.white).rectTransform;
+            _bayCard.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(70, 124), new Vector2(980, 150));
+            _bayCard.GetComponent<Image>().raycastTarget = true;
+            _bayText = Ui.Label("Text", _bayCard, "", 28, Color.white, TextAnchor.MiddleLeft, false);
+            _bayText.rectTransform.Fill(); _bayText.rectTransform.offsetMin = new Vector2(24, 10); _bayText.rectTransform.offsetMax = new Vector2(-330, -10);
+            _bayBuy = Ui.Button("Open", _bayCard, "OPEN", Ui.Green, () =>
+            {
+                string why = _sim.BuyBayBlocked(_bay);
+                if (why != null) { Toast(why); Sfx.Play("error", 0.5f); return; }
+                _sim.BuyBay(_bay);
+                Sfx.Play("build", 0.8f); Toast("More floor to build on");
+                GameRoot.Instance.Save();
+                CloseBay();
+            }, 30);
+            ((RectTransform)_bayBuy.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-16, 0), new Vector2(290, 110));
+            _bayCard.gameObject.SetActive(false);
+
             // A passenger, asked.
             _paxCard = Ui.ArtImg("Passenger", _safe, "panel", Color.white).rectTransform;
             _paxCard.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(500, 500));
@@ -100,7 +119,8 @@ namespace Crosswind.Game
             return "+" + Mathf.RoundToInt(d.Points * k) + " " + WantWord(d.Gives) + (d.AlsoPoints > 0 ? ", +" + Mathf.RoundToInt(d.AlsoPoints * k) + " " + WantWord(d.Also) : "") + (d.Earns ? ", earns from every passenger" : "");
         }
 
-        void ClosePick() { _picked = null; _itemCard.gameObject.SetActive(false); }
+        void ClosePick() { _picked = null; _itemCard.gameObject.SetActive(false); CloseBay(); }
+        void CloseBay() { _bay = -1; if (_bayCard != null) _bayCard.gameObject.SetActive(false); }
 
         void StopPlacing()
         {
@@ -125,7 +145,7 @@ namespace Crosswind.Game
         void StartPlacing(AmenityDef d)
         {
             var spot = _sim.FindSpot(d.Id);
-            if (spot == null) { Toast("The floor is full: sell something, or grow the terminal"); return; }
+            if (spot == null) { Toast(_sim.NextBay >= 0 ? "The open floor is full: tap a fenced bay to open more" : "The floor is full: sell something, or grow the terminal"); return; }
             _placing = d; _moving = null; _placeX = spot.x; _placeZ = spot.z; _placeRot = spot.rot;
             ClosePick(); OpenTab(-1);
             var at = Interior.Instance.FloorPoint(spot.x, spot.z, 1, 1);
@@ -152,7 +172,14 @@ namespace Crosswind.Game
             var pax = inside.AgentNear(hit);
             if (pax != null) { _pax = pax; ClosePick(); OpenTab(-1); _paxCard.gameObject.SetActive(true); Sfx.Play("click", 0.4f); return; }
             var item = cx >= 0 && cz >= 0 ? inside.ItemAt(cx, cz) : null;
-            if (item != null) { _picked = item; _pax = null; _paxCard.gameObject.SetActive(false); _itemCard.gameObject.SetActive(true); Sfx.Play("click", 0.4f); return; }
+            if (item != null) { CloseBay(); _picked = item; _pax = null; _paxCard.gameObject.SetActive(false); _itemCard.gameObject.SetActive(true); Sfx.Play("click", 0.4f); return; }
+            // Fenced floor: offer to open it.
+            if (cx >= 0 && cz >= 0 && cx < _sim.FloorCols && cz < _sim.FloorRows && !_sim.BayOpen(Sim.BayOf(cz)))
+            {
+                ClosePick(); _pax = null; _paxCard.gameObject.SetActive(false);
+                _bay = Sim.BayOf(cz); _bayCard.gameObject.SetActive(true); Sfx.Play("click", 0.4f);
+                return;
+            }
             ClosePick(); _pax = null; _paxCard.gameObject.SetActive(false);
         }
 
@@ -192,7 +219,7 @@ namespace Crosswind.Game
         {
             bool inside = CameraRig.Inside;
             if (_pax == null || !inside || !_paxCard.gameObject.activeSelf) PaxRing(false, Vector3.zero);
-            if (!inside && (_placing != null || _picked != null || _pax != null)) { StopPlacing(); ClosePick(); _pax = null; _paxCard.gameObject.SetActive(false); }
+            if (!inside && (_placing != null || _picked != null || _pax != null || _bay >= 0)) { StopPlacing(); ClosePick(); _pax = null; _paxCard.gameObject.SetActive(false); }
             if (!inside && _tab == ShopTab) OpenTab(-1);
             _termBar.gameObject.SetActive(inside && _placing == null && _tab < 0);
             _placeBar.gameObject.SetActive(inside && _placing != null);
@@ -225,7 +252,7 @@ namespace Crosswind.Game
                 _ghost.transform.position = Interior.Instance.FloorPoint(_placeX, _placeZ, w, d) + Vector3.up * (0.9f + Mathf.Sin(Time.unscaledTime * 4) * 0.05f);
                 _ghost.transform.localScale = new Vector3(w * Sim.Cell - 0.1f, 1.8f, d * Sim.Cell - 0.1f);
                 _ghostMat.color = can ? new Color(0.3f, 0.95f, 0.5f, 0.45f) : new Color(1f, 0.3f, 0.25f, 0.45f);
-                _placeText.text = "<b>" + _placing.Name + "</b>  " + _placing.W + " x " + _placing.D + "\n<color=#FFFFFFA0>Tap the floor to choose the spot." + (free ? "" : "  <color=#FF8070>No room there.</color>") + "</color>";
+                _placeText.text = "<b>" + _placing.Name + "</b>  " + _placing.W + " x " + _placing.D + "\n<color=#FFFFFFA0>Tap the floor to choose the spot." + (free ? "" : _placeZ >= 0 && _placeZ + d <= _sim.FloorRows && !_sim.BayOpen(Sim.BayOf(_placeZ)) ? "  <color=#FF8070>That floor is not open yet.</color>" : "  <color=#FF8070>No room there.</color>") + "</color>";
                 _placeOk.GetComponent<Image>().color = can ? Ui.Green : Ui.Off;
                 _placeOk.GetComponentInChildren<Text>().text = _moving != null ? "PUT HERE" : "PLACE\n<size=24>" + Format.Money(cost) + "</size>";
             }
@@ -242,6 +269,20 @@ namespace Crosswind.Game
                     bool max = _picked.level >= Sim.MaxAmenityLevel;
                     _itemUp.gameObject.SetActive(!max);
                     if (!max) { _itemUp.GetComponent<Image>().color = _sim.AmenityUpgradeBlocked(_picked) == null ? Ui.Green : Ui.Off; _itemUp.GetComponentInChildren<Text>().text = "UPGRADE\n<size=24>" + Format.Money(_sim.AmenityUpgradeCost(_picked)) + "</size>"; }
+                }
+            }
+
+            if (_bay >= 0)
+            {
+                if (_sim.BayOpen(_bay) || _bay >= _sim.BayCount || _placing != null) CloseBay();
+                else
+                {
+                    string why = _sim.BuyBayBlocked(_bay);
+                    int rows = _sim.BayRowsOf(_bay);
+                    _bayText.text = "<size=34><b>Fenced bay</b></size>  <color=#7CCBFF>" + (rows * (int)Sim.Cell) + " x " + (_sim.FloorCols * (int)Sim.Cell) + " m OF FLOOR</color>\nOpen it to build here: " + (rows * _sim.FloorCols) + " more cells."
+                        + (why != null && !why.StartsWith("Need") ? "\n<color=#FFC873>" + why + "</color>" : "\n<color=#FFFFFFA0>Each bay you open makes the next dearer.</color>");
+                    _bayBuy.GetComponent<Image>().color = why == null ? Ui.Green : Ui.Off;
+                    _bayBuy.GetComponentInChildren<Text>().text = "OPEN FLOOR\n<size=24>" + Format.Money(_sim.BayCost) + "</size>";
                 }
             }
 

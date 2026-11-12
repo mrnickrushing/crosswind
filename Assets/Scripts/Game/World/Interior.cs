@@ -296,7 +296,7 @@ namespace Crosswind.Game
 
         static string FloorKey(Sim s)
         {
-            int h = s.State.terminal.Count;
+            int h = s.State.terminal.Count + s.State.bays.Count * 1009 + s.State.baysBought * 7919 + s.BayCount * 104729;
             foreach (var p in s.State.terminal) h = h * 31 + p.id.GetHashCode() + p.x * 7 + p.z * 131 + p.rot * 3 + p.level * 17;
             return h.ToString();
         }
@@ -353,6 +353,36 @@ namespace Crosswind.Game
             var joint = new Color(0.62f, 0.58f, 0.5f);
             for (int x = 0; x <= cols; x++) mb.Box(new Vector3(corner.x + x * Sim.Cell, 0.02f, corner.z + fl * 0.5f), new Vector3(0.05f, 0.012f, fl), joint);
             for (int z = 0; z <= rows; z += 1) mb.Box(new Vector3(corner.x + fw * 0.5f, 0.02f, corner.z + z * Sim.Cell), new Vector3(fw, 0.012f, 0.05f), joint);
+
+            // Bays not opened yet: a duller floor behind site fencing, a few cones and boxes, and what it costs to open.
+            int next = _sim.NextBay;
+            for (int b = 0; b < _sim.BayCount; b++)
+            {
+                if (_sim.BayOpen(b)) continue;
+                float len = _sim.BayRowsOf(b) * Sim.Cell, bz0 = corner.z + b * Sim.BayRows * Sim.Cell, bz1 = bz0 + len, bx0 = corner.x, bx1 = corner.x + fw;
+                if (len <= 0) continue;
+                g.Rect("Concrete", (bx0 + bx1) * 0.5f, (bz0 + bz1) * 0.5f, fw, len, 0.018f, 0, new Color(0.72f, 0.74f, 0.78f));
+                for (float z = bz0 + 1; z < bz1; z += 2) foreach (float x in new[] { bx0 + 0.15f, bx1 - 0.15f }) mb.Long("c_fence", new Vector3(x, 0, z), 90, 2f);
+                foreach (bool low in new[] { true, false })
+                {
+                    // The side toward an open bay (or the end wall) is fenced too; between two closed bays there is nothing.
+                    if (!_sim.BayOpen(low ? b - 1 : b + 1) && (low ? b > 0 : b < _sim.BayCount - 1)) continue;
+                    for (float x = bx0 + 1; x < bx1; x += 2) mb.Long("c_fence", new Vector3(x, 0, low ? bz0 + 0.15f : bz1 - 0.15f), 0, 2f);
+                }
+                var rng = new System.Random(b * 97 + 13);
+                float R(float a, float c) { return a + (float)rng.NextDouble() * (c - a); }
+                for (int k = 0; k < 3 + (int)(len / 4); k++) mb.Tall("c_cone", new Vector3(R(bx0 + 1, bx1 - 1), 0, R(bz0 + 1, bz1 - 1)), R(0, 360), 0.7f);
+                for (int k = 0; k < 2; k++)
+                {
+                    var at = new Vector3(R(bx0 + 2, bx1 - 2), 0, R(bz0 + 1.5f, bz1 - 1.5f));
+                    mb.Tall("box", at, R(0, 90), 0.8f); mb.Tall("box", at + new Vector3(0.75f, 0, 0.2f), R(0, 90), 0.7f); mb.Tall("box", at + new Vector3(0.3f, 0.8f, 0.1f), R(0, 90), 0.6f);
+                    mb.Long("box_open", at + new Vector3(-0.9f, 0, -0.4f), R(0, 90), 0.9f);
+                }
+                mb.Long("c_barrier", new Vector3(bx0 + 1.2f, 0, (bz0 + bz1) * 0.5f), 90, 1.8f);
+                mb.Glow = true; mb.Tall("c_light", new Vector3(bx0 + 0.6f, 0, bz0 + 0.8f), 0, 1.3f); mb.Tall("c_light", new Vector3(bx0 + 0.6f, 0, bz1 - 0.8f), 0, 1.3f); mb.Glow = false;
+                bool can = b == next || _sim.BayOpen(b - 1) || _sim.BayOpen(b + 1);
+                _labels.Add((can ? "TAP TO OPEN  " + Format.Money(_sim.BayCost) : "FENCED OFF", new Vector3(bx0 + 1.6f, 1.9f, (bz0 + bz1) * 0.5f), 0, Mathf.Min(0.8f, len / 14f), can ? new Color(1f, 0.85f, 0.3f) : new Color(1, 1, 1, 0.7f)));
+            }
 
             foreach (var p in _sim.State.terminal)
             {

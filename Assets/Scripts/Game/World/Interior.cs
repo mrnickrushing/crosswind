@@ -27,6 +27,7 @@ namespace Crosswind.Game
         readonly List<Vector3> _doors = new List<Vector3>(), _desks = new List<Vector3>(), _lanes = new List<Vector3>(), _shops = new List<Vector3>(), _seats = new List<Vector3>(), _gates = new List<Vector3>();
         // What each shop stop and seat belongs to (null: a gate lounge's own seats).
         readonly List<string> _shopIds = new List<string>(), _seatIds = new List<string>();
+        readonly List<Vector3> _shopCentres = new List<Vector3>();      // the middle of the unit each of _shops stands before
         // The people who work here (standing at desks, tills and lanes), the carousels' centres, and the cars passing outside.
         readonly List<(Vector3 at, float yaw, int kind)> _staff = new List<(Vector3, float, int)>();
         readonly List<Vector3> _carousels = new List<Vector3>();
@@ -97,7 +98,7 @@ namespace Crosswind.Game
         void Rebuild()
         {
             if (_static != null) Destroy(_static);
-            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear(); _shopIds.Clear(); _seatIds.Clear(); _staff.Clear(); _carousels.Clear(); _traffic.Clear();
+            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear(); _shopIds.Clear(); _seatIds.Clear(); _shopCentres.Clear(); _staff.Clear(); _carousels.Clear(); _traffic.Clear();
             float was = Length, wasDeep = Width;
             var s = _sim;
             int checkin = s.Level("checkin"), security = s.Level("security"), gates = s.Level("gates"), shops = s.Level("shops"), seating = s.Level("seating"), info = s.Level("info"), lounge = s.Level("lounge");
@@ -337,6 +338,7 @@ namespace Crosswind.Game
             }
             g.Build(_static.transform);
             BuildGrid();
+            ReachStops();
             SyncCleaners();
             foreach (var l in _labels) Lettering(l.text, l.at, l.yaw, l.size, l.color);
             _labels.Clear();
@@ -736,6 +738,30 @@ namespace Crosswind.Game
             }
         }
 
+        /// <summary>
+        /// Where passengers stand to use a unit: in front of it, unless something else stands there or the spot is walled
+        /// in; then beside it, at the reachable cell nearest the unit (so a packed floor isn't walked through).
+        /// </summary>
+        void ReachStops()
+        {
+            int cols = _reach.GetLength(0), rows = _reach.GetLength(1);
+            for (int i = 0; i < _shops.Count; i++)
+            {
+                int sx, sz;
+                if (!Cell(_shops[i], out sx, out sz) || _reach[sx, sz]) continue;
+                var centre = _shopCentres[i]; float best = float.MaxValue; var at = _shops[i];
+                for (int x = 0; x < cols; x++)
+                    for (int z = 0; z < rows; z++)
+                    {
+                        if (!_reach[x, z]) continue;
+                        var p = CellCentre(x, z);
+                        float d = (p - centre).sqrMagnitude + 0.25f * (p - _shops[i]).sqrMagnitude;
+                        if (d < best) { best = d; at = p; }
+                    }
+                _shops[i] = at;
+            }
+        }
+
         /// <summary>The middle of a floor cell that can be walked to, a little off centre (the corner of the floor if there is none).</summary>
         Vector3 FreeFloor()
         {
@@ -1050,7 +1076,7 @@ namespace Crosswind.Game
                 }
                 // Where passengers stop: in front of it (toward check-in), or on it for seats.
                 var stop = c + new Vector3(-w * Sim.Cell * 0.5f - 0.7f, 0, 0);
-                if (d.Gives == Want.Seating || d.Gives == Want.Lounge) { _seats.Add(c); _seatIds.Add(d.Id); } else { _shops.Add(stop); _shopIds.Add(d.Id); }
+                if (d.Gives == Want.Seating || d.Gives == Want.Lounge) { _seats.Add(c); _seatIds.Add(d.Id); } else { _shops.Add(stop); _shopIds.Add(d.Id); _shopCentres.Add(c); }
                 // Whoever works there, where they stand in the item's own space (x toward the back, z across) and the way they face.
                 float ihx = d.W * Sim.Cell * 0.5f, ihz = d.D * Sim.Cell * 0.5f;
                 var turn = Quaternion.Euler(0, p.rot * 90, 0);

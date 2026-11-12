@@ -98,6 +98,9 @@ namespace Crosswind.Game
         /// <summary>How full the hall is, 0 to 1 (the crowd's share of the most it draws).</summary>
         public float Crowd => _agents.Count / 340f;
 
+        /// <summary>A gate's code over its booth: A01, A02... from the left as you face the glass, a new letter every twelve.</summary>
+        public static string GateCode(int i) { return (char)('A' + i / 12) + (i % 12 + 1).ToString("00"); }
+
         void Rebuild()
         {
             if (_static != null) Destroy(_static);
@@ -114,7 +117,7 @@ namespace Crosswind.Game
             // Floors: pale stone in the hall, a warmer tone in the concourse, carpet blue at the gates.
             g.Rect("Concrete", 0, 0, W, L, 0.0f, 0, new Color(1.25f, 1.27f, 1.3f));
             float sx = x0 + 21.5f, gateEdge = W * 0.5f - Sim.TerminalBack;      // the security wall, and where the gate lounges begin
-            g.Rect("Concrete", gateEdge + Sim.TerminalBack * 0.5f, 0, Sim.TerminalBack, L, 0.01f, 0, new Color(0.62f, 0.72f, 0.86f));      // a grey-blue carpet, not a swimming pool
+            g.Rect("Concrete", gateEdge + Sim.TerminalBack * 0.5f, 0, Sim.TerminalBack, L, 0.01f, 0, new Color(1.2f, 1.06f, 0.86f));      // a warm walkway along the gates; each gate's carpet is laid on it below
             g.Rect("Concrete", (sx + gateEdge) * 0.5f, 0, gateEdge - sx, L, 0.012f, 0, new Color(1.35f, 1.2f, 0.98f));
             // Walls: full height along the glass at the back, lower at the two ends, cut low at the doors (toward the camera) so the floor shows.
             Color wall = Palette.Hex(0xE7E3DA), trim = Palette.Hex(0x1F5FA8), deskTint = new Color(0.82f, 0.92f, 1.12f);
@@ -266,33 +269,50 @@ namespace Crosswind.Game
             // ---- the concourse: whatever the player has placed on its floor
             DrawFloor(mb, g, x0, z0);
 
-            // ---- gate lounges along the glass: rows of seats, a desk and a gate number each
+            // ---- gate lounges along the glass: a booth each (carpet, low side screens, a red header with the gate's code over a
+            // boarding desk) with rows of seats facing the windows, on the walkway that runs the length of the gates
             int gateCount = s.GateLounges;
-            float gx = W * 0.5f - 6f;
             for (int i = 0; i < gateCount; i++)
             {
-                float gz = z0 + L * (i + 0.5f) / gateCount, span = Mathf.Min(7f, L / gateCount - 1.2f);
-                mb.Fit("desk_white", new Vector3(W * 0.5f - 1.6f, 0, gz + span * 0.4f), 0, 1.6f, 1.08f, 0.9f, deskTint);                        // gate desk
-                mb.Long("screen", new Vector3(W * 0.5f - 1.5f, 1.08f, gz + span * 0.4f + 0.3f), 180, 0.46f);
-                mb.Box(new Vector3(W * 0.5f - 0.5f, 3.3f, gz), new Vector3(0.2f, 0.8f, 1.6f), Palette.Hex(0x12161B));
-                mb.Box(new Vector3(W * 0.5f - 0.62f, 3.3f, gz), new Vector3(0.05f, 0.5f, 1.0f), Palette.Hex(0xF2C230));
-                int rows = 2;
+                float gz = z0 + L * (i + 0.5f) / gateCount, bw = Mathf.Min(11f, L / gateCount - 1.6f), span = bw - 1.2f;
+                float back = W * 0.5f, deep = 9.6f;
+                g.Rect("Concrete", back - deep * 0.5f, gz, deep, bw, 0.016f, 0, new Color(0.42f, 0.52f, 0.86f));                                  // the gate's carpet
+                mb.Box(new Vector3(back - deep - 0.06f, 0.03f, gz), new Vector3(0.12f, 0.03f, bw), Palette.Hex(0x1F3F7A));                         // its edge strip
+                // Side screens near the glass, white with a blue top, so each gate reads as its own booth.
+                foreach (float e in new[] { -1f, 1f })
+                {
+                    mb.Box(new Vector3(back - 1.6f, 0.65f, gz + e * bw * 0.5f), new Vector3(3.2f, 1.3f, 0.14f), Palette.Hex(0xF1EFEA), Palette.White);
+                    mb.Box(new Vector3(back - 1.6f, 1.33f, gz + e * bw * 0.5f), new Vector3(3.2f, 0.07f, 0.18f), trim);
+                }
+                mb.Fit("desk_white", new Vector3(back - 1.6f, 0, gz + span * 0.32f), 0, 1.6f, 1.08f, 0.9f, deskTint);                         // the boarding desk
+                mb.Long("screen", new Vector3(back - 1.5f, 1.08f, gz + span * 0.32f + 0.3f), 180, 0.46f);
+                mb.Box(new Vector3(back - 0.9f, 1.0f, gz - span * 0.18f), new Vector3(0.9f, 2.0f, 1.6f), Palette.Hex(0x2B3442));                  // the door to the jet bridge
+                mb.Box(new Vector3(back - 1.37f, 2.08f, gz - span * 0.18f), new Vector3(0.06f, 0.14f, 1.6f), Palette.Hex(0x3FB26A));
+                // The header: a red board across the booth with the gate's code in white, and the next departure under it.
+                float hw = Mathf.Min(4.2f, bw - 0.8f);
+                var header = new Vector3(back - 1.0f, 3.4f, gz);
+                foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(back - 0.45f, 1.7f, gz + e * (hw * 0.5f - 0.2f)), new Vector3(0.12f, 3.4f, 0.12f), Palette.Steel);
+                LeanBox(mb, header, new Vector3(0.2f, 1.2f, hw), Palette.Hex(0x8E1F23), Palette.Hex(0xC0302F));
+                LeanBox(mb, header - LeanUp * 0.78f, new Vector3(0.18f, 0.34f, hw), Palette.Hex(0x12161B), Palette.Hex(0x12161B));
+                LeanBox(mb, header - LeanUp * 0.78f - LeanAcross * 0.1f, new Vector3(0.04f, 0.1f, hw * 0.7f), Palette.Hex(0xF2C230), Palette.Hex(0xF2C230));
+                int rows = 3;
                 for (int r = 0; r < rows; r++)
                 {
-                    float rx = gx - 4.5f + r * 1.7f, z0s = gz - span * 0.4f, z1s = gz + span * 0.25f;
+                    float rx = back - deep + 1.4f + r * 1.6f, z0s = gz - span * 0.42f, z1s = gz + (r == rows - 1 ? 0.02f : span * 0.42f);
                     mb.Mat(0.7f, 0.6f); mb.Box(new Vector3(rx, 0.2f, (z0s + z1s) * 0.5f), new Vector3(0.08f, 0.06f, z1s - z0s + 0.3f), Palette.Steel); mb.Mat(0.25f);
                     for (float sz = z0s; sz <= z1s; sz += 0.52f)
                     {
                         var sp = new Vector3(rx, 0, sz);
-                        mb.Tall("chair", sp, 0, 0.88f);
+                        mb.Tall("chair", sp, 0, 0.88f, (r + (int)(sz * 2)) % 5 == 0 ? new Color(1.3f, 0.75f, 0.6f) : (Color?)null);
                         if ((int)(sz * 4) % 3 == 0) { _seats.Add(sp + new Vector3(-0.2f, 0, 0)); _seatIds.Add(null); }
                     }
                 }
-                _gates.Add(new Vector3(W * 0.5f - 2.4f, 0, gz));
-                _staff.Add((new Vector3(W * 0.5f - 0.95f, 0, gz + span * 0.4f - 0.2f), 0, StaffKinds[(i + 1) % StaffKinds.Length]));
-                _labels.Add(("A" + (gateCount - i), new Vector3(W * 0.5f - 0.68f, 3.3f, gz), 0, 0.42f, Palette.Hex(0x12161B)));
-                // A tall plant against the glass between this gate and the next.
-                if (i > 0 && L / gateCount >= 4.6f) mb.Tall("fiddle", new Vector3(W * 0.5f - 1.0f, 0, z0 + L * i / (float)gateCount), i * 40, 2.0f);
+                _gates.Add(new Vector3(back - 2.4f, 0, gz));
+                _staff.Add((new Vector3(back - 0.95f, 0, gz + span * 0.32f - 0.2f), 0, StaffKinds[(i + 1) % StaffKinds.Length]));
+                _labels.Add((GateCode(gateCount - 1 - i), header - LeanAcross * 0.14f, 0, Mathf.Min(0.9f, hw * 0.24f), Color.white));
+                // A tall plant against the glass between this gate and the next, and a bin on the walkway.
+                if (i > 0 && L / gateCount >= 4.6f) mb.Tall("fiddle", new Vector3(back - 1.0f, 0, z0 + L * i / (float)gateCount), i * 40, 2.0f);
+                if (i > 0 && L / gateCount >= 6f) mb.Tall("plant_pot", new Vector3(back - deep - 2.2f, 0, z0 + L * i / (float)gateCount), i * 70, 1.1f);
             }
             // ---- beyond the glass: the apron, a stand every so often with its lead-in line and a jet bridge to the wall
             float apronX = W * 0.5f + 0.6f;
@@ -846,7 +866,7 @@ namespace Crosswind.Game
             int cols = _sim.FloorCols + 2, rows = _sim.FloorRows + 2;
             _solid = new bool[cols, rows]; _from = new int[cols, rows];
             for (int z = 0; z < _sim.FloorRows; z++)
-                if (!_sim.BayOpen(Sim.BayOf(z))) for (int x = 0; x < _sim.FloorCols; x++) _solid[x + 1, z + 1] = true;
+                for (int x = 0; x < _sim.FloorCols; x++) if (!_sim.CellOpen(x, z)) _solid[x + 1, z + 1] = true;
             foreach (var p in _sim.State.terminal)
             {
                 var d = Sim.AmenityById(p.id);
@@ -994,6 +1014,21 @@ namespace Crosswind.Game
         readonly List<(string text, Vector3 at, float yaw, float size, Color color)> _labels = new List<(string, Vector3, float, float, Color)>();
         static Material _textMat;
 
+        /// <summary>How far signs lean back toward the sky, and the directions up their face and through it (toward the back).</summary>
+        const float Lean = 38f;
+        static readonly Vector3 LeanUp = Quaternion.Euler(0, 0, -Lean) * Vector3.up, LeanAcross = Quaternion.Euler(0, 0, -Lean) * Vector3.right;
+
+        /// <summary>A box leaning back by <see cref="Lean"/> (a sign facing -x, the way into the hall), its front face in its own colour.</summary>
+        static void LeanBox(MeshBuilder mb, Vector3 c, Vector3 size, Color side, Color front)
+        {
+            var h = size * 0.5f;
+            System.Func<float, float, float, Vector3> P = (x, y, z) => c + LeanAcross * (x * h.x) + LeanUp * (y * h.y) + Vector3.forward * (z * h.z);
+            Vector3 p000 = P(-1, -1, -1), p100 = P(1, -1, -1), p010 = P(-1, 1, -1), p110 = P(1, 1, -1), p001 = P(-1, -1, 1), p101 = P(1, -1, 1), p011 = P(-1, 1, 1), p111 = P(1, 1, 1);
+            mb.Quad(p000, p010, p110, p100, side); mb.Quad(p101, p111, p011, p001, side);
+            mb.Quad(p001, p011, p010, p000, front); mb.Quad(p100, p110, p111, p101, side);
+            mb.Quad(p010, p011, p111, p110, side); mb.Quad(p001, p000, p100, p101, side);
+        }
+
         /// <summary>Lettering standing in the hall (a shop's name on its fascia), leaning back so it reads from above.</summary>
         void Lettering(string text, Vector3 at, float yaw, float size, Color color)
         {
@@ -1001,7 +1036,7 @@ namespace Crosswind.Game
             go.transform.SetParent(_static.transform, false);
             go.transform.localPosition = at;
             // TextMesh reads along +x facing -z; the fascia faces the unit's -x: turn it, then lean it back toward the sky.
-            go.transform.localRotation = Quaternion.Euler(0, yaw + 90, 0) * Quaternion.Euler(38, 0, 0);
+            go.transform.localRotation = Quaternion.Euler(0, yaw + 90, 0) * Quaternion.Euler(Lean, 0, 0);
             var tm = go.AddComponent<TextMesh>();
             tm.font = Ui.Bold; tm.text = text; tm.fontSize = 72; tm.characterSize = size * 10f / 72f; tm.anchor = TextAnchor.MiddleCenter; tm.alignment = TextAlignment.Center; tm.color = color;
             if (_textMat == null)
@@ -1039,42 +1074,71 @@ namespace Crosswind.Game
         {
             var corner = FloorCorner;
             int rows = _sim.FloorRows;
-            // The floor you can build on: a warm stone with fine joints at every cell.
+            // The floor you can build on: pale grey stone with fine joints at every cell.
             int cols = _sim.FloorCols;
             float fw = cols * Sim.Cell, fl = rows * Sim.Cell;
-            g.Rect("Concrete", corner.x + fw * 0.5f, corner.z + fl * 0.5f, fw, fl, 0.014f, 0, new Color(1.32f, 1.22f, 1.04f));
-            var joint = new Color(0.62f, 0.58f, 0.5f);
+            g.Rect("Concrete", corner.x + fw * 0.5f, corner.z + fl * 0.5f, fw, fl, 0.014f, 0, new Color(1.3f, 1.3f, 1.32f));
+            var joint = new Color(0.6f, 0.61f, 0.64f);
             for (int x = 0; x <= cols; x++) mb.Box(new Vector3(corner.x + x * Sim.Cell, 0.02f, corner.z + fl * 0.5f), new Vector3(0.05f, 0.012f, fl), joint);
             for (int z = 0; z <= rows; z += 1) mb.Box(new Vector3(corner.x + fw * 0.5f, 0.02f, corner.z + z * Sim.Cell), new Vector3(fw, 0.012f, 0.05f), joint);
 
-            // Bays not opened yet: a duller floor behind site fencing, a few cones and boxes, and what it costs to open.
+            // Bays not opened yet: construction zones behind green site hoardings, rubble and pallets inside, the zone's
+            // name on a board and what it costs to open. Two closed zones side by side share one site: no hoarding between.
             int next = _sim.NextBay;
-            for (int b = 0; b < _sim.BayCount; b++)
+            var hoard = Palette.Hex(0x3A9447); var hoardDark = Palette.Hex(0x23602C);
+            foreach (int b in _sim.Bays)
             {
                 if (_sim.BayOpen(b)) continue;
-                float len = _sim.BayRowsOf(b) * Sim.Cell, bz0 = corner.z + b * Sim.BayRows * Sim.Cell, bz1 = bz0 + len, bx0 = corner.x, bx1 = corner.x + fw;
-                if (len <= 0) continue;
-                g.Rect("Concrete", (bx0 + bx1) * 0.5f, (bz0 + bz1) * 0.5f, fw, len, 0.018f, 0, new Color(0.72f, 0.74f, 0.78f));
-                for (float z = bz0 + 1; z < bz1; z += 2) foreach (float x in new[] { bx0 + 0.15f, bx1 - 0.15f }) mb.Long("c_fence", new Vector3(x, 0, z), 90, 2f);
-                foreach (bool low in new[] { true, false })
+                int cx0, cz0, cw, cd; _sim.BayRect(b, out cx0, out cz0, out cw, out cd);
+                if (cw <= 0 || cd <= 0) continue;
+                float bx0 = corner.x + cx0 * Sim.Cell, bx1 = bx0 + cw * Sim.Cell, bz0 = corner.z + cz0 * Sim.Cell, bz1 = bz0 + cd * Sim.Cell;
+                float mx = (bx0 + bx1) * 0.5f, mz = (bz0 + bz1) * 0.5f, sx = bx1 - bx0, sz = bz1 - bz0;
+                g.Rect("Concrete", mx, mz, sx, sz, 0.018f, 0, new Color(0.68f, 0.69f, 0.72f));
+                int r = b / Sim.BayStride, k = b % Sim.BayStride;
+                bool Closed(int nb, bool exists) { return exists && _sim.BayExists(nb) && !_sim.BayOpen(nb); }
+                // Each side: x toward the gates, z across the hall.
+                var sides = new[] {
+                    (Closed(b - 1, k > 0), new Vector3(bx0 + 0.1f, 0, mz), sz, true),
+                    (Closed(b + 1, k < _sim.BayColBlocks - 1), new Vector3(bx1 - 0.1f, 0, mz), sz, true),
+                    (Closed(b - Sim.BayStride, r > 0), new Vector3(mx, 0, bz0 + 0.1f), sx, false),
+                    (Closed(b + Sim.BayStride, r < _sim.BayRowBlocks - 1), new Vector3(mx, 0, bz1 - 0.1f), sx, false) };
+                foreach (var (shared, at, len, alongZ) in sides)
                 {
-                    // The side toward an open bay (or the end wall) is fenced too; between two closed bays there is nothing.
-                    if (!_sim.BayOpen(low ? b - 1 : b + 1) && (low ? b > 0 : b < _sim.BayCount - 1)) continue;
-                    for (float x = bx0 + 1; x < bx1; x += 2) mb.Long("c_fence", new Vector3(x, 0, low ? bz0 + 0.15f : bz1 - 0.15f), 0, 2f);
+                    if (shared) continue;
+                    const float tall = 2.3f;
+                    var size = alongZ ? new Vector3(0.14f, tall, len) : new Vector3(len, tall, 0.14f);
+                    mb.Box(at + Vector3.up * (tall * 0.5f + 0.05f), size, hoard);                                                        // the sheeting
+                    mb.Box(at + Vector3.up * 0.08f, alongZ ? new Vector3(0.2f, 0.16f, len) : new Vector3(len, 0.16f, 0.2f), hoardDark);    // its foot
+                    mb.Box(at + Vector3.up * (tall + 0.08f), alongZ ? new Vector3(0.2f, 0.08f, len) : new Vector3(len, 0.08f, 0.2f), Palette.White);   // a white cap
+                    for (float t = -len * 0.5f; t <= len * 0.5f + 0.01f; t += 2f)                                                         // a dark seam at every panel
+                        mb.Box(at + (alongZ ? new Vector3(0, tall * 0.5f + 0.05f, t) : new Vector3(t, tall * 0.5f + 0.05f, 0)), new Vector3(0.18f, tall, 0.18f), hoardDark);
                 }
                 var rng = new System.Random(b * 97 + 13);
-                float R(float a, float c) { return a + (float)rng.NextDouble() * (c - a); }
-                for (int k = 0; k < 3 + (int)(len / 4); k++) mb.Tall("c_cone", new Vector3(R(bx0 + 1, bx1 - 1), 0, R(bz0 + 1, bz1 - 1)), R(0, 360), 0.7f);
-                for (int k = 0; k < 2; k++)
+                float R(float a0, float a1) { return a0 + (float)rng.NextDouble() * (a1 - a0); }
+                float area = sx * sz;
+                for (int n = 0; n < 2 + (int)(area / 50); n++) mb.Tall("c_cone", new Vector3(R(bx0 + 1, bx1 - 1), 0, R(bz0 + 1, bz1 - 1)), R(0, 360), 0.7f);
+                for (int n = 0; n < 1 + (int)(area / 90); n++)
                 {
-                    var at = new Vector3(R(bx0 + 2, bx1 - 2), 0, R(bz0 + 1.5f, bz1 - 1.5f));
-                    mb.Tall("box", at, R(0, 90), 0.8f); mb.Tall("box", at + new Vector3(0.75f, 0, 0.2f), R(0, 90), 0.7f); mb.Tall("box", at + new Vector3(0.3f, 0.8f, 0.1f), R(0, 90), 0.6f);
-                    mb.Long("box_open", at + new Vector3(-0.9f, 0, -0.4f), R(0, 90), 0.9f);
+                    var p0 = new Vector3(R(bx0 + 2, bx1 - 2), 0, R(bz0 + 2, bz1 - 2));
+                    mb.Tall("box", p0, R(0, 90), 0.8f); mb.Tall("box", p0 + new Vector3(0.75f, 0, 0.2f), R(0, 90), 0.7f); mb.Tall("box", p0 + new Vector3(0.3f, 0.8f, 0.1f), R(0, 90), 0.6f);
+                    mb.Long("box_open", p0 + new Vector3(-0.9f, 0, -0.4f), R(0, 90), 0.9f);
+                    // A stack of grey blocks and a pallet of boards.
+                    var q0 = new Vector3(R(bx0 + 2, bx1 - 2), 0, R(bz0 + 2, bz1 - 2));
+                    for (int u = 0; u < 3; u++) for (int v = 0; v < 2 - u / 2; v++) mb.Box(q0 + new Vector3(u * 0.42f - 0.4f, 0.17f + v * 0.34f, 0), new Vector3(0.4f, 0.32f, 0.6f), Palette.Hex(0x9EA3A8));
+                    mb.Box(q0 + new Vector3(1.4f, 0.08f, 0.6f), new Vector3(1.2f, 0.16f, 1.0f), Palette.Hex(0x9C7A4E));
+                    for (int u = 0; u < 4; u++) mb.Box(q0 + new Vector3(1.4f, 0.2f + u * 0.07f, 0.6f), new Vector3(1.1f, 0.06f, 0.9f), Palette.Hex(0xC9A46A));
                 }
-                mb.Long("c_barrier", new Vector3(bx0 + 1.2f, 0, (bz0 + bz1) * 0.5f), 90, 1.8f);
-                mb.Glow = true; mb.Tall("c_light", new Vector3(bx0 + 0.6f, 0, bz0 + 0.8f), 0, 1.3f); mb.Tall("c_light", new Vector3(bx0 + 0.6f, 0, bz1 - 0.8f), 0, 1.3f); mb.Glow = false;
-                bool can = b == next || _sim.BayOpen(b - 1) || _sim.BayOpen(b + 1);
-                _labels.Add((can ? "TAP TO OPEN  " + Format.Money(_sim.BayCost) : "FENCED OFF", new Vector3(bx0 + 1.6f, 1.9f, (bz0 + bz1) * 0.5f), 0, Mathf.Min(0.8f, len / 14f), can ? new Color(1f, 0.85f, 0.3f) : new Color(1, 1, 1, 0.7f)));
+                mb.Glow = true; mb.Tall("c_light", new Vector3(bx0 + 0.6f, 0, bz0 + 0.8f), 0, 1.3f); mb.Glow = false;
+                // The zone's board on two legs, facing the way in: its name, then the price (or that it must wait).
+                bool can = b == next || _sim.BuyBayBlocked(b) == null || (_sim.BuyBayBlocked(b) ?? "").StartsWith("Need");
+                var board = new Vector3(bx0 + 1.6f, 0, mz);
+                foreach (float e in new[] { -1f, 1f }) mb.Box(board + new Vector3(0.4f, 1.65f, e * 2.0f), new Vector3(0.14f, 3.3f, 0.14f), Palette.Steel);
+                // The board leans back like the lettering on it (see Lettering), so the words lie on its face whatever the angle.
+                var face = board + new Vector3(0, 3.15f, 0);
+                LeanBox(mb, face, new Vector3(0.16f, 2.3f, 4.8f), Palette.Hex(0x1C3D7A), Palette.Hex(0x1C3D7A));
+                LeanBox(mb, face + LeanAcross * -0.03f, new Vector3(0.14f, 2.1f, 4.6f), Palette.Hex(0x24509C), Palette.Hex(0x24509C));
+                _labels.Add((Hud.BayName(b), face + LeanUp * 0.42f - LeanAcross * 0.16f, 0, 1.0f, Color.white));
+                _labels.Add((can ? "OPEN  " + Format.Money(_sim.BayCost) : "LATER", face - LeanUp * 0.62f - LeanAcross * 0.12f, 0, 0.55f, can ? new Color(1f, 0.85f, 0.3f) : new Color(1, 1, 1, 0.7f)));
             }
 
             foreach (var p in _sim.State.terminal)

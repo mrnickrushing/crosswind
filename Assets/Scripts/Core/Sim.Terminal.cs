@@ -89,7 +89,7 @@ namespace Crosswind.Core
         public const float TerminalFront = 25f, TerminalBack = 16f, MinTerminalWidth = 60f, MaxTerminalWidth = 120f;
         /// <summary>Metres at one end of the landside hall kept for arrivals (baggage reclaim), and of the security wall for their way out.</summary>
         public const float ReclaimWidth = 12f, ArrivalsGap = 4f;
-        public const int MinFloorCols = 8, MaxFloorCols = 16;
+        public const int MinFloorCols = 14, MaxFloorCols = 28;      // whole bays deep (BayCols)
 
         /// <summary>Check-in desks, security lanes and gates as the hall shows them (their levels, capped).</summary>
         public int CheckinDesks { get { return Math.Max(2, Math.Min(40, Level("checkin") * 2)); } }
@@ -110,8 +110,8 @@ namespace Crosswind.Core
                 return (float)Math.Ceiling(want / Cell) * Cell;
             }
         }
-        /// <summary>Floor cells from security back toward the gates: one more with every star.</summary>
-        public int FloorCols { get { return Math.Max(MinFloorCols, Math.Min(MaxFloorCols, MinFloorCols - 1 + Stars)); } }
+        /// <summary>Floor cells from security back toward the gates: a row of construction zones deeper at three stars and again at five.</summary>
+        public int FloorCols { get { return Math.Max(MinFloorCols, Math.Min(MaxFloorCols, MinFloorCols + BayCols * ((Stars - 1) / 2))); } }
         /// <summary>Floor cells across the hall.</summary>
         public int FloorRows { get { return (int)((TerminalLength - 4) / Cell); } }
         /// <summary>The hall's depth in metres, doors to glass.</summary>
@@ -120,24 +120,52 @@ namespace Crosswind.Core
         // ------------------------------------------------------------------ bays: floor you open as you grow
 
         /// <summary>
-        /// The floor is divided across the hall into bays of <see cref="BayRows"/> rows. A new airport has the three
-        /// in the middle open; the rest stand fenced off until they are bought, one beside another, each dearer.
+        /// The floor is divided into bays: blocks of <see cref="BayRows"/> rows by <see cref="BayCols"/> columns. A new
+        /// airport has a core open (the middle <see cref="FreeBayRows"/> blocks across the hall, the first
+        /// <see cref="FreeBayCols"/> back from security); the rest stand behind site hoardings until they are bought, each
+        /// beside open floor and each dearer. A bay's id is its row block times <see cref="BayStride"/> plus its column
+        /// block, so the ids stay put as the hall grows deeper.
         /// </summary>
-        public const int BayRows = 6, FreeBays = 3;
-        public const double BayBaseCost = 2500, BayCostGrowth = 2.6;
+        public const int BayRows = 6, BayCols = 7, BayStride = 8, FreeBayRows = 3, FreeBayCols = 2;
+        public const double BayBaseCost = 2500, BayCostGrowth = 1.9;
 
-        public int BayCount { get { return (FloorRows + BayRows - 1) / BayRows; } }
-        public static int BayOf(int row) { return row < 0 ? -1 : row / BayRows; }
+        public int BayRowBlocks { get { return (FloorRows + BayRows - 1) / BayRows; } }
+        public int BayColBlocks { get { return Math.Min(BayStride, (FloorCols + BayCols - 1) / BayCols); } }
+        /// <summary>Every bay the floor has today, row block by row block.</summary>
+        public IEnumerable<int> Bays { get { for (int r = 0; r < BayRowBlocks; r++) for (int c = 0; c < BayColBlocks; c++) yield return r * BayStride + c; } }
+        public int BayCount { get { return BayRowBlocks * BayColBlocks; } }
+        public bool BayExists(int bay) { return bay >= 0 && bay / BayStride < BayRowBlocks && bay % BayStride < BayColBlocks; }
+        /// <summary>The bay a floor cell lies in (-1: off the floor).</summary>
+        public static int BayAt(int x, int z) { return x < 0 || z < 0 ? -1 : (z / BayRows) * BayStride + Math.Min(BayStride - 1, x / BayCols); }
         public bool BayOpen(int bay) { return State.bays.Contains(bay); }
-        /// <summary>Rows of a bay that lie on the floor today (the last one may still be growing with the hall).</summary>
-        public int BayRowsOf(int bay) { return Math.Max(0, Math.Min(BayRows, FloorRows - bay * BayRows)); }
+        public bool CellOpen(int x, int z) { return BayOpen(BayAt(x, z)); }
+
+        /// <summary>The cells a bay covers today (the last row and column blocks may still be growing with the hall).</summary>
+        public void BayRect(int bay, out int x, out int z, out int w, out int d)
+        {
+            x = bay % BayStride * BayCols; z = bay / BayStride * BayRows;
+            w = Math.Max(0, Math.Min(BayCols, FloorCols - x)); d = Math.Max(0, Math.Min(BayRows, FloorRows - z));
+        }
+        public int BayCells(int bay) { int x, z, w, d; BayRect(bay, out x, out z, out w, out d); return w * d; }
+
+        /// <summary>The bays beside this one (across the hall and back toward the gates), those that exist.</summary>
+        public IEnumerable<int> BayNeighbours(int bay)
+        {
+            int r = bay / BayStride, c = bay % BayStride;
+            if (r > 0) yield return bay - BayStride;
+            if (r < BayRowBlocks - 1) yield return bay + BayStride;
+            if (c > 0) yield return bay - 1;
+            if (c < BayColBlocks - 1) yield return bay + 1;
+        }
+        bool BesideOpen(int bay) { foreach (int n in BayNeighbours(bay)) if (BayOpen(n)) return true; return false; }
+
         public double BayCost { get { return Math.Floor(BayBaseCost * Math.Pow(BayCostGrowth, Math.Max(0, State.baysBought)) * Map.CostScale); } }
 
         public string BuyBayBlocked(int bay)
         {
-            if (bay < 0 || bay >= BayCount) return "No such bay";
+            if (!BayExists(bay)) return "No such bay";
             if (BayOpen(bay)) return "Already open";
-            if (!BayOpen(bay - 1) && !BayOpen(bay + 1)) return "Open the bay beside it first";
+            if (!BesideOpen(bay)) return "Open the bay beside it first";
             if (State.money < BayCost) return "Need " + Format.Money(BayCost - State.money) + " more";
             return null;
         }
@@ -155,14 +183,20 @@ namespace Crosswind.Core
             return true;
         }
 
-        /// <summary>The fenced bay that can be opened next, the one nearest the middle (-1: none).</summary>
+        /// <summary>The fenced bay that can be opened next: beside open floor, nearest the middle of the hall's front (-1: none).</summary>
         public int NextBay
         {
             get
             {
-                int best = -1, mid = BayOf(FloorRows / 2);
-                for (int b = 0; b < BayCount; b++)
-                    if (!BayOpen(b) && (BayOpen(b - 1) || BayOpen(b + 1)) && (best < 0 || Math.Abs(b - mid) < Math.Abs(best - mid))) best = b;
+                int best = -1; float bestD = float.MaxValue, midRow = FloorRows / 2f;
+                foreach (int b in Bays)
+                {
+                    if (BayOpen(b) || !BesideOpen(b)) continue;
+                    int x, z, w, d; BayRect(b, out x, out z, out w, out d);
+                    float dz = z + d / 2f - midRow, dx = x + w / 2f;
+                    float dist = dz * dz + dx * dx * 0.8f;
+                    if (dist < bestD) { bestD = dist; best = b; }
+                }
                 return best;
             }
         }
@@ -173,31 +207,44 @@ namespace Crosswind.Core
             get
             {
                 int open = 0, used = 0;
-                for (int b = 0; b < BayCount; b++) if (BayOpen(b)) open += BayRowsOf(b) * FloorCols;
+                foreach (int b in Bays) if (BayOpen(b)) open += BayCells(b);
                 foreach (var p in State.terminal) { int w, d; Footprint(AmenityById(p.id), p.rot, out w, out d); used += w * d; }
                 return open > 0 ? Math.Min(1f, used / (float)open) : 1f;
             }
         }
 
         /// <summary>
-        /// A new airport (or a save from before bays) gets its open floor: the middle bays, and every bay that already
-        /// has something standing in it.
+        /// A new airport gets its open core; a save from when bays were strips across the whole floor keeps each strip
+        /// open (over the columns there were); anything standing anywhere keeps its floor open.
         /// </summary>
         public void EnsureBays()
         {
-            if (State.baysSet) return;
-            State.baysSet = true;
-            int mid = BayOf(FloorRows / 2), first = Math.Max(0, Math.Min(mid - FreeBays / 2, BayCount - FreeBays));
-            for (int b = first; b < first + FreeBays && b < BayCount; b++) if (!State.bays.Contains(b)) State.bays.Add(b);
+            if (!State.baysV2)
+            {
+                if (State.baysSet)
+                {
+                    var strips = State.bays.ToList(); State.bays.Clear();
+                    foreach (int r in strips) for (int c = 0; c < BayColBlocks; c++) State.bays.Add(r * BayStride + c);
+                }
+                State.baysV2 = true;
+            }
+            if (!State.baysSet)
+            {
+                State.baysSet = true;
+                int mid = (FloorRows / 2) / BayRows, first = Math.Max(0, Math.Min(mid - FreeBayRows / 2, BayRowBlocks - FreeBayRows));
+                for (int r = first; r < first + FreeBayRows && r < BayRowBlocks; r++)
+                    for (int c = 0; c < FreeBayCols && c < BayColBlocks; c++)
+                        if (!State.bays.Contains(r * BayStride + c)) State.bays.Add(r * BayStride + c);
+            }
             foreach (var p in State.terminal)
             {
                 var d = AmenityById(p.id);
                 if (d == null) continue;
                 int w, depth; Footprint(d, p.rot, out w, out depth);
-                for (int row = p.z; row < p.z + depth && row < FloorRows; row++) if (row >= 0 && !State.bays.Contains(BayOf(row))) State.bays.Add(BayOf(row));
+                for (int x = p.x; x < p.x + w; x++)
+                    for (int z = p.z; z < p.z + depth; z++)
+                        if (x >= 0 && z >= 0 && x < FloorCols && z < FloorRows && !State.bays.Contains(BayAt(x, z))) State.bays.Add(BayAt(x, z));
             }
-            // What was opened for nothing must still be joined up: fill any gap between open bays.
-            if (State.bays.Count > 0) for (int b = State.bays.Min(); b <= State.bays.Max(); b++) if (!State.bays.Contains(b)) State.bays.Add(b);
         }
 
         public int Placed(string id) { return State.terminal.Count(p => p.id == id); }
@@ -218,7 +265,7 @@ namespace Crosswind.Core
         {
             int w, depth; Footprint(d, rot, out w, out depth);
             if (x < 0 || z < 0 || x + w > FloorCols || z + depth > FloorRows) return false;
-            for (int row = z; row < z + depth; row++) if (!BayOpen(BayOf(row))) return false;
+            for (int cx = x; cx < x + w; cx++) for (int cz = z; cz < z + depth; cz++) if (!CellOpen(cx, cz)) return false;
             foreach (var p in State.terminal)
             {
                 if (p == ignore) continue;
@@ -237,7 +284,7 @@ namespace Crosswind.Core
             {
                 int w, depth; Footprint(d, rot, out w, out depth);
                 bool onFloor = x >= 0 && z >= 0 && x + w <= FloorCols && z + depth <= FloorRows;
-                for (int row = z; onFloor && row < z + depth; row++) if (!BayOpen(BayOf(row))) return "That floor is not open yet";
+                for (int cx = x; onFloor && cx < x + w; cx++) for (int cz = z; cz < z + depth; cz++) if (!CellOpen(cx, cz)) return "That floor is not open yet";
                 return "No room there";
             }
             if (State.money < AmenityCost(id)) return "Need " + Format.Money(AmenityCost(id) - State.money) + " more";

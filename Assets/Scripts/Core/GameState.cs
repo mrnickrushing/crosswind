@@ -138,6 +138,7 @@ namespace Crosswind.Core
         public List<PlacedAmenity> terminal = new List<PlacedAmenity>();   // what stands on the concourse floor
         public List<int> bays = new List<int>();                     // the floor bays that are open (see Sim.EnsureBays)
         public int baysBought; public bool baysSet;                  // bays paid for (each makes the next dearer), and whether the starting floor has been opened
+        public bool baysV2;                                         // bays are blocks (Sim.BayAt), not strips across the whole floor
         public string playerName = "";                             // what friends see (empty: "Airport Manager")
         public List<ResearchJob> gifts = new List<ResearchJob>();    // friend code and when their gift was last collected (real time)
         public int feeLevel = 2;                                     // fee policy, 0 bargain .. 4 premium

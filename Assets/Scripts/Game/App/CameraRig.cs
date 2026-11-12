@@ -26,7 +26,7 @@ namespace Crosswind.Game
         {
             if (inside == Inside) return;
             Inside = inside;
-            if (inside) { _outFocus = Focus; _outDistance = Distance; Focus = Interior.Origin; Distance = FitInside(); }
+            if (inside) { _outFocus = Focus; _outDistance = Distance; Focus = InsideFocus(); Distance = CloseInside(); }
             else { Focus = _outFocus; Distance = _outDistance; }
             _shown = Distance;
         }
@@ -44,6 +44,25 @@ namespace Crosswind.Game
             float wide = (across + 3) / (2 * t * aspect), whole = (deep + 4) * Mathf.Sin(Pitch * Mathf.Deg2Rad) / (2 * t);
             // Wall to wall; where that would show less than about two thirds of the hall's depth, a little further back.
             return Mathf.Clamp(wide >= whole ? wide : Mathf.Max(wide, whole * 0.62f), InsideMin, InsideMax);
+        }
+
+        /// <summary>
+        /// How far back the hall is first seen from: close enough that its shops and people read at a glance, about
+        /// about sixty metres of it across the screen, the rest a drag away (pinch out for all of it, see <see cref="FitInside"/>).
+        /// </summary>
+        public float CloseInside()
+        {
+            var sim = GameRoot.Sim;
+            float across = Mathf.Min(sim != null ? sim.TerminalLength : 60, 64f);
+            float t = Mathf.Tan(Cam.fieldOfView * 0.5f * Mathf.Deg2Rad), aspect = Mathf.Max(0.5f, Cam.aspect);
+            return Mathf.Clamp(Mathf.Min(across / (2 * t * aspect), FitInside()), InsideMin, InsideMax);
+        }
+
+        /// <summary>Where the hall is first seen: the open floor just past security, across the middle of the hall.</summary>
+        public static Vector3 InsideFocus()
+        {
+            float x = Interior.Instance != null ? Interior.Instance.FloorCorner.x : -10;
+            return Interior.Origin + new Vector3(x + Core.Sim.FreeBayCols * Core.Sim.BayCols * Core.Sim.Cell * 0.42f, 0, 0);
         }
 
         public static CameraRig Create()

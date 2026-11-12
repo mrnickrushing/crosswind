@@ -34,6 +34,12 @@ namespace Crosswind.Game
         public static System.Action<Agent, string> Thought;
         readonly List<Agent> _agents = new List<Agent>();
         static Mesh[][] _walk; static Mesh[] _idle;
+        // The same people with a third of the triangles, for when the camera stands far back; and the plain shape that casts each one's shadow.
+        static Mesh[][] _walkFar; static Mesh[] _idleFar; static Mesh _shadow;
+        readonly List<Matrix4x4> _shadows = new List<Matrix4x4>();
+        readonly Plane[] _planes = new Plane[6];
+        /// <summary>Beyond this camera distance the crowd is drawn with its far models.</summary>
+        const float FarCrowd = 85f;
         readonly List<Matrix4x4>[] _batches = new List<Matrix4x4>[12 * 5];
         float _spawn;
 
@@ -47,13 +53,23 @@ namespace Crosswind.Game
             v._sim = GameRoot.Sim;
             if (_walk == null)
             {
-                _walk = new Mesh[12][]; _idle = new Mesh[12];
+                _walk = new Mesh[12][]; _idle = new Mesh[12]; _walkFar = new Mesh[12][]; _idleFar = new Mesh[12];
                 for (int i = 0; i < 12; i++)
                 {
-                    _walk[i] = new Mesh[4];
-                    for (int f = 0; f < 4; f++) _walk[i][f] = Resources.Load<Mesh>("Models/person_" + i + "_w" + f);
+                    _walk[i] = new Mesh[4]; _walkFar[i] = new Mesh[4];
+                    for (int f = 0; f < 4; f++)
+                    {
+                        _walk[i][f] = Resources.Load<Mesh>("Models/person_" + i + "_w" + f);
+                        _walkFar[i][f] = Resources.Load<Mesh>("Models/personfar_" + i + "_w" + f) ?? _walk[i][f];
+                    }
                     _idle[i] = Resources.Load<Mesh>("Models/person_" + i + "_idle");
+                    _idleFar[i] = Resources.Load<Mesh>("Models/personfar_" + i + "_idle") ?? _idle[i];
                 }
+                // A person's shadow is cast by a plain column their size: forty triangles in the shadow pass, not fifteen hundred.
+                var col = new MeshBuilder();
+                col.Cylinder(Vector3.zero, Vector3.up * 0.86f, 0.13f, 0.16f, 8, Color.grey);
+                col.Sphere(Vector3.up * 0.93f, new Vector3(0.09f, 0.1f, 0.09f), 6, Color.grey);
+                _shadow = col.ToMesh("Crowd shadow");
             }
             for (int i = 0; i < v._batches.Length; i++) v._batches[i] = new List<Matrix4x4>();
             v.Rebuild();
@@ -309,7 +325,8 @@ namespace Crosswind.Game
         {
             var s = _sim;
             string key = s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.FloorCols + "|" + FloorKey(s);
-            if (key != _built) { _built = key; Rebuild(); }
+            // Rebuilt only while it is being looked at: upgrades made from the airfield cost nothing here until the hall is opened.
+            if (key != _built && (CameraRig.Inside || _static == null)) { _built = key; Rebuild(); }
             if (!CameraRig.Inside || _walk == null || _walk[0][0] == null) return;
             if ((_apronIn -= Time.deltaTime) <= 0) { _apronIn = 0.5f; SyncApron(); }
 
@@ -319,6 +336,9 @@ namespace Crosswind.Game
             if ((_spawn -= dt) <= 0 && _agents.Count < want) { _spawn = 0.02f; Spawn(_agents.Count % 3 == 0, want); }
 
             foreach (var b in _batches) b.Clear();
+            _shadows.Clear();
+            var cam = CameraRig.Instance != null ? CameraRig.Instance.Cam : null;
+            if (cam != null) GeometryUtility.CalculateFrustumPlanes(cam, _planes);
             for (int i = _agents.Count - 1; i >= 0; i--)
             {
                 var a = _agents[i];
@@ -339,15 +359,31 @@ namespace Crosswind.Game
                 }
                 var rot = a.Target.sqrMagnitude > 0.01f ? Quaternion.LookRotation(-a.Target) : Quaternion.identity;
                 int frame = walking ? (int)(a.Phase + Time.time * 7) & 3 : 4;
-                _batches[a.Kind * 5 + frame].Add(Matrix4x4.TRS(Origin + a.Pos, rot, Vector3.one * 1.75f));
+                // Only those in view are drawn (their shadows from a little further out, so none pops at the screen's edge).
+                var at = Origin + a.Pos;
+                float outside = cam != null ? Outside(at + Vector3.up * 0.9f) : 0;
+                if (outside > 5f) continue;
+                var m = Matrix4x4.TRS(at, rot, Vector3.one * 1.75f);
+                _shadows.Add(m);
+                if (outside <= 1.4f) _batches[a.Kind * 5 + frame].Add(m);
             }
+            bool far = CameraRig.Instance != null && CameraRig.Instance.Distance > FarCrowd;
             for (int k = 0; k < 12; k++)
                 for (int f = 0; f < 5; f++)
                 {
                     var list = _batches[k * 5 + f];
-                    var mesh = f < 4 ? _walk[k][f] : _idle[k];
-                    if (list.Count > 0 && mesh != null) Graphics.DrawMeshInstanced(mesh, 0, Materials.Kit, list);
+                    var mesh = f < 4 ? (far ? _walkFar : _walk)[k][f] : (far ? _idleFar : _idle)[k];
+                    if (list.Count > 0 && mesh != null) Graphics.DrawMeshInstanced(mesh, 0, Materials.Kit, list, null, UnityEngine.Rendering.ShadowCastingMode.Off, true);
                 }
+            if (_shadows.Count > 0) Graphics.DrawMeshInstanced(_shadow, 0, Materials.Kit, _shadows, null, UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly, false);
+        }
+
+        /// <summary>How far outside the camera's view a point is, in metres (0 or less: in view).</summary>
+        float Outside(Vector3 p)
+        {
+            float worst = 0;
+            for (int i = 0; i < 4; i++) { float d = -_planes[i].GetDistanceToPoint(p); if (d > worst) worst = d; }      // the four sides: near and far never matter here
+            return worst;
         }
 
         void Spawn(bool arriving, int want = 100)

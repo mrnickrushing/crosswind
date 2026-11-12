@@ -27,6 +27,10 @@ PEOPLE = ["dress", "longsleeves", "man_a", "man_b", "suit", "tanktop", "woman_c"
 for i, k in enumerate(PEOPLE):
     for tag, pose in (("w0", "walk:f0"), ("w1", "walk:f0.25"), ("w2", "walk:f0.5"), ("w3", "walk:f0.75"), ("idle", "idle:f0"), ("sit", "sit:f0.9")):
         MODELS["person_%d_%s" % (i, tag)] = ("people/%s.glb" % k, "height", pose, "--maxfaces", "1500")
+# The same people slimmed further for the terminal's crowd seen from far back (Interior draws these when zoomed out).
+for i, k in enumerate(PEOPLE):
+    for tag, pose in (("w0", "walk:f0"), ("w1", "walk:f0.25"), ("w2", "walk:f0.5"), ("w3", "walk:f0.75"), ("idle", "idle:f0")):
+        MODELS["personfar_%d_%s" % (i, tag)] = ("people/%s.glb" % k, "height", pose, "--maxfaces", "420")
 for tag, pose in (("w0", "walk:f0"), ("w1", "walk:f0.25"), ("w2", "walk:f0.5"), ("w3", "walk:f0.75"), ("idle", "idle:f0")):
     MODELS["worker_" + tag] = ("people/worker.glb", "height", pose, "--maxfaces", "1500")
 out = os.path.join(ROOT, "Assets", "Resources", "Models")

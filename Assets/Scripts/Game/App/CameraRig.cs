@@ -37,8 +37,9 @@ namespace Crosswind.Game
         /// </summary>
         public float FitInside()
         {
-            var hall = Interior.Instance;
-            float across = hall != null ? hall.Length : 60, deep = hall != null ? hall.Width : 66;
+            // From the rules, not the hall as last built: it may not have caught up with an upgrade made outside.
+            var sim = GameRoot.Sim;
+            float across = sim != null ? sim.TerminalLength : 60, deep = sim != null ? sim.TerminalDepth : 66;
             float t = Mathf.Tan(Cam.fieldOfView * 0.5f * Mathf.Deg2Rad), aspect = Mathf.Max(0.5f, Cam.aspect);
             float wide = (across + 3) / (2 * t * aspect), whole = (deep + 4) * Mathf.Sin(Pitch * Mathf.Deg2Rad) / (2 * t);
             // Wall to wall; where that would show less than about two thirds of the hall's depth, a little further back.
@@ -71,7 +72,7 @@ namespace Crosswind.Game
             Focus -= right * pixels.x * perPixel + fwd * pixels.y * perPixel / Mathf.Sin(Pitch * Mathf.Deg2Rad);
             if (Inside)
             {
-                float half = Interior.Instance != null ? Interior.Instance.Length * 0.5f : 40, deep = Interior.Instance != null ? Interior.Instance.Width * 0.5f : 33;
+                float half = GameRoot.Sim != null ? GameRoot.Sim.TerminalLength * 0.5f : 40, deep = GameRoot.Sim != null ? GameRoot.Sim.TerminalDepth * 0.5f : 33;
                 Focus.x = Mathf.Clamp(Focus.x, Interior.Origin.x - deep, Interior.Origin.x + deep);
                 Focus.z = Mathf.Clamp(Focus.z, -half, half);
                 return;

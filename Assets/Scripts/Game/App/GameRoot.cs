@@ -81,6 +81,7 @@ namespace Crosswind.Game
 
             Shader.SetGlobalFloat("_NightGlow", 0);
             gameObject.AddComponent<Telemetry>();   // anonymous play statistics (off in the Editor)
+            gameObject.AddComponent<FrameBudget>(); // on a device: the 3D view at no more than about 2000 px across, lower while frames run long
             Sfx.Init(transform);
             var rig = CameraRig.Create();
             Look.Create(rig.Cam, sun);

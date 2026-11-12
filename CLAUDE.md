@@ -177,6 +177,13 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   wherever the view is clear (`Clear`). A destination that is walled in is reached from the nearest free cell.
   When one stops at a placed item, `Interior.Thought(agent, amenityId)` lets the HUD float a bubble over them
   (`Hud.OnThought`: the need's picture icon and a green smile, amber "~" or red "!" from that passenger's own rating).
+- Phone performance: `App/FrameBudget.cs` (Last Tide's, device only) renders the 3D view at no more than about
+  2000 px across and steps the render scale down to 0.6 while frames run long; Battery saver (EMPIRE settings) runs
+  at 30 fps. The terminal's crowd (`Interior.Update`) is drawn only where it is in view, with the `personfar_*`
+  models (420 triangles, `Tools/art/models.py`) once the camera is beyond `FarCrowd`, and never casts its own
+  shadow: one plain column per person does (`_shadow`, shadows only). The hall is rebuilt only while it is being
+  looked at. Measured in the Editor 2026-11-12, a furnished hall with 340 passengers: about 0.9M triangles a frame
+  where it had been 2.8M.
 - Beyond the hall's glass is the apron (`Interior.SyncApron`, every half second while inside): a stand every
   `ApronPitch` metres with a lead-in line and a jet bridge, and the flights that are at the terminal (Deplane, Service,
   Board) parked nose in, in their airline's colours, drawn `ApronScale` (2.5) times the airfield's size because

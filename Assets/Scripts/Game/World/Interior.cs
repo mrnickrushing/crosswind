@@ -568,7 +568,7 @@ namespace Crosswind.Game
                     else { a.Pos += to / d * Mathf.Min(d, a.Speed * dt); a.Target = to / d; walking = true; }
                 }
                 var rot = a.Target.sqrMagnitude > 0.01f ? Quaternion.LookRotation(-a.Target) : Quaternion.identity;
-                int frame = walking ? (int)(a.Phase + Time.time * 7) & 3 : 4;
+                int frame = walking ? (int)(a.Phase + Time.time * 3.4f * a.Speed) & 3 : 4;      // the stride keeps time with the pace
                 // Only those in view are drawn (their shadows from a little further out, so none pops at the screen's edge).
                 var at = Origin + a.Pos;
                 float outside = cam != null ? Outside(at + Vector3.up * 0.9f) : 0;
@@ -711,7 +711,7 @@ namespace Crosswind.Game
                 while (stop.Count < path.Count - 1) { stop.Add(false); at.Add(null); }
                 stop.Add(!pass[i]); at.Add(what[i]);
             }
-            var a = new Agent { Seed = Random.Range(1, 1 << 30), Arriving = arriving, Kind = Random.Range(0, 12), Path = path.ToArray(), Stop = stop.ToArray(), At = at.ToArray(), Speed = Random.Range(1.6f, 2.6f), Phase = Random.Range(0, 4) };
+            var a = new Agent { Seed = Random.Range(1, 1 << 30), Arriving = arriving, Kind = Random.Range(0, 12), Path = path.ToArray(), Stop = stop.ToArray(), At = at.ToArray(), Speed = Random.Range(1.3f, 1.9f), Phase = Random.Range(0, 4) };      // a brisk walk, not a run
             // Start part-way along, so the hall is full the moment you look in.
             int start = _agents.Count < want * 0.8f ? Random.Range(0, path.Count - 1) : 0;
             a.Pos = path[start]; a.Step = start + 1 < path.Count ? start + 1 : start; a.Target = Vector3.right;

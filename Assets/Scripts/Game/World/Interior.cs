@@ -337,6 +337,7 @@ namespace Crosswind.Game
             }
             g.Build(_static.transform);
             BuildGrid();
+            SyncCleaners();
             foreach (var l in _labels) Lettering(l.text, l.at, l.yaw, l.size, l.color);
             _labels.Clear();
             foreach (var it in _items)
@@ -579,6 +580,7 @@ namespace Crosswind.Game
                 if (outside <= 1.4f) _batches[st.kind * 5 + 4].Add(m);
             }
             DrawBags(cam);
+            DrawCleaners(cam, dt);
             bool far = CameraRig.Instance != null && CameraRig.Instance.Distance > FarCrowd;
             for (int k = 0; k < 12; k++)
                 for (int f = 0; f < 5; f++)
@@ -697,11 +699,102 @@ namespace Crosswind.Game
             _agents.Add(a);
         }
 
+        // ------------------------------------------------------------------ the cleaning crews
+
+        /// <summary>A cleaning station's crew on the floor: two in overalls going from spot to spot, and a robot sweeper.</summary>
+        sealed class Cleaner { public Vector3 Pos, Dir = Vector3.right; public readonly List<Vector3> Path = new List<Vector3>(); public int Step; public float Wait, Speed, Phase; public bool Robot; }
+        readonly List<Cleaner> _cleaners = new List<Cleaner>();
+        readonly List<Matrix4x4>[] _crewLists = { new List<Matrix4x4>(), new List<Matrix4x4>(), new List<Matrix4x4>(), new List<Matrix4x4>(), new List<Matrix4x4>(), new List<Matrix4x4>() };
+        static Mesh[] _crewMeshes;      // the worker's four walking frames, standing, and the robot
+
+        void SyncCleaners()
+        {
+            // Something placed on top of one of them, or round them: it steps out to the nearest spot it can walk from.
+            foreach (var c in _cleaners)
+            {
+                int cx, cz;
+                if (!Cell(c.Pos, out cx, out cz) || _reach[cx, cz]) continue;
+                float best = float.MaxValue; var was = c.Pos;
+                for (int x = 0; x < _solid.GetLength(0); x++)
+                    for (int z = 0; z < _solid.GetLength(1); z++)
+                    {
+                        if (!_reach[x, z]) continue;
+                        float d = (CellCentre(x, z) - was).sqrMagnitude;
+                        if (d < best) { best = d; c.Pos = CellCentre(x, z); }
+                    }
+                c.Path.Clear(); c.Step = 0;
+            }
+            int stations = _sim.State.terminal.Count(p => p.id == "janitor");
+            int wantPeople = Mathf.Min(10, stations * 2), wantRobots = Mathf.Min(5, stations);
+            for (int robot = 0; robot < 2; robot++)
+            {
+                bool r = robot == 1;
+                int have = _cleaners.Count(c => c.Robot == r), want = r ? wantRobots : wantPeople;
+                for (; have > want; have--) _cleaners.Remove(_cleaners.Last(c => c.Robot == r));
+                for (; have < want; have++)
+                    _cleaners.Add(new Cleaner { Pos = FreeFloor(), Robot = r, Speed = r ? 0.55f : Random.Range(1.0f, 1.3f), Wait = Random.Range(0f, 3f), Phase = Random.Range(0, 4) });
+            }
+        }
+
+        /// <summary>The middle of a floor cell that can be walked to, a little off centre (the corner of the floor if there is none).</summary>
+        Vector3 FreeFloor()
+        {
+            int cols = _solid.GetLength(0), rows = _solid.GetLength(1);
+            for (int k = 0; k < 40 && cols > 2 && rows > 2; k++)
+            {
+                int x = Random.Range(1, cols - 1), z = Random.Range(1, rows - 1);
+                if (_reach[x, z]) return CellCentre(x, z) + new Vector3(Random.Range(-0.5f, 0.5f), 0, Random.Range(-0.5f, 0.5f));
+            }
+            return FloorCorner + new Vector3(1, 0, 1);
+        }
+
+        void DrawCleaners(Camera cam, float dt)
+        {
+            if (_cleaners.Count == 0) return;
+            if (_crewMeshes == null)
+            {
+                _crewMeshes = new Mesh[6];
+                for (int f = 0; f < 4; f++) _crewMeshes[f] = Resources.Load<Mesh>("Models/worker_w" + f);
+                _crewMeshes[4] = Resources.Load<Mesh>("Models/worker_idle");
+                var mb = new MeshBuilder(); mb.Wide("roomba", Vector3.zero, 0, 0.5f); _crewMeshes[5] = mb.ToMesh("Robot sweeper");
+            }
+            foreach (var l in _crewLists) l.Clear();
+            foreach (var c in _cleaners)
+            {
+                bool moving = false;
+                if (c.Wait > 0) c.Wait -= dt;
+                else if (c.Step >= c.Path.Count)
+                {
+                    // Done here (a person sweeps a while, the robot only turns): off to another spot.
+                    c.Path.Clear(); c.Step = 0;
+                    Walk(c.Pos, FreeFloor(), c.Path);
+                }
+                else
+                {
+                    var to = c.Path[c.Step] - c.Pos; to.y = 0;
+                    float d = to.magnitude;
+                    if (d < 0.2f) { c.Step++; if (c.Step >= c.Path.Count) c.Wait = c.Robot ? Random.Range(0.4f, 1.5f) : Random.Range(3f, 8f); }
+                    else { c.Pos += to / d * Mathf.Min(d, c.Speed * dt); c.Dir = Vector3.Slerp(c.Dir, to / d, Mathf.Min(1, dt * (c.Robot ? 3 : 8))); moving = true; }
+                }
+                var at = Origin + c.Pos;
+                float outside = cam != null ? Outside(at + Vector3.up * 0.5f) : 0;
+                if (outside > 5f) continue;
+                if (c.Robot) { if (outside <= 1.4f) _crewLists[5].Add(Matrix4x4.TRS(at, Quaternion.LookRotation(c.Dir), Vector3.one)); continue; }
+                var m = Matrix4x4.TRS(at, Quaternion.LookRotation(-c.Dir), Vector3.one * 1.75f);
+                _shadows.Add(m);
+                if (outside <= 1.4f) _crewLists[moving ? (int)(c.Phase + Time.time * 5) & 3 : 4].Add(m);
+            }
+            for (int i = 0; i < 6; i++)
+                if (_crewLists[i].Count > 0 && _crewMeshes[i] != null)
+                    Graphics.DrawMeshInstanced(_crewMeshes[i], 0, i == 5 ? Materials.World : Materials.Kit, _crewLists[i], null, i == 5 ? UnityEngine.Rendering.ShadowCastingMode.On : UnityEngine.Rendering.ShadowCastingMode.Off, true);
+        }
+
         // ------------------------------------------------------------------ finding a way round the furniture
 
         // The floor as cells, with one more ring of cells round it (the aisles along security, the gates and the end
         // walls, always clear): true where something stands or a bay is fenced off.
         bool[,] _solid = new bool[0, 0];
+        bool[,] _reach = new bool[0, 0];     // free and reachable from the aisles round the floor (not a gap walled in between shops)
         int[,] _from = new int[0, 0];       // the cell each was reached from, in the last search
         readonly Queue<int> _open = new Queue<int>();
 
@@ -718,6 +811,21 @@ namespace Crosswind.Game
                 if (d == null || d.W * d.D < 2) continue;
                 int w, dp; Sim.Footprint(d, p.rot, out w, out dp);
                 for (int x = p.x; x < p.x + w; x++) for (int z = p.z; z < p.z + dp; z++) if (x >= 0 && z >= 0 && x < _sim.FloorCols && z < _sim.FloorRows) _solid[x + 1, z + 1] = true;
+            }
+            // What can be walked to: flood in from the ring of aisles.
+            _reach = new bool[cols, rows];
+            var q = new Queue<int>();
+            for (int x = 0; x < cols; x++) for (int z = 0; z < rows; z++)
+                if ((x == 0 || z == 0 || x == cols - 1 || z == rows - 1) && !_solid[x, z]) { _reach[x, z] = true; q.Enqueue(x + z * cols); }
+            while (q.Count > 0)
+            {
+                int cur = q.Dequeue(), cx = cur % cols, cz = cur / cols;
+                for (int k = 0; k < 4; k++)
+                {
+                    int nx = cx + (k == 0 ? 1 : k == 1 ? -1 : 0), nz = cz + (k == 2 ? 1 : k == 3 ? -1 : 0);
+                    if (nx < 0 || nz < 0 || nx >= cols || nz >= rows || _reach[nx, nz] || _solid[nx, nz]) continue;
+                    _reach[nx, nz] = true; q.Enqueue(nx + nz * cols);
+                }
             }
         }
 

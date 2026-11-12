@@ -156,6 +156,14 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   studio light, shadow catcher, trimmed to a 256 square). Add an icon: put it in `ICONS`, fetch, `render <name>`, and
   update the credits (`CREDITS.md` and the "Picture icons" row under EMPIRE). `World/Studio.cs` still photographs the
   game's own terminal items for the catalogue (`Interior.Picture`).
+- The terminal is a compact hall, not a strip (the user, 2026-11-11: "The airport should be like this. Not a long
+  and skinny rectangle."): `Sim.TerminalLength` is its width across (60 to 120 m: what `CheckinDesks`,
+  `SecurityLanes` and `GateLounges` need), `Sim.TerminalDepth` its depth (`TerminalFront` 25 m of doors, check-in and
+  security + `FloorCols` x 2 m of floor + `TerminalBack` 16 m of gate lounges); `FloorCols` (8 to 16, one more per
+  star) run from security toward the gates, `FloorRows` across. In `Interior`, x is depth (doors at -x, glass at +x)
+  and z is across; `Interior.Width` is the depth. Inside, `CameraRig` faces the hall square on (yaw 90, pitch 55) and
+  `FitInside` fills the screen wall to wall. `Sim.RefitTerminal` (on load) moves furniture from older saves onto the
+  floor. Keep the hall under two to one (`TerminalTests`).
 - Incidents (`Core/Sim.Incidents.cs`, `IncidentTests`; from 2 stars and 15 flights): every 4 to 8 game minutes
   `IncidentTick` puts one of twelve `Incidents` on the desk (`State.incident`: id, `expiresAt`, `value` = what a minute
   of the airport is worth, an `airline`); `IncidentStory`, `IncidentDoes(choice)`, `IncidentBlocked(choice)`,

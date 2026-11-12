@@ -145,7 +145,7 @@ namespace Crosswind.Game
             if (_placing != null)
             {
                 int w, d; Sim.Footprint(_placing, _placeRot, out w, out d);
-                _placeX = Mathf.Clamp(cx - (w - 1) / 2, 0, Sim.FloorCols - w); _placeZ = Mathf.Clamp(cz - (d - 1) / 2, 0, Mathf.Max(0, _sim.FloorRows - d));
+                _placeX = Mathf.Clamp(cx - (w - 1) / 2, 0, _sim.FloorCols - w); _placeZ = Mathf.Clamp(cz - (d - 1) / 2, 0, Mathf.Max(0, _sim.FloorRows - d));
                 Sfx.Play("click", 0.4f);
                 return;
             }
@@ -209,7 +209,7 @@ namespace Crosswind.Game
             if (_placing != null)
             {
                 int w, d; Sim.Footprint(_placing, _placeRot, out w, out d);
-                _placeX = Mathf.Clamp(_placeX, 0, Sim.FloorCols - w); _placeZ = Mathf.Clamp(_placeZ, 0, Mathf.Max(0, _sim.FloorRows - d));
+                _placeX = Mathf.Clamp(_placeX, 0, _sim.FloorCols - w); _placeZ = Mathf.Clamp(_placeZ, 0, Mathf.Max(0, _sim.FloorRows - d));
                 bool free = _sim.FloorFree(_placing, _placeX, _placeZ, _placeRot, _moving);
                 double cost = _moving != null ? 0 : _sim.AmenityCost(_placing.Id);
                 bool can = free && _sim.State.money >= cost;

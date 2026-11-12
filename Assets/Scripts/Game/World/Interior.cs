@@ -15,8 +15,8 @@ namespace Crosswind.Game
     {
         public static Interior Instance { get; private set; }
         public static readonly Vector3 Origin = new Vector3(3000, 0, 0);
-        public const float Width = 64f;     // x: landside (-) to airside (+)
-
+        /// <summary>The hall's depth (x: the doors at -, the glass to the apron at +) and its width across (z).</summary>
+        public float Width { get; private set; } = 66f;
         public float Length { get; private set; }
 
         GameObject _static;
@@ -61,26 +61,26 @@ namespace Crosswind.Game
         {
             if (_static != null) Destroy(_static);
             _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear();
-            float was = Length;
+            float was = Length, wasDeep = Width;
             var s = _sim;
             int checkin = s.Level("checkin"), security = s.Level("security"), gates = s.Level("gates"), shops = s.Level("shops"), seating = s.Level("seating"), info = s.Level("info"), lounge = s.Level("lounge");
-            Length = s.TerminalLength;
-            if (Length < was - 0.5f) _agents.Clear();      // a smaller hall (a new airport): the old crowd would walk through walls. Otherwise people finish their way.
+            Length = s.TerminalLength; Width = s.TerminalDepth;
+            if (Length < was - 0.5f || Mathf.Abs(Width - wasDeep) > 0.5f) _agents.Clear();      // a smaller hall (a new airport): the old crowd would walk through walls. Otherwise people finish their way.
             float L = Length, W = Width, x0 = -W * 0.5f, z0 = -L * 0.5f;
             var mb = new MeshBuilder { Smoothness = 0.25f };
             mb.Box(new Vector3(0, -0.6f, 0), new Vector3(1600, 0.5f, 1600), Palette.Hex(0x1E242C));     // the table the cutaway stands on
             var g = new Ground();
             // Floors: pale stone in the hall, a warmer tone in the concourse, carpet blue at the gates.
             g.Rect("Concrete", 0, 0, W, L, 0.0f, 0, new Color(1.25f, 1.27f, 1.3f));
-            g.Rect("Concrete", x0 + W * 0.86f, 0, W * 0.26f, L, 0.01f, 0, new Color(0.62f, 0.72f, 0.86f));      // a grey-blue carpet, not a swimming pool
-            g.Rect("Concrete", x0 + W * 0.56f, 0, W * 0.3f, L, 0.012f, 0, new Color(1.35f, 1.2f, 0.98f));
-            // Walls: full height at the back and the ends, cut low toward the camera so the floor shows.
+            float sx = x0 + 21.5f, gateEdge = W * 0.5f - Sim.TerminalBack;      // the security wall, and where the gate lounges begin
+            g.Rect("Concrete", gateEdge + Sim.TerminalBack * 0.5f, 0, Sim.TerminalBack, L, 0.01f, 0, new Color(0.62f, 0.72f, 0.86f));      // a grey-blue carpet, not a swimming pool
+            g.Rect("Concrete", (sx + gateEdge) * 0.5f, 0, gateEdge - sx, L, 0.012f, 0, new Color(1.35f, 1.2f, 0.98f));
+            // Walls: full height along the glass at the back, lower at the two ends, cut low at the doors (toward the camera) so the floor shows.
             Color wall = Palette.Hex(0xE7E3DA), trim = Palette.Hex(0x1F5FA8), deskTint = new Color(0.82f, 0.92f, 1.12f);
-            mb.Box(new Vector3(0, 2.6f, -L * 0.5f - 0.3f), new Vector3(W + 1.2f, 5.2f, 0.6f), wall, Palette.White);
+            foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(0, 1.5f, e * (L * 0.5f + 0.3f)), new Vector3(W + 1.2f, 3.0f, 0.6f), wall, Palette.White);
             mb.Box(new Vector3(W * 0.5f + 0.3f, 2.6f, 0), new Vector3(0.6f, 5.2f, L + 1.2f), wall, Palette.White);
-            mb.Box(new Vector3(0, 0.5f, L * 0.5f + 0.3f), new Vector3(W + 1.2f, 1.0f, 0.6f), wall, Palette.White);
             mb.Box(new Vector3(-W * 0.5f - 0.3f, 0.5f, 0), new Vector3(0.6f, 1.0f, L + 1.2f), wall, Palette.White);
-            mb.Box(new Vector3(0, 4.9f, -L * 0.5f + 0.05f), new Vector3(W, 0.5f, 0.1f), trim);
+            mb.Box(new Vector3(W * 0.5f - 0.06f, 4.9f, 0), new Vector3(0.1f, 0.5f, L), trim);
             // Glass to the apron along the airside wall.
             mb.Smoothness = 0.92f;
             for (float z = z0 + 3; z < L * 0.5f - 2; z += 6) mb.Box(new Vector3(W * 0.5f - 0.05f, 2.6f, z), new Vector3(0.12f, 3.6f, 4.6f), Palette.Hex(0x6FB0CC));
@@ -97,8 +97,8 @@ namespace Crosswind.Game
             }
 
             // ---- check-in: islands of desks with a baggage belt behind and queue barriers in front
-            int desks = Mathf.Clamp(checkin * 2, 2, 40), perIsland = 6, islands = (desks + perIsland - 1) / perIsland;
-            float cx = x0 + W * 0.2f;
+            int desks = s.CheckinDesks, perIsland = 6, islands = (desks + perIsland - 1) / perIsland;
+            float cx = x0 + 11.5f;
             for (int i = 0; i < islands; i++)
             {
                 float iz = z0 + L * (i + 0.5f) / islands;
@@ -127,8 +127,7 @@ namespace Crosswind.Game
             }
 
             // ---- security: lanes with a belt, a scanner and an arch, across the middle
-            int lanes = Mathf.Clamp(security, 1, 24);
-            float sx = x0 + W * 0.4f;
+            int lanes = s.SecurityLanes;
             mb.Box(new Vector3(sx, 1.3f, 0), new Vector3(0.3f, 2.6f, L), Palette.Hex(0xD5D8DC), Palette.White);                                    // the wall security pierces
             for (int i = 0; i < lanes; i++)
             {
@@ -148,8 +147,8 @@ namespace Crosswind.Game
             DrawFloor(mb, g, x0, z0);
 
             // ---- gate lounges along the glass: rows of seats, a desk and a gate number each
-            int gateCount = Mathf.Clamp(gates, 1, 24);
-            float gx = x0 + W * 0.86f;
+            int gateCount = s.GateLounges;
+            float gx = W * 0.5f - 6f;
             for (int i = 0; i < gateCount; i++)
             {
                 float gz = z0 + L * (i + 0.5f) / gateCount, span = Mathf.Min(7f, L / gateCount - 1.2f);
@@ -190,7 +189,7 @@ namespace Crosswind.Game
         void Update()
         {
             var s = _sim;
-            string key = s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + FloorKey(s);
+            string key = s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.FloorCols + "|" + FloorKey(s);
             if (key != _built) { _built = key; Rebuild(); }
             if (!CameraRig.Inside || _walk == null || _walk[0][0] == null) return;
 
@@ -259,8 +258,8 @@ namespace Crosswind.Game
 
         // ------------------------------------------------------------------ the concourse floor
 
-        /// <summary>The floor's corner (cell 0,0) in the hall's own space: just past security, two metres in from the end wall.</summary>
-        public Vector3 FloorCorner { get { return new Vector3(-Width * 0.5f + Width * 0.43f, 0, -Length * 0.5f + 2f); } }
+        /// <summary>The floor's corner (cell 0,0) in the hall's own space: just past security, two metres in from the end wall. Cells run x toward the gates, z across the hall.</summary>
+        public Vector3 FloorCorner { get { return new Vector3(-Width * 0.5f + Sim.TerminalFront, 0, -Length * 0.5f + 2f); } }
 
         /// <summary>The middle of a footprint, in the world.</summary>
         public Vector3 FloorPoint(int x, int z, int w, int d) { return Origin + FloorCorner + new Vector3((x + w * 0.5f) * Sim.Cell, 0, (z + d * 0.5f) * Sim.Cell); }
@@ -348,10 +347,11 @@ namespace Crosswind.Game
             var corner = FloorCorner;
             int rows = _sim.FloorRows;
             // The floor you can build on: a warm stone with fine joints at every cell.
-            float fw = Sim.FloorCols * Sim.Cell, fl = rows * Sim.Cell;
+            int cols = _sim.FloorCols;
+            float fw = cols * Sim.Cell, fl = rows * Sim.Cell;
             g.Rect("Concrete", corner.x + fw * 0.5f, corner.z + fl * 0.5f, fw, fl, 0.014f, 0, new Color(1.32f, 1.22f, 1.04f));
             var joint = new Color(0.62f, 0.58f, 0.5f);
-            for (int x = 0; x <= Sim.FloorCols; x++) mb.Box(new Vector3(corner.x + x * Sim.Cell, 0.02f, corner.z + fl * 0.5f), new Vector3(0.05f, 0.012f, fl), joint);
+            for (int x = 0; x <= cols; x++) mb.Box(new Vector3(corner.x + x * Sim.Cell, 0.02f, corner.z + fl * 0.5f), new Vector3(0.05f, 0.012f, fl), joint);
             for (int z = 0; z <= rows; z += 1) mb.Box(new Vector3(corner.x + fw * 0.5f, 0.02f, corner.z + z * Sim.Cell), new Vector3(fw, 0.012f, 0.05f), joint);
 
             foreach (var p in _sim.State.terminal)

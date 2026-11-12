@@ -79,10 +79,11 @@ namespace Crosswind.Core
 
         void AddRating(double xp)
         {
-            int before = Stars;
+            int before = Stars, floor = FloorCols;
             State.ratingXp += xp * (1 + Fx(Effect.RatingGain));
             int after = Stars;
             for (int s = before + 1; s <= after; s++) { State.crates++; StarGained?.Invoke(s); }     // every star brings a crate
+            if (FloorCols > floor) Toast?.Invoke("The terminal is deeper: more floor to build on");
         }
 
         // ------------------------------------------------------------------ managers

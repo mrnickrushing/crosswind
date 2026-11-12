@@ -11,7 +11,10 @@ namespace Crosswind.Game
         /// <summary>The point on the ground the camera looks at, and how far back it stands.</summary>
         public Vector3 Focus = new Vector3(6, 0, -40);
         public float Distance = 230f;
-        const float Pitch = 40f, Yaw = 128f, MinDistance = 90f, MaxDistance = 700f;
+        const float MinDistance = 90f, MaxDistance = 700f, InsideMin = 40f, InsideMax = 320f;
+        /// <summary>Over the airfield the view is three-quarter; inside it faces the hall square on from the doors, a little steeper, so the hall fills the screen.</summary>
+        static float Pitch { get { return Inside ? 55f : 40f; } }
+        static float Yaw { get { return Inside ? 90f : 128f; } }
         Vector3 _focusV;
         float _shown;
 
@@ -23,9 +26,23 @@ namespace Crosswind.Game
         {
             if (inside == Inside) return;
             Inside = inside;
-            if (inside) { _outFocus = Focus; _outDistance = Distance; Focus = Interior.Origin + new Vector3(0, 0, -6); Distance = 235; }
+            if (inside) { _outFocus = Focus; _outDistance = Distance; Focus = Interior.Origin; Distance = FitInside(); }
             else { Focus = _outFocus; Distance = _outDistance; }
             _shown = Distance;
+        }
+
+        /// <summary>
+        /// How far back the hall fills the screen from wall to wall. On a wide phone that leaves the doors and the far
+        /// end of the gate lounges a short drag away; on a tablet the whole hall is in view.
+        /// </summary>
+        public float FitInside()
+        {
+            var hall = Interior.Instance;
+            float across = hall != null ? hall.Length : 60, deep = hall != null ? hall.Width : 66;
+            float t = Mathf.Tan(Cam.fieldOfView * 0.5f * Mathf.Deg2Rad), aspect = Mathf.Max(0.5f, Cam.aspect);
+            float wide = (across + 3) / (2 * t * aspect), whole = (deep + 4) * Mathf.Sin(Pitch * Mathf.Deg2Rad) / (2 * t);
+            // Wall to wall; where that would show less than about two thirds of the hall's depth, a little further back.
+            return Mathf.Clamp(wide >= whole ? wide : Mathf.Max(wide, whole * 0.62f), InsideMin, InsideMax);
         }
 
         public static CameraRig Create()
@@ -54,8 +71,8 @@ namespace Crosswind.Game
             Focus -= right * pixels.x * perPixel + fwd * pixels.y * perPixel / Mathf.Sin(Pitch * Mathf.Deg2Rad);
             if (Inside)
             {
-                float half = Interior.Instance != null ? Interior.Instance.Length * 0.5f : 40;
-                Focus.x = Mathf.Clamp(Focus.x, Interior.Origin.x - 34, Interior.Origin.x + 34);
+                float half = Interior.Instance != null ? Interior.Instance.Length * 0.5f : 40, deep = Interior.Instance != null ? Interior.Instance.Width * 0.5f : 33;
+                Focus.x = Mathf.Clamp(Focus.x, Interior.Origin.x - deep, Interior.Origin.x + deep);
                 Focus.z = Mathf.Clamp(Focus.z, -half, half);
                 return;
             }
@@ -64,7 +81,7 @@ namespace Crosswind.Game
         }
 
         /// <summary>Zoom by a factor (over 1 = closer).</summary>
-        public void Zoom(float factor) { Distance = Mathf.Clamp(Distance / Mathf.Max(0.01f, factor), Inside ? 45f : MinDistance, Inside ? 260f : MaxDistance); }
+        public void Zoom(float factor) { Distance = Mathf.Clamp(Distance / Mathf.Max(0.01f, factor), Inside ? InsideMin : MinDistance, Inside ? InsideMax : MaxDistance); }
 
         void LateUpdate()
         {

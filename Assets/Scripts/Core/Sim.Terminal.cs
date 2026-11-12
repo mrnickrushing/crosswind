@@ -33,7 +33,7 @@ namespace Crosswind.Core
     /// </summary>
     public sealed partial class Sim
     {
-        public const int FloorCols = 8, MaxAmenityLevel = 3;
+        public const int MaxAmenityLevel = 3;
         public const float Cell = 2f;
 
         public static readonly List<AmenityDef> Amenities = new List<AmenityDef>
@@ -78,10 +78,35 @@ namespace Crosswind.Core
 
         public static AmenityDef AmenityById(string id) { return Amenities.Find(a => a.Id == id); }
 
-        /// <summary>The terminal's length in metres: it grows with check-in, security and the gates.</summary>
-        public float TerminalLength { get { return Math.Max(50, Math.Min(190, 46 + (Level("checkin") + Level("security") + Level("gates")) * 3.2f)); } }
-        /// <summary>Rows of the concourse floor you can build on.</summary>
+        // The hall is a compact rectangle seen from the landside: doors, check-in and security across the front, the
+        // concourse floor behind them, the gate lounges along the glass at the back. It grows both ways: wider with
+        // check-in, security and the gates (each needs room across the hall), deeper with the airport's rating.
+        public const float TerminalFront = 25f, TerminalBack = 16f, MinTerminalWidth = 60f, MaxTerminalWidth = 120f;
+        public const int MinFloorCols = 8, MaxFloorCols = 16;
+
+        /// <summary>Check-in desks, security lanes and gates as the hall shows them (their levels, capped).</summary>
+        public int CheckinDesks { get { return Math.Max(2, Math.Min(40, Level("checkin") * 2)); } }
+        public int SecurityLanes { get { return Math.Max(1, Math.Min(24, Level("security"))); } }
+        public int GateLounges { get { return Math.Max(1, Math.Min(24, Level("gates"))); } }
+
+        /// <summary>The hall's width in metres (across, as you look in from the doors): what its desks, lanes and gates need, in whole floor cells.</summary>
+        public float TerminalLength
+        {
+            get
+            {
+                int islands = (CheckinDesks + 5) / 6;
+                float want = MinTerminalWidth + (Level("checkin") + Level("security") + Level("gates")) * 0.9f;
+                want = Math.Max(want, Math.Max(islands * 13.4f + 4, Math.Max(SecurityLanes * 4.6f, GateLounges * 4.4f)));
+                want = Math.Max(MinTerminalWidth, Math.Min(MaxTerminalWidth, want));
+                return (float)Math.Ceiling(want / Cell) * Cell;
+            }
+        }
+        /// <summary>Floor cells from security back toward the gates: one more with every star.</summary>
+        public int FloorCols { get { return Math.Max(MinFloorCols, Math.Min(MaxFloorCols, MinFloorCols - 1 + Stars)); } }
+        /// <summary>Floor cells across the hall.</summary>
         public int FloorRows { get { return (int)((TerminalLength - 4) / Cell); } }
+        /// <summary>The hall's depth in metres, doors to glass.</summary>
+        public float TerminalDepth { get { return TerminalFront + FloorCols * Cell + TerminalBack; } }
 
         public int Placed(string id) { return State.terminal.Count(p => p.id == id); }
 
@@ -131,20 +156,40 @@ namespace Crosswind.Core
             return true;
         }
 
-        /// <summary>The first free spot for this, row by row from the middle of the terminal (null: the floor is full).</summary>
-        public PlacedAmenity FindSpot(string id)
+        /// <summary>The first free spot for this, working out from the middle of the hall (null: the floor is full).</summary>
+        public PlacedAmenity FindSpot(string id, PlacedAmenity ignore = null)
         {
             var d = AmenityById(id);
             if (d == null) return null;
-            int rows = FloorRows, mid = rows / 2;
+            int rows = FloorRows, cols = FloorCols, mid = rows / 2;
             for (int k = 0; k < rows; k++)
             {
                 int z = mid + ((k & 1) == 0 ? k / 2 : -(k / 2) - 1);
                 for (int rot = 0; rot < 2; rot++)
-                    for (int x = 0; x < FloorCols; x++)
-                        if (FloorFree(d, x, z, rot)) return new PlacedAmenity { id = id, x = x, z = z, rot = rot };
+                    for (int x = 0; x < cols; x++)
+                        if (FloorFree(d, x, z, rot, ignore)) return new PlacedAmenity { id = id, x = x, z = z, rot = rot };
             }
             return null;
+        }
+
+        /// <summary>
+        /// Puts back on the floor anything that no longer lies on it (a save from before the hall changed shape): each
+        /// such item moves to the nearest free spot; with no room left it is sold back for all it cost.
+        /// </summary>
+        public int RefitTerminal()
+        {
+            int moved = 0;
+            foreach (var p in State.terminal.ToList())
+            {
+                var d = AmenityById(p.id);
+                if (d == null) { State.terminal.Remove(p); continue; }
+                if (FloorFree(d, p.x, p.z, p.rot, p)) continue;
+                var spot = FindSpot(p.id, p);
+                if (spot != null) { p.x = spot.x; p.z = spot.z; p.rot = spot.rot; }
+                else { State.money += SellValue(p) * 2; State.terminal.Remove(p); }
+                moved++;
+            }
+            return moved;
         }
 
         /// <summary>Places one wherever it fits (the play bot, and "place for me").</summary>

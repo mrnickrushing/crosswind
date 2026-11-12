@@ -99,6 +99,13 @@ namespace Crosswind.Game
                 _doors.Add(new Vector3(x0 + 1.2f, 0, z));
                 mb.Box(new Vector3(x0 - 0.3f, 1.4f, z), new Vector3(0.7f, 2.8f, 3.2f), Palette.Hex(0x4A8FB5));
                 mb.Box(new Vector3(x0 + 1.4f, 0.03f, z), new Vector3(2.2f, 0.02f, 3.4f), Palette.Hex(0x7A2E2E));      // door mat
+                // Between one door and the next: a bench against the wall with a plant either side.
+                if (i > 0)
+                {
+                    float mz = z0 + L * i / (float)doorCount;
+                    mb.Wide("bench_park", new Vector3(x0 + 0.9f, 0, mz), 180, 1.8f);
+                    foreach (float e in new[] { -1f, 1f }) mb.Tall("houseplant_c", new Vector3(x0 + 0.8f, 0, mz + e * 1.6f), 0, 1.2f);
+                }
             }
 
             // ---- check-in: islands of desks with a baggage belt behind and queue barriers in front
@@ -112,6 +119,18 @@ namespace Crosswind.Game
                 mb.Box(new Vector3(cx + 2.6f, 2.9f, iz), new Vector3(0.25f, 1.1f, n * 1.9f), Palette.Hex(0x12161B));                                // flight board
                 mb.Box(new Vector3(cx + 2.45f, 2.9f, iz), new Vector3(0.05f, 0.8f, n * 1.9f - 0.4f), Palette.Hex(0xF2C230));
                 foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(cx + 2.6f, 1.2f, iz + e * n * 0.95f), new Vector3(0.18f, 2.4f, 0.18f), Palette.Steel);
+                // Islands are lettered from the left as you face them (z runs right to left on screen).
+                string island = "CHECK-IN " + (char)('A' + (islands - 1 - i));
+                _labels.Add((island, new Vector3(cx + 2.38f, 2.9f, iz), 0, Mathf.Min(0.6f, (n * 1.9f - 0.6f) * 0.95f / island.Length * 1.7f), Palette.Hex(0x12161B)));
+                // In the gap before the next island: seats back to back, a plant at the end of the row.
+                float gap = L / islands - (n * 1.9f + 1);
+                if (i > 0 && gap > 5f)
+                {
+                    float gz2 = z0 + L * i / (float)islands;
+                    mb.Mat(0.7f, 0.6f); foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(cx - 0.5f, 0.2f, gz2 + e * 0.3f), new Vector3(4.4f, 0.06f, 0.08f), Palette.Steel); mb.Mat(0.25f);
+                    for (float x = cx - 2.5f; x <= cx + 1.5f; x += 0.52f) { mb.Tall("chair", new Vector3(x, 0, gz2 - 0.3f), 270, 0.88f); mb.Tall("chair", new Vector3(x, 0, gz2 + 0.3f), 90, 0.88f); }
+                    mb.Tall("plant_pot", new Vector3(cx - 3.1f, 0, gz2), 0, 0.95f);
+                }
                 for (int k = 0; k < n; k++)
                 {
                     float dz = iz + (k - (n - 1) / 2f) * 1.9f;
@@ -146,6 +165,19 @@ namespace Crosswind.Game
                 mb.Tall("luggage", new Vector3(sx - 1.7f, 0.95f, lz - 0.8f), 90 + i * 30, 0.5f, i % 2 == 0 ? Color.white : new Color(0.6f, 0.9f, 1.3f));
                 mb.Tall("luggage", new Vector3(sx + 1.6f, 0.95f, lz - 0.8f), 60 + i * 50, 0.46f, i % 3 == 0 ? new Color(1.3f, 0.7f, 0.6f) : Color.white);
                 _lanes.Add(new Vector3(sx, 0, lz + 0.8f));
+                // A sign over every lane while there are few, then over every third.
+                if (lanes <= 6 || i % 3 == 1)
+                {
+                    mb.Box(new Vector3(sx, 3.05f, lz), new Vector3(0.24f, 0.8f, 4.4f), Palette.Hex(0x1F5FA8));
+                    _labels.Add(("SECURITY", new Vector3(sx - 0.16f, 3.05f, lz), 0, 0.6f, Color.white));
+                }
+            }
+            // Vending and a cash machine against each end wall of the check-in hall.
+            foreach (float e in new[] { -1f, 1f })
+            {
+                mb.Tall("vending", new Vector3(cx - 1.2f, 0, e * (L * 0.5f - 0.75f)), e < 0 ? 90 : 270, 1.7f);
+                mb.Tall("atm", new Vector3(cx + 0.2f, 0, e * (L * 0.5f - 0.6f)), e < 0 ? 90 : 270, 1.75f);
+                mb.Tall("houseplant_c", new Vector3(cx + 1.3f, 0, e * (L * 0.5f - 0.7f)), 0, 1.2f);
             }
 
             // ---- the concourse: whatever the player has placed on its floor
@@ -174,6 +206,9 @@ namespace Crosswind.Game
                     }
                 }
                 _gates.Add(new Vector3(W * 0.5f - 2.4f, 0, gz));
+                _labels.Add(("A" + (gateCount - i), new Vector3(W * 0.5f - 0.68f, 3.3f, gz), 0, 0.42f, Palette.Hex(0x12161B)));
+                // A tall plant against the glass between this gate and the next.
+                if (i > 0 && L / gateCount >= 4.6f) mb.Tall("fiddle", new Vector3(W * 0.5f - 1.0f, 0, z0 + L * i / (float)gateCount), i * 40, 2.0f);
             }
             _static = mb.ToObject("Static", transform);
             g.Build(_static.transform);

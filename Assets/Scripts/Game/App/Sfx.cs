@@ -6,13 +6,14 @@ namespace Crosswind.Game
     /// <summary>
     /// Sound: interface clips from Resources/Audio (takes named name, name_2, name_3 are picked at random), and the
     /// airfield itself made in code: a jet's roar for each landing and take-off and a quiet bed of wind and distant
-    /// engines, so there is nothing to license and nothing to download.
+    /// engines. Inside the terminal the wind gives way to the hall's murmur (Audio/hall, from a CC0 recording made in an
+    /// airport; see Tools/art/ambience.py).
     /// </summary>
     public static class Sfx
     {
         static readonly Dictionary<string, AudioClip[]> _clips = new Dictionary<string, AudioClip[]>();
         static AudioSource[] _pool;
-        static AudioSource _bed;
+        static AudioSource _bed, _hall;
         static AudioClip _jet, _prop;
         static int _next;
         static AudioSource _day, _night;
@@ -44,6 +45,22 @@ namespace Crosswind.Game
                 if (want && !src.isPlaying) src.Play();
                 else if (!want && src.volume <= 0.0001f && src.isPlaying) src.Stop();
             }
+        }
+
+        /// <summary>
+        /// The ambience follows the view: in the terminal the hall's murmur, fuller the bigger the crowd
+        /// (<paramref name="crowd"/> 0 to 1), over a hush of the wind; on the airfield the wind alone.
+        /// </summary>
+        public static void TickAmbience(bool inside, float crowd, float dt)
+        {
+            if (_hall == null) return;
+            float want = inside ? 0.1f + 0.14f * Mathf.Clamp01(crowd) : 0;
+            _hall.volume = Mathf.MoveTowards(_hall.volume, want, dt * 0.3f);
+            _bed.volume = Mathf.MoveTowards(_bed.volume, inside ? 0.015f : 0.05f, dt * 0.06f);
+            if (_hall.clip == null) return;
+            // Starts somewhere in the loop, so opening the hall twice doesn't sound the same; silent, it stops.
+            if (want > 0 && !_hall.isPlaying) { _hall.time = Random.Range(0f, _hall.clip.length * 0.9f); _hall.Play(); }
+            else if (want <= 0 && _hall.volume <= 0.0001f && _hall.isPlaying) _hall.Stop();
         }
 
         static AudioSource MusicSource(Transform parent, string name)
@@ -78,6 +95,9 @@ namespace Crosswind.Game
             _bed.transform.SetParent(go.transform, false);
             _bed.clip = Roar("Wind", 6f, 260f, 0f, loop: true); _bed.loop = true; _bed.volume = 0.05f; _bed.spatialBlend = 0;
             _bed.Play();
+            _hall = new GameObject("Hall").AddComponent<AudioSource>();
+            _hall.transform.SetParent(go.transform, false);
+            _hall.clip = Resources.Load<AudioClip>("Audio/hall"); _hall.loop = true; _hall.volume = 0; _hall.spatialBlend = 0; _hall.playOnAwake = false;
             _day = MusicSource(go.transform, "day"); _night = MusicSource(go.transform, "night");
             AudioListener.volume = Muted ? 0 : 1;
         }

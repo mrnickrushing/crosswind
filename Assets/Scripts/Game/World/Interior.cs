@@ -91,6 +91,9 @@ namespace Crosswind.Game
 
         void OnDestroy() { if (Instance == this) Instance = null; }
 
+        /// <summary>How full the hall is, 0 to 1 (the crowd's share of the most it draws).</summary>
+        public float Crowd => _agents.Count / 340f;
+
         void Rebuild()
         {
             if (_static != null) Destroy(_static);

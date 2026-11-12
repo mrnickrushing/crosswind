@@ -49,6 +49,11 @@ The menu and rail icons are renders of free 3D models (`Tools/art/icon_models.py
 
 CC BY 3.0: https://creativecommons.org/licenses/by/3.0/ · CC BY 4.0: https://creativecommons.org/licenses/by/4.0/ · The models were rendered as pictures (lit, framed and scaled); no other changes.
 
+## Sounds
+
+- The terminal's crowd murmur is made from "Sound inside Tocumen airport in Panama" by **Wilfredor** (CC0, Wikimedia Commons, https://commons.wikimedia.org/wiki/File:Sound_inside_Tocumen_airport_in_Panama.flac): four stretches filtered to the murmur band, levelled and layered into a seamless loop by `Tools/art/ambience.py`.
+- The music (`Tools/art/music.py`) and the airfield's jet, propeller and wind sounds (`Assets/Scripts/Game/App/Sfx.cs`) are made in code.
+
 ## Textures
 
 - Ground, apron and floor textures from **Poly Haven** and **ambientCG** (CC0), fetched by `Tools/art/surfaces.py`.

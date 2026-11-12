@@ -230,7 +230,24 @@ namespace Crosswind.Game
                 mb.Box(new Vector3(apronX + 9.5f, 0.3f, bz), new Vector3(1.6f, 0.6f, 2.6f), Palette.Hex(0x39424A));
             }
             ClearApron();
+            // ---- outside the doors: a pavement, the drop-off road with its centre line, and cars at the kerb
+            float kerb = x0 - 0.7f;
+            g.Rect("Concrete", kerb - 2.4f, 0, 4.8f, L + 50, 0.004f, 0, new Color(1.05f, 1.05f, 1.08f));
+            g.Rect("Asphalt", kerb - 10.3f, 0, 11f, L + 50, 0.006f);
+            for (float z = z0 - 20; z < L * 0.5f + 20; z += 6f) mb.Box(new Vector3(kerb - 10.3f, 0.02f, z), new Vector3(0.22f, 0.02f, 2.6f), Palette.White);
+            mb.Box(new Vector3(kerb - 4.8f, 0.08f, 0), new Vector3(0.3f, 0.16f, L + 50), Palette.Hex(0xB9BEC4));
             _static = mb.ToObject("Static", transform);
+            {
+                // Taxis wait by the doors; other cars have stopped where they found room. Kit cars face -z: along the road.
+                string[] cars = { "taxi", "sedan", "suv", "taxi", "hatchback", "coupe", "taxi", "pickup" };
+                var rng = new System.Random(doorCount * 31 + 7);
+                int k = 0;
+                for (float z = z0 + 3; z < L * 0.5f - 3; z += 6.2f + (float)rng.NextDouble() * 5f, k++)
+                {
+                    bool far = k % 4 == 3;       // one in four is passing in the far lane, the other way
+                    Models.Kit(cars[(k + rng.Next(3)) % cars.Length], _static.transform, new Vector3(kerb - (far ? 13f : 6.6f), 0.02f, z), far ? 180 : 0, 4.5f);
+                }
+            }
             g.Build(_static.transform);
             BuildGrid();
             foreach (var l in _labels) Lettering(l.text, l.at, l.yaw, l.size, l.color);

@@ -25,8 +25,13 @@ namespace Crosswind.Game
 
         // Where the crowd goes.
         readonly List<Vector3> _doors = new List<Vector3>(), _desks = new List<Vector3>(), _lanes = new List<Vector3>(), _shops = new List<Vector3>(), _seats = new List<Vector3>(), _gates = new List<Vector3>();
+        // What each shop stop and seat belongs to (null: a gate lounge's own seats).
+        readonly List<string> _shopIds = new List<string>(), _seatIds = new List<string>();
 
-        public sealed class Agent { public int Seed; public int Kind; public Vector3 Pos, Target; public int Step; public float Wait, Speed, Phase; public bool Arriving; public Vector3[] Path; public bool[] Stop; }
+        public sealed class Agent { public int Seed; public int Kind; public Vector3 Pos, Target; public int Step; public float Wait, Speed, Phase; public bool Arriving; public Vector3[] Path; public bool[] Stop; public string[] At; }
+
+        /// <summary>A passenger has just stopped at something on the concourse (the amenity's id): the HUD shows what they make of it.</summary>
+        public static System.Action<Agent, string> Thought;
         readonly List<Agent> _agents = new List<Agent>();
         static Mesh[][] _walk; static Mesh[] _idle;
         readonly List<Matrix4x4>[] _batches = new List<Matrix4x4>[12 * 5];
@@ -60,7 +65,7 @@ namespace Crosswind.Game
         void Rebuild()
         {
             if (_static != null) Destroy(_static);
-            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear();
+            _doors.Clear(); _desks.Clear(); _lanes.Clear(); _shops.Clear(); _seats.Clear(); _gates.Clear(); _shopIds.Clear(); _seatIds.Clear();
             float was = Length, wasDeep = Width;
             var s = _sim;
             int checkin = s.Level("checkin"), security = s.Level("security"), gates = s.Level("gates"), shops = s.Level("shops"), seating = s.Level("seating"), info = s.Level("info"), lounge = s.Level("lounge");
@@ -165,7 +170,7 @@ namespace Crosswind.Game
                     {
                         var sp = new Vector3(rx, 0, sz);
                         mb.Tall("chair", sp, 0, 0.88f);
-                        if ((int)(sz * 4) % 3 == 0) _seats.Add(sp + new Vector3(-0.2f, 0, 0));
+                        if ((int)(sz * 4) % 3 == 0) { _seats.Add(sp + new Vector3(-0.2f, 0, 0)); _seatIds.Add(null); }
                     }
                 }
                 _gates.Add(new Vector3(W * 0.5f - 2.4f, 0, gz));
@@ -213,6 +218,7 @@ namespace Crosswind.Game
                     {
                         a.Step++;
                         a.Wait = a.Step < a.Path.Length && a.Stop[a.Step - 1] ? Random.Range(0.5f, 7f) : 0;      // they pause where they have business, not at every corner
+                        if (a.Wait > 0 && a.At[a.Step - 1] != null && Thought != null) Thought(a, a.At[a.Step - 1]);
                         if (a.Step >= a.Path.Length) { _agents.RemoveAt(i); continue; }
                     }
                     else { a.Pos += to / d * Mathf.Min(d, a.Speed * dt); a.Target = to / d; walking = true; }
@@ -235,31 +241,33 @@ namespace Crosswind.Game
             if (_doors.Count == 0 || _gates.Count == 0 || _lanes.Count == 0 || _desks.Count == 0) return;
             Vector3 R(List<Vector3> l) { return l[Random.Range(0, l.Count)] + new Vector3(Random.Range(-0.4f, 0.4f), 0, Random.Range(-0.4f, 0.4f)); }
             // Where they have business, in order; between those they keep to the aisles (see Walk).
-            var goals = new List<Vector3>();
+            var goals = new List<Vector3>(); var what = new List<string>();
+            void Go(Vector3 at, string id = null) { goals.Add(at); what.Add(id); }
+            void Visit(List<Vector3> places, List<string> ids) { int k = Random.Range(0, places.Count); Go(places[k] + new Vector3(Random.Range(-0.4f, 0.4f), 0, Random.Range(-0.4f, 0.4f)), ids[k]); }
             if (!arriving)
             {
-                goals.Add(R(_doors)); goals.Add(R(_desks));
-                var lane = R(_lanes); goals.Add(lane + Vector3.left * 3.5f); goals.Add(lane + Vector3.right * 3f);
-                if (_shops.Count > 0 && Random.value < 0.7f) goals.Add(R(_shops));
-                if (_seats.Count > 0 && Random.value < 0.6f) goals.Add(R(_seats));
-                goals.Add(R(_gates));
+                Go(R(_doors)); Go(R(_desks));
+                var lane = R(_lanes); Go(lane + Vector3.left * 3.5f); Go(lane + Vector3.right * 3f);
+                if (_shops.Count > 0 && Random.value < 0.7f) Visit(_shops, _shopIds);
+                if (_seats.Count > 0 && Random.value < 0.6f) Visit(_seats, _seatIds);
+                Go(R(_gates));
             }
             else
             {
-                goals.Add(R(_gates));
-                if (_shops.Count > 0 && Random.value < 0.3f) goals.Add(R(_shops));
-                var lane = R(_lanes); goals.Add(lane + Vector3.right * 3f + Vector3.forward * 1.6f); goals.Add(lane + Vector3.left * 3.5f + Vector3.forward * 1.6f);
-                goals.Add(R(_doors));
+                Go(R(_gates));
+                if (_shops.Count > 0 && Random.value < 0.3f) Visit(_shops, _shopIds);
+                var lane = R(_lanes); Go(lane + Vector3.right * 3f + Vector3.forward * 1.6f); Go(lane + Vector3.left * 3.5f + Vector3.forward * 1.6f);
+                Go(R(_doors));
             }
             var path = new List<Vector3> { goals[0] };
-            var stop = new List<bool> { true };
+            var stop = new List<bool> { true }; var at = new List<string> { null };
             for (int i = 1; i < goals.Count; i++)
             {
                 Walk(goals[i - 1], goals[i], path);
-                while (stop.Count < path.Count - 1) stop.Add(false);
-                stop.Add(true);
+                while (stop.Count < path.Count - 1) { stop.Add(false); at.Add(null); }
+                stop.Add(true); at.Add(what[i]);
             }
-            var a = new Agent { Seed = Random.Range(1, 1 << 30), Arriving = arriving, Kind = Random.Range(0, 12), Path = path.ToArray(), Stop = stop.ToArray(), Speed = Random.Range(1.6f, 2.6f), Phase = Random.Range(0, 4) };
+            var a = new Agent { Seed = Random.Range(1, 1 << 30), Arriving = arriving, Kind = Random.Range(0, 12), Path = path.ToArray(), Stop = stop.ToArray(), At = at.ToArray(), Speed = Random.Range(1.6f, 2.6f), Phase = Random.Range(0, 4) };
             // Start part-way along, so the hall is full the moment you look in.
             int start = _agents.Count < want * 0.8f ? Random.Range(0, path.Count - 1) : 0;
             a.Pos = path[start]; a.Step = start + 1 < path.Count ? start + 1 : start; a.Target = Vector3.right;
@@ -508,7 +516,7 @@ namespace Crosswind.Game
                 }
                 // Where passengers stop: in front of it (toward check-in), or on it for seats.
                 var stop = c + new Vector3(-w * Sim.Cell * 0.5f - 0.7f, 0, 0);
-                if (d.Gives == Want.Seating || d.Gives == Want.Lounge) _seats.Add(c); else _shops.Add(stop);
+                if (d.Gives == Want.Seating || d.Gives == Want.Lounge) { _seats.Add(c); _seatIds.Add(d.Id); } else { _shops.Add(stop); _shopIds.Add(d.Id); }
             }
         }
 

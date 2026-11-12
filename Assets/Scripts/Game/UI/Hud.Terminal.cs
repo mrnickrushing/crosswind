@@ -28,6 +28,7 @@ namespace Crosswind.Game
 
         void BuildTerminalUi()
         {
+            Interior.Thought = OnThought;
             // Ratings and SHOP.
             _termBar = Ui.ArtImg("Terminal bar", _safe, "panel", Color.white).rectTransform;
             _termBar.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(70, 12), new Vector2(1500, 100));
@@ -109,6 +110,42 @@ namespace Crosswind.Game
             var px = Ui.Button("Close", _paxCard, "X", new Color(0, 0, 0, 0), () => { _pax = null; _paxCard.gameObject.SetActive(false); }, 36);
             ((RectTransform)px.transform).Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-4, -4), new Vector2(70, 64));
             _paxCard.gameObject.SetActive(false);
+        }
+
+        // ------------------------------------------------------------------ what passengers make of it
+
+        static string WantIcon(Want w) { return w == Want.Food ? "burger" : w == Want.Shopping ? "shop" : w == Want.Toilets ? "restroom" : w == Want.Fun ? "gamepad" : w == Want.Clean ? "broom" : w == Want.Info ? "sign" : "couch"; }
+
+        /// <summary>
+        /// A passenger has stopped at something on the concourse: now and then a bubble rises over them with what it
+        /// was for and a mark for how well this terminal answers that need, as that passenger sees it.
+        /// </summary>
+        void OnThought(Interior.Agent who, string amenity)
+        {
+            if (!CameraRig.Inside || _tab >= 0 || _placing != null || GameRoot.Speed > 3 || _pops.Count > 10 || Random.value > 0.45f) return;
+            var d = Sim.AmenityById(amenity);
+            if (d == null || Interior.Instance == null) return;
+            var needs = _sim.Needs;
+            var want = d.Gives == Want.Lounge ? Want.Seating : d.Gives;
+            int i = needs.FindIndex(n => !n.Queue && n.Want == want);
+            if (i < 0) return;
+            float v = Personal(needs[i].Value, who.Seed, i);
+            var rt = Ui.Rect("Thought", _world);
+            rt.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0), Vector2.zero, new Vector2(104, 118));
+            var tail = Ui.ArtImg("Tail", rt, "tail", Color.white, 0);
+            tail.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(34, 34));
+            var bg = Ui.ArtImg("Bubble", rt, "bubble", Color.white);
+            bg.rectTransform.Fill(); bg.rectTransform.offsetMin = new Vector2(0, 16);
+            var pic = Ui.Img("Icon", bg.transform, Color.white); pic.sprite = IconArt.Of(WantIcon(want)); pic.preserveAspect = true;
+            pic.rectTransform.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-6, 6), new Vector2(72, 72));
+            // The mark: a smile on green, a shrug on amber, a warning on red.
+            var mark = Ui.Img("Mark", bg.transform, v >= 0.75f ? Ui.Green : v >= 0.5f ? Ui.Gold : Ui.Red, true);
+            mark.rectTransform.Place(new Vector2(1, 0), new Vector2(1, 0), new Vector2(4, 0), new Vector2(46, 46));
+            if (v >= 0.75f) { var face = Ui.Img("Face", mark.transform, Color.white); face.sprite = Ui.Ic("smile"); face.preserveAspect = true; face.rectTransform.Fill(7); }
+            else Ui.Label("Sign", mark.transform, v >= 0.5f ? "~" : "!", 34, Color.white).rectTransform.Fill();
+            var p = Float(rt, 2.8f);
+            p.World = Interior.Instance.AgentWorld(who) + Vector3.up * 2.3f;
+            p.Drift = new Vector2(0, 22);
         }
 
         static Color Meter(float v) { return v >= 0.8f ? Ui.Green : v >= 0.5f ? Ui.Gold : Ui.Red; }

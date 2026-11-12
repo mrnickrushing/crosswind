@@ -175,6 +175,8 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   they pause only there) the way is found over the floor's cells plus one ring of aisle cells (`BuildGrid`: `_solid`
   where an item of two cells or more stands or a bay is fenced), breadth-first from where they are, then straightened
   wherever the view is clear (`Clear`). A destination that is walled in is reached from the nearest free cell.
+  When one stops at a placed item, `Interior.Thought(agent, amenityId)` lets the HUD float a bubble over them
+  (`Hud.OnThought`: the need's picture icon and a green smile, amber "~" or red "!" from that passenger's own rating).
 - Incidents (`Core/Sim.Incidents.cs`, `IncidentTests`; from 2 stars and 15 flights): every 4 to 8 game minutes
   `IncidentTick` puts one of twelve `Incidents` on the desk (`State.incident`: id, `expiresAt`, `value` = what a minute
   of the airport is worth, an `airline`); `IncidentStory`, `IncidentDoes(choice)`, `IncidentBlocked(choice)`,

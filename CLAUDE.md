@@ -177,6 +177,10 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   wherever the view is clear (`Clear`). A destination that is walled in is reached from the nearest free cell.
   When one stops at a placed item, `Interior.Thought(agent, amenityId)` lets the HUD float a bubble over them
   (`Hud.OnThought`: the need's picture icon and a green smile, amber "~" or red "!" from that passenger's own rating).
+- Beyond the hall's glass is the apron (`Interior.SyncApron`, every half second while inside): a stand every
+  `ApronPitch` metres with a lead-in line and a jet bridge, and the flights that are at the terminal (Deplane, Service,
+  Board) parked nose in, in their airline's colours, drawn `ApronScale` (2.5) times the airfield's size because
+  people indoors are life size. They go when the flight pushes back; `Rebuild` clears them.
 - Incidents (`Core/Sim.Incidents.cs`, `IncidentTests`; from 2 stars and 15 flights): every 4 to 8 game minutes
   `IncidentTick` puts one of twelve `Incidents` on the desk (`State.incident`: id, `expiresAt`, `value` = what a minute
   of the airport is worth, an `airline`); `IncidentStory`, `IncidentDoes(choice)`, `IncidentBlocked(choice)`,

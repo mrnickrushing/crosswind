@@ -210,6 +210,26 @@ namespace Crosswind.Game
                 // A tall plant against the glass between this gate and the next.
                 if (i > 0 && L / gateCount >= 4.6f) mb.Tall("fiddle", new Vector3(W * 0.5f - 1.0f, 0, z0 + L * i / (float)gateCount), i * 40, 2.0f);
             }
+            // ---- beyond the glass: the apron, a stand every so often with its lead-in line and a jet bridge to the wall
+            float apronX = W * 0.5f + 0.6f;
+            g.Rect("Tarmac", apronX + 32, 0, 64, L + 50, 0.004f, 0, new Color(1.1f, 1.1f, 1.12f));
+            _apronSlots.Clear();
+            int stands = Mathf.Clamp(Mathf.FloorToInt(L / ApronPitch), 1, 4);
+            for (int i = 0; i < stands; i++)
+            {
+                float az = z0 + L * (i + 0.5f) / stands;
+                _apronSlots.Add(az);
+                mb.Box(new Vector3(apronX + 24, 0.02f, az), new Vector3(44, 0.02f, 0.3f), Palette.Hex(0xE2B93B));                                 // lead-in line
+                mb.Box(new Vector3(apronX + 4.5f, 0.02f, az), new Vector3(0.3f, 0.02f, 9f), Palette.Hex(0xE2B93B));                               // stop bar
+                // The bridge: a glazed tunnel on a leg, off to one side of the nose, ending in a cab at the door.
+                float bz = az - 5.2f;
+                mb.Box(new Vector3(apronX + 5.5f, 3.6f, bz), new Vector3(11f, 2.2f, 2.2f), Palette.Hex(0xDADDE0), Palette.White);
+                mb.Smoothness = 0.9f; mb.Box(new Vector3(apronX + 5.5f, 3.8f, bz - 1.12f), new Vector3(10.4f, 0.9f, 0.05f), Palette.Hex(0x6FB0CC)); mb.Smoothness = 0.25f;
+                mb.Box(new Vector3(apronX + 11.4f, 3.6f, bz + 1.2f), new Vector3(2.6f, 2.4f, 3.4f), Palette.Hex(0xC9CDD1), Palette.White);
+                mb.Cylinder(new Vector3(apronX + 9.5f, 0, bz), new Vector3(apronX + 9.5f, 2.5f, bz), 0.35f, 8, Palette.Steel);
+                mb.Box(new Vector3(apronX + 9.5f, 0.3f, bz), new Vector3(1.6f, 0.6f, 2.6f), Palette.Hex(0x39424A));
+            }
+            ClearApron();
             _static = mb.ToObject("Static", transform);
             g.Build(_static.transform);
             BuildGrid();
@@ -227,12 +247,54 @@ namespace Crosswind.Game
             _items.Clear();
         }
 
+        // ------------------------------------------------------------------ aircraft at the gates, seen through the glass
+
+        /// <summary>Metres of glass a stand takes, and how much larger than the airfield's the aircraft are drawn here (people are life size indoors).</summary>
+        const float ApronPitch = 34f, ApronScale = 2.5f;
+        readonly List<float> _apronSlots = new List<float>();
+        readonly Dictionary<int, GameObject> _apronPlanes = new Dictionary<int, GameObject>();
+        readonly Dictionary<int, int> _apronSlotOf = new Dictionary<int, int>();
+        float _apronIn;
+
+        void ClearApron()
+        {
+            foreach (var go in _apronPlanes.Values) if (go != null) { var mf = go.GetComponent<MeshFilter>(); if (mf != null) Destroy(mf.sharedMesh); Destroy(go); }
+            _apronPlanes.Clear(); _apronSlotOf.Clear(); _apronIn = 0;
+        }
+
+        /// <summary>The flights standing at the terminal right now take the stands beyond the glass, nose in, in their own colours; they go when the flight pushes back.</summary>
+        void SyncApron()
+        {
+            var parked = _sim.State.flights.Where(f => f.phase == Phase.Deplane || f.phase == Phase.Service || f.phase == Phase.Board).ToList();
+            foreach (int id in _apronPlanes.Keys.ToList())
+            {
+                if (parked.Exists(f => f.id == id)) continue;
+                var go = _apronPlanes[id];
+                if (go != null) { var mf = go.GetComponent<MeshFilter>(); if (mf != null) Destroy(mf.sharedMesh); Destroy(go); }
+                _apronPlanes.Remove(id); _apronSlotOf.Remove(id);
+            }
+            foreach (var f in parked.OrderBy(x => x.stand))
+            {
+                if (_apronPlanes.ContainsKey(f.id)) continue;
+                int slot = -1;
+                for (int i = 0; i < _apronSlots.Count && slot < 0; i++) if (!_apronSlotOf.ContainsValue(i)) slot = i;
+                if (slot < 0) break;
+                var r = Content.Routes[f.route];
+                var go = Models.PlaneObject(r.Class, r.Airline, "At the gate " + f.id, transform);
+                go.transform.localPosition = new Vector3(Width * 0.5f + 5.6f + Models.Length(r.Class) * ApronScale * 0.5f, 0, _apronSlots[slot]);
+                go.transform.localRotation = Quaternion.Euler(0, -90, 0);
+                go.transform.localScale = Vector3.one * ApronScale;
+                _apronPlanes[f.id] = go; _apronSlotOf[f.id] = slot;
+            }
+        }
+
         void Update()
         {
             var s = _sim;
             string key = s.Level("checkin") + "|" + s.Level("security") + "|" + s.Level("gates") + "|" + s.FloorCols + "|" + FloorKey(s);
             if (key != _built) { _built = key; Rebuild(); }
             if (!CameraRig.Inside || _walk == null || _walk[0][0] == null) return;
+            if ((_apronIn -= Time.deltaTime) <= 0) { _apronIn = 0.5f; SyncApron(); }
 
             // The crowd grows with the passengers the airport moves, up to what a phone draws comfortably.
             int want = Mathf.Clamp((int)(s.PassengerDemand * 28) + 50, 50, 340);

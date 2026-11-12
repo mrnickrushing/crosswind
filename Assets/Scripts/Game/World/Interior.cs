@@ -286,7 +286,7 @@ namespace Crosswind.Game
             }
             // ---- beyond the glass: the apron, a stand every so often with its lead-in line and a jet bridge to the wall
             float apronX = W * 0.5f + 0.6f;
-            g.Rect("Tarmac", apronX + 32, 0, 64, L + 50, 0.004f, 0, new Color(1.1f, 1.1f, 1.12f));
+            g.Rect("Tarmac", apronX + 40, 0, 80, L + 220, 0.004f, 0, new Color(1.1f, 1.1f, 1.12f));
             _apronSlots.Clear();
             int stands = Mathf.Clamp(Mathf.FloorToInt(L / ApronPitch), 1, 4);
             for (int i = 0; i < stands; i++)
@@ -353,39 +353,167 @@ namespace Crosswind.Game
         /// <summary>Metres of glass a stand takes, and how much larger than the airfield's the aircraft are drawn here (people are life size indoors).</summary>
         const float ApronPitch = 34f, ApronScale = 2.5f;
         readonly List<float> _apronSlots = new List<float>();
-        readonly Dictionary<int, GameObject> _apronPlanes = new Dictionary<int, GameObject>();
-        readonly Dictionary<int, int> _apronSlotOf = new Dictionary<int, int>();
-        float _apronIn;
+        /// <summary>An aircraft at (or on its way to, or leaving) a stand beyond the glass.</summary>
+        sealed class Stand { public GameObject Go; public int Slot; public float X, Z, Len, Age, Gone = -1; public bool Done; }
+        /// <summary>Each stand's pushback tractor: parked by the bridge, under the nose while it pushes, then back.</summary>
+        sealed class Tug { public GameObject Go; public Vector3 From; public float Back = -1; }
+        readonly Dictionary<int, Tug> _tugs = new Dictionary<int, Tug>();
+        const float TugHome = 8f;
+        readonly Dictionary<int, Stand> _apron = new Dictionary<int, Stand>();
+        float _apronIn, _apronSynced = -10;
+        /// <summary>The taxiway beyond the stands: clear of the longest tail and half the widest wing.</summary>
+        float TaxiX => Width * 0.5f + 5.6f + 14.2f * ApronScale + 6.3f * ApronScale + 3f;
+        const float TurnIn = 3f, RollIn = 8f, PushBack = 10f, TurnOut = 3f;
+        // The taxiway runs one way, toward -z: in from beyond the +z end of the hall, out past the -z end, so none appears or
+        // vanishes in view; the time on it grows with the distance.
+        float InDist(Stand p) { return Length * 0.5f + 90 - p.Z; }
+        float InTime(Stand p) { return InDist(p) / 12f; }
+        float OutDist(Stand p) { return p.Z + Length * 0.5f + 90; }
+        float OutTime(Stand p) { return Mathf.Sqrt(OutDist(p) / 0.8f); }      // pulling away at 1.6 m/s² (0.8 t²)
 
         void ClearApron()
         {
-            foreach (var go in _apronPlanes.Values) if (go != null) { var mf = go.GetComponent<MeshFilter>(); if (mf != null) Destroy(mf.sharedMesh); Destroy(go); }
-            _apronPlanes.Clear(); _apronSlotOf.Clear(); _apronIn = 0;
+            foreach (var p in _apron.Values) Drop(p.Go);
+            foreach (var t in _tugs.Values) Drop(t.Go);
+            _apron.Clear(); _tugs.Clear(); _apronIn = 0;
         }
 
-        /// <summary>The flights standing at the terminal right now take the stands beyond the glass, nose in, in their own colours; they go when the flight pushes back.</summary>
+        static void Drop(GameObject go)
+        {
+            if (go == null) return;
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>()) Destroy(mf.sharedMesh);      // the tug too, if it is still pushing
+            Destroy(go);
+        }
+
+        /// <summary>
+        /// The flights standing at the terminal take the stands beyond the glass in their own colours: they taxi along the
+        /// apron, turn in and roll up to the bridge; when the flight leaves they push back, turn and taxi away. A stand stays
+        /// taken until its aircraft is clear. Opening the hall shows those already parked where they are.
+        /// </summary>
         void SyncApron()
         {
+            bool instant = Time.time - _apronSynced > 1.5f;
+            _apronSynced = Time.time;
             var parked = _sim.State.flights.Where(f => f.phase == Phase.Deplane || f.phase == Phase.Service || f.phase == Phase.Board).ToList();
-            foreach (int id in _apronPlanes.Keys.ToList())
+            foreach (var kv in _apron.ToList())
+                if (kv.Value.Gone < 0 && !kv.Value.Done && !parked.Exists(f => f.id == kv.Key))
+                {
+                    // Gone while still on its way in: it finishes rolling up to the bridge first, then pushes back.
+                    if (instant || kv.Value.Age <= 0) { Drop(kv.Value.Go); _apron.Remove(kv.Key); }
+                    else kv.Value.Done = true;
+                }
+            foreach (var f in parked.OrderBy(x => x.phase).ThenBy(x => x.stand))      // the latest in first: those boarding are about to go
             {
-                if (parked.Exists(f => f.id == id)) continue;
-                var go = _apronPlanes[id];
-                if (go != null) { var mf = go.GetComponent<MeshFilter>(); if (mf != null) Destroy(mf.sharedMesh); Destroy(go); }
-                _apronPlanes.Remove(id); _apronSlotOf.Remove(id);
-            }
-            foreach (var f in parked.OrderBy(x => x.stand))
-            {
-                if (_apronPlanes.ContainsKey(f.id)) continue;
+                if (_apron.ContainsKey(f.id)) continue;
                 int slot = -1;
-                for (int i = 0; i < _apronSlots.Count && slot < 0; i++) if (!_apronSlotOf.ContainsValue(i)) slot = i;
+                for (int i = 0; i < _apronSlots.Count && slot < 0; i++) if (!_apron.Values.Any(p => p.Slot == i)) slot = i;
                 if (slot < 0) break;
                 var r = Content.Routes[f.route];
                 var go = Models.PlaneObject(r.Class, r.Airline, "At the gate " + f.id, transform);
-                go.transform.localPosition = new Vector3(Width * 0.5f + 5.6f + Models.Length(r.Class) * ApronScale * 0.5f, 0, _apronSlots[slot]);
-                go.transform.localRotation = Quaternion.Euler(0, -90, 0);
                 go.transform.localScale = Vector3.one * ApronScale;
-                _apronPlanes[f.id] = go; _apronSlotOf[f.id] = slot;
+                var st = new Stand { Go = go, Slot = slot, Len = Models.Length(r.Class), X = Width * 0.5f + 5.6f + Models.Length(r.Class) * ApronScale * 0.5f, Z = _apronSlots[slot], Age = instant ? 999 : 0 };
+                _apron[f.id] = st;
+                PlaceStand(st);
+            }
+        }
+
+        Vector3 TugPark(int slot) { return new Vector3(Width * 0.5f + 4.6f, 0, _apronSlots[slot] + 7.5f); }
+
+        Tug TugAt(int slot)
+        {
+            Tug t;
+            if (!_tugs.TryGetValue(slot, out t)) _tugs[slot] = t = new Tug();
+            if (t.Go == null)
+            {
+                t.Go = Gse.Build(Service.Pushback).ToObject("Tug " + slot, transform);
+                t.Go.transform.localPosition = TugPark(slot); t.Go.transform.localScale = Vector3.one * ApronScale; t.Back = -1;
+            }
+            return t;
+        }
+
+        void MoveApron(float dt)
+        {
+            for (int i = 0; i < _apronSlots.Count; i++)
+            {
+                var t = TugAt(i);
+                if (t.Back < 0) continue;
+                // Unhooked on the taxiway, it drives back to its place by the bridge (Gse vehicles face -Z, the way they drive).
+                t.Back += dt;
+                float u = Mathf.Clamp01(t.Back / TugHome);
+                var home = TugPark(i);
+                t.Go.transform.localPosition = Vector3.Lerp(t.From, home, u * u * (3 - 2 * u));
+                var dir = home - t.From; dir.y = 0;
+                t.Go.transform.localRotation = u >= 1 || dir.sqrMagnitude < 0.01f ? Quaternion.identity : Quaternion.LookRotation(-dir);
+                if (u >= 1) t.Back = -1;
+            }
+            foreach (var kv in _apron.ToList())
+            {
+                var p = kv.Value;
+                // One taxiway: an aircraft waits to push back, or to come in, until the way past its stand is clear.
+                bool waiting = (p.Gone >= 0 ? p.Gone : p.Age) <= 0 && Blocked(p);
+                if (!waiting) { if (p.Gone >= 0) p.Gone += dt; else p.Age += dt; }
+                if (p.Done && p.Gone < 0 && p.Age >= InTime(p) + TurnIn + RollIn) p.Gone = 0;
+                if (p.Gone > PushBack + TurnOut + OutTime(p)) { Drop(p.Go); _apron.Remove(kv.Key); continue; }
+                PlaceStand(p);
+            }
+        }
+
+        /// <summary>Whether another aircraft is on (or about to use) the stretch of taxiway this one needs.</summary>
+        bool Blocked(Stand p)
+        {
+            foreach (var q in _apron.Values)
+            {
+                if (q == p || q.Go == null) continue;
+                float qz = q.Go.transform.localPosition.z;
+                if (p.Gone >= 0)
+                {
+                    if (q.Gone > 0 && q.Z > p.Z && qz > p.Z - 45) return true;                                  // one leaving from further up has yet to pass
+                    if (q.Gone < 0 && q.Age > 0 && q.Age < InTime(q) + TurnIn && qz > p.Z - 45) return true;         // one coming in has yet to pass or turn
+                }
+                else if (q.Gone > 0 && qz > p.Z - 25) return true;                                                // one leaving is still above where this one turns in
+            }
+            return false;
+        }
+
+        /// <summary>Where an aircraft is along its way in or out (yaw 0: nose to +z; -90: nose to the glass).</summary>
+        void PlaceStand(Stand p)
+        {
+            if (p.Go == null) return;
+            float x = p.X, z = p.Z, yaw = -90, tx = TaxiX;
+            float Ease(float u) { u = Mathf.Clamp01(u); return u * u * (3 - 2 * u); }
+            if (p.Gone >= 0)
+            {
+                float g = p.Gone;
+                if (g < PushBack) x = Mathf.Lerp(p.X, tx, Ease(g / PushBack));
+                else if ((g -= PushBack) < TurnOut) { x = tx; yaw = Mathf.Lerp(-90, -180, Ease(g / TurnOut)); }
+                else { g -= TurnOut; x = tx; yaw = 180; z = p.Z - Mathf.Min(OutDist(p), 0.8f * g * g); }
+            }
+            else
+            {
+                float a = p.Age;
+                // In from beyond the far end, slowing to the turn (twice the average speed at first, 12 m/s on average).
+                float taxi = InTime(p);
+                if (a < taxi) { float u = Mathf.Clamp01(a / taxi); x = tx; z = p.Z + InDist(p) * (1 - u) * (1 - u); yaw = 180; }
+                else if ((a -= taxi) < TurnIn) { x = tx; yaw = Mathf.Lerp(180, 270, Ease(a / TurnIn)); }
+                else { a -= TurnIn; x = Mathf.Lerp(tx, p.X, 1 - (1 - Mathf.Clamp01(a / RollIn)) * (1 - Mathf.Clamp01(a / RollIn))); }
+            }
+            p.Go.transform.localPosition = new Vector3(x, 0, z);
+            p.Go.transform.localRotation = Quaternion.Euler(0, yaw, 0);
+            p.Go.SetActive(p.Gone >= 0 || p.Age > 0);      // still holding off the end of the taxiway
+            if (p.Gone < 0) return;
+            // The tug is under the nose while it pushes and turns the aircraft, then lets it go.
+            var tug = TugAt(p.Slot);
+            bool hooked = tug.Go.transform.parent == p.Go.transform;
+            if (p.Gone < PushBack + TurnOut && !hooked)
+            {
+                tug.Go.transform.SetParent(p.Go.transform, false);
+                tug.Go.transform.localPosition = new Vector3(0, 0, p.Len * 0.5f + 1.9f);
+                tug.Go.transform.localRotation = Quaternion.identity; tug.Go.transform.localScale = Vector3.one; tug.Back = -1;
+            }
+            else if (p.Gone >= PushBack + TurnOut && hooked)
+            {
+                tug.Go.transform.SetParent(transform, true);
+                tug.From = tug.Go.transform.localPosition; tug.From.y = 0; tug.Back = 0;
             }
         }
 
@@ -397,6 +525,7 @@ namespace Crosswind.Game
             if (key != _built && (CameraRig.Inside || _static == null)) { _built = key; Rebuild(); }
             if (!CameraRig.Inside || _walk == null || _walk[0][0] == null) return;
             if ((_apronIn -= Time.deltaTime) <= 0) { _apronIn = 0.5f; SyncApron(); }
+            MoveApron(Time.deltaTime);
             MoveTraffic(Time.deltaTime);
 
             // The crowd grows with the passengers the airport moves, up to what a phone draws comfortably.

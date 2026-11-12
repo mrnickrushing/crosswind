@@ -137,11 +137,11 @@ namespace Crosswind.Game
                     for (int k = 0; k < pieces; k++) mb.Fit("conveyor", new Vector3(cx + 1.6f, 0, iz - run * 0.5f + (k + 0.5f) * each), 0, each, 0.62f, 0.9f);
                 }
                 mb.Box(new Vector3(cx + 2.6f, 2.9f, iz), new Vector3(0.25f, 1.1f, n * 1.9f), Palette.Hex(0x12161B));                                // flight board
-                mb.Box(new Vector3(cx + 2.45f, 2.9f, iz), new Vector3(0.05f, 0.8f, n * 1.9f - 0.4f), Palette.Hex(0xF2C230));
+                mb.Box(new Vector3(cx + 2.45f, 2.5f, iz), new Vector3(0.05f, 0.14f, n * 1.9f - 0.4f), Palette.Hex(0xF2C230));
                 foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(cx + 2.6f, 1.2f, iz + e * n * 0.95f), new Vector3(0.18f, 2.4f, 0.18f), Palette.Steel);
                 // Islands are lettered from the left as you face them (z runs right to left on screen).
                 string island = "CHECK-IN " + (char)('A' + (islands - 1 - i));
-                _labels.Add((island, new Vector3(cx + 2.38f, 2.9f, iz), 0, Mathf.Min(0.6f, (n * 1.9f - 0.6f) * 0.95f / island.Length * 1.7f), Palette.Hex(0x12161B)));
+                _labels.Add((island, new Vector3(cx + 2.42f, 3.0f, iz), 0, Mathf.Min(0.6f, (n * 1.9f - 0.6f) * 0.95f / island.Length * 1.7f), Color.white));
                 // In the gap before the next island: seats back to back, a plant at the end of the row.
                 float gap = L / islands - (n * 1.9f + 1);
                 if (i > 0 && gap > 5f)
@@ -177,7 +177,7 @@ namespace Crosswind.Game
             for (int i = 0; i < lanes; i++)
             {
                 float lz = z0 + L * (i + 0.5f) / lanes;
-                mb.Box(new Vector3(sx, 1.3f, lz), new Vector3(0.5f, 2.7f, Mathf.Min(4.2f, L / lanes - 0.6f)), Palette.Hex(0x2B3138));                  // the opening (dark)
+                mb.Box(new Vector3(sx, 1.3f, lz), new Vector3(0.5f, 2.7f, Mathf.Min(4.2f, L / lanes - 0.6f)), Palette.Hex(0x7C8792));                  // the opening
                 // The X-ray machine astride the wall, a length of roller conveyor feeding it and another taking the trays away.
                 mb.Long("scanner", new Vector3(sx, 0, lz - 1.0f), 0, 2.4f);
                 foreach (float e in new[] { -1f, 1f }) mb.Fit("conveyor", new Vector3(sx + e * 2.2f, 0, lz - 1.0f), 90, 2.0f, 0.62f, 0.8f);

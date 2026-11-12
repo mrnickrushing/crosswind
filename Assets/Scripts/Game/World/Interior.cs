@@ -27,6 +27,9 @@ namespace Crosswind.Game
         readonly List<Vector3> _doors = new List<Vector3>(), _desks = new List<Vector3>(), _lanes = new List<Vector3>(), _shops = new List<Vector3>(), _seats = new List<Vector3>(), _gates = new List<Vector3>();
         // What each shop stop and seat belongs to (null: a gate lounge's own seats).
         readonly List<string> _shopIds = new List<string>(), _seatIds = new List<string>();
+        // Arrivals: where they come through the security wall, and where they wait for their bags.
+        readonly List<Vector3> _reclaim = new List<Vector3>();
+        Vector3 _arrivalsOut;
 
         public sealed class Agent { public int Seed; public int Kind; public Vector3 Pos, Target; public int Step; public float Wait, Speed, Phase; public bool Arriving; public Vector3[] Path; public bool[] Stop; public string[] At; }
 
@@ -126,10 +129,10 @@ namespace Crosswind.Game
 
             // ---- check-in: islands of desks with a baggage belt behind and queue barriers in front
             int desks = s.CheckinDesks, perIsland = 6, islands = (desks + perIsland - 1) / perIsland;
-            float cx = x0 + 11.5f;
+            float cx = x0 + 11.5f, checkinWidth = L - Sim.ReclaimWidth;      // the far end of the hall is the arrivals corner
             for (int i = 0; i < islands; i++)
             {
-                float iz = z0 + L * (i + 0.5f) / islands;
+                float iz = z0 + checkinWidth * (i + 0.5f) / islands;
                 int n = Mathf.Min(perIsland, desks - i * perIsland);
                 // The baggage belt behind the desks: lengths of roller conveyor end to end.
                 {
@@ -143,10 +146,10 @@ namespace Crosswind.Game
                 string island = "CHECK-IN " + (char)('A' + (islands - 1 - i));
                 _labels.Add((island, new Vector3(cx + 2.42f, 3.0f, iz), 0, Mathf.Min(0.6f, (n * 1.9f - 0.6f) * 0.95f / island.Length * 1.7f), Color.white));
                 // In the gap before the next island: seats back to back, a plant at the end of the row.
-                float gap = L / islands - (n * 1.9f + 1);
+                float gap = checkinWidth / islands - (n * 1.9f + 1);
                 if (i > 0 && gap > 5f)
                 {
-                    float gz2 = z0 + L * i / (float)islands;
+                    float gz2 = z0 + checkinWidth * i / (float)islands;
                     mb.Mat(0.7f, 0.6f); foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(cx - 0.5f, 0.2f, gz2 + e * 0.3f), new Vector3(4.4f, 0.06f, 0.08f), Palette.Steel); mb.Mat(0.25f);
                     for (float x = cx - 2.5f; x <= cx + 1.5f; x += 0.52f) { mb.Tall("chair", new Vector3(x, 0, gz2 - 0.3f), 270, 0.88f); mb.Tall("chair", new Vector3(x, 0, gz2 + 0.3f), 90, 0.88f); }
                     mb.Tall("plant_pot", new Vector3(cx - 3.1f, 0, gz2), 0, 0.95f);
@@ -173,11 +176,12 @@ namespace Crosswind.Game
 
             // ---- security: lanes with a belt, a scanner and an arch, across the middle
             int lanes = s.SecurityLanes;
+            float lanesWidth = L - Sim.ArrivalsGap;      // the end of the wall is the arrivals' way out
             mb.Box(new Vector3(sx, 1.3f, 0), new Vector3(0.3f, 2.6f, L), Palette.Hex(0xD5D8DC), Palette.White);                                    // the wall security pierces
             for (int i = 0; i < lanes; i++)
             {
-                float lz = z0 + L * (i + 0.5f) / lanes;
-                mb.Box(new Vector3(sx, 1.3f, lz), new Vector3(0.5f, 2.7f, Mathf.Min(4.2f, L / lanes - 0.6f)), Palette.Hex(0x7C8792));                  // the opening
+                float lz = z0 + lanesWidth * (i + 0.5f) / lanes;
+                mb.Box(new Vector3(sx, 1.3f, lz), new Vector3(0.5f, 2.7f, Mathf.Min(4.2f, lanesWidth / lanes - 0.6f)), Palette.Hex(0x7C8792));                  // the opening
                 // The X-ray machine astride the wall, a length of roller conveyor feeding it and another taking the trays away.
                 mb.Long("scanner", new Vector3(sx, 0, lz - 1.0f), 0, 2.4f);
                 foreach (float e in new[] { -1f, 1f }) mb.Fit("conveyor", new Vector3(sx + e * 2.2f, 0, lz - 1.0f), 90, 2.0f, 0.62f, 0.8f);
@@ -194,6 +198,46 @@ namespace Crosswind.Game
                     _labels.Add(("SECURITY", new Vector3(sx - 0.16f, 3.05f, lz), 0, 0.6f, Color.white));
                 }
             }
+            // ---- arrivals: their own way out through the end of the security wall, then baggage reclaim, then the doors
+            _reclaim.Clear();
+            float outZ = L * 0.5f - 1.7f;
+            _arrivalsOut = new Vector3(sx, 0, outZ);
+            mb.Box(new Vector3(sx, 1.3f, outZ), new Vector3(0.5f, 2.7f, 2.9f), Palette.Hex(0x7C8792));
+            mb.Box(new Vector3(sx, 3.05f, outZ), new Vector3(0.24f, 0.8f, 3.1f), Palette.Hex(0x2F8F5B));
+            _labels.Add(("ARRIVALS", new Vector3(sx - 0.16f, 3.05f, outZ), 0, 0.42f, Color.white));
+            // One-way: a row of posts on the landside so nobody walks in.
+            for (float z = outZ - 1.2f; z <= outZ + 1.21f; z += 0.8f) mb.Cylinder(new Vector3(sx - 1.4f, 0, z), new Vector3(sx - 1.4f, 0.9f, z), 0.05f, 6, Palette.Steel);
+            int carousels = s.Carousels;
+            float rz = L * 0.5f - 7.6f;
+            for (int i = 0; i < carousels; i++)
+            {
+                // A carousel: two runs of belt and the turns at their ends round a dark island, bags going round.
+                float rx = x0 + 5.6f + i * 5.4f;
+                foreach (float e in new[] { -1f, 1f })
+                {
+                    for (int k = 0; k < 3; k++) mb.Fit("conveyor", new Vector3(rx + e * 0.85f, 0, rz + (k - 1) * 2f), 0, 2f, 0.5f, 0.8f);
+                    mb.Fit("conveyor", new Vector3(rx, 0, rz + e * 3.4f), 90, 2.5f, 0.5f, 0.8f);
+                }
+                mb.Box(new Vector3(rx, 0.3f, rz), new Vector3(0.86f, 0.6f, 6f), Palette.Hex(0x2B3138));
+                mb.Box(new Vector3(rx, 1.5f, rz), new Vector3(0.12f, 1.8f, 0.12f), Palette.Steel);
+                mb.Box(new Vector3(rx, 2.6f, rz), new Vector3(0.2f, 0.7f, 1.3f), Palette.Hex(0x12161B));
+                _labels.Add(((carousels - i).ToString(), new Vector3(rx - 0.12f, 2.6f, rz), 0, 0.6f, Palette.Hex(0xF2C230)));
+                var bagRng = new System.Random(i * 17 + 3);
+                for (int k = 0; k < 7; k++)
+                {
+                    bool side = k < 5; float e = k % 2 == 0 ? -1f : 1f;
+                    var at = side ? new Vector3(rx + e * 0.85f, 0.5f, rz - 2.6f + (float)bagRng.NextDouble() * 5.2f) : new Vector3(rx - 0.6f + (float)bagRng.NextDouble() * 1.2f, 0.5f, rz + e * 3.4f);
+                    mb.Tall("luggage", at, (float)bagRng.NextDouble() * 360, 0.45f + (float)bagRng.NextDouble() * 0.12f, k % 3 == 0 ? Color.white : k % 3 == 1 ? new Color(0.6f, 0.9f, 1.3f) : new Color(1.3f, 0.7f, 0.6f));
+                }
+                // Where they stand to wait for a bag: along both sides.
+                for (float z = rz - 2.4f; z <= rz + 2.41f; z += 1.2f) { _reclaim.Add(new Vector3(rx - 1.75f, 0, z)); _reclaim.Add(new Vector3(rx + 1.75f, 0, z)); }
+            }
+            // Its sign hangs on two posts at the near end of the carousels, clear of the security lanes behind.
+            float signX = x0 + 2.9f;
+            foreach (float e in new[] { -1f, 1f }) mb.Box(new Vector3(signX, 1.5f, rz + e * 3.1f), new Vector3(0.14f, 3.0f, 0.14f), Palette.Steel);
+            mb.Box(new Vector3(signX, 3.05f, rz), new Vector3(0.24f, 0.8f, 6.4f), Palette.Hex(0x2F8F5B));
+            _labels.Add(("BAGGAGE RECLAIM", new Vector3(signX - 0.16f, 3.05f, rz), 0, 0.55f, Color.white));
+
             // Vending and a cash machine against each end wall of the check-in hall.
             foreach (float e in new[] { -1f, 1f })
             {
@@ -412,7 +456,10 @@ namespace Crosswind.Game
             {
                 Go(R(_gates));
                 if (_shops.Count > 0 && Random.value < 0.3f) Visit(_shops, _shopIds);
-                var lane = R(_lanes); Go(lane + Vector3.right * 3f + Vector3.forward * 1.6f); Go(lane + Vector3.left * 3.5f + Vector3.forward * 1.6f);
+                // Out by the arrivals passage at the end of the security wall, to a carousel for the bag, then the doors.
+                Go(_arrivalsOut + new Vector3(2.6f, 0, Random.Range(-0.8f, 0.8f)));
+                Go(_arrivalsOut + new Vector3(-3.2f, 0, Random.Range(-0.8f, 0.8f)));
+                if (_reclaim.Count > 0 && Random.value < 0.8f) Go(R(_reclaim));
                 Go(R(_doors));
             }
             var path = new List<Vector3> { goals[0] };

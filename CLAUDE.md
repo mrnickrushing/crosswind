@@ -184,6 +184,10 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   shadow: one plain column per person does (`_shadow`, shadows only). The hall is rebuilt only while it is being
   looked at. Measured in the Editor 2026-11-12, a furnished hall with 340 passengers: about 0.9M triangles a frame
   where it had been 2.8M.
+- Arrivals have their own way through the hall: the end of the security wall (`Sim.ArrivalsGap`) is a one-way
+  ARRIVALS passage, the landside corner beside it (`Sim.ReclaimWidth`) holds `Sim.Carousels` baggage carousels
+  (1 to 3 with the gates), and arriving passengers walk gate, passage, a carousel (`_reclaim`), the doors. Check-in
+  islands and security lanes are laid out over the rest of the width; `TerminalLength` allows for both.
 - Beyond the hall's glass is the apron (`Interior.SyncApron`, every half second while inside): a stand every
   `ApronPitch` metres with a lead-in line and a jet bridge, and the flights that are at the terminal (Deplane, Service,
   Board) parked nose in, in their airline's colours, drawn `ApronScale` (2.5) times the airfield's size because

@@ -87,12 +87,16 @@ namespace Crosswind.Core
         // concourse floor behind them, the gate lounges along the glass at the back. It grows both ways: wider with
         // check-in, security and the gates (each needs room across the hall), deeper with the airport's rating.
         public const float TerminalFront = 25f, TerminalBack = 16f, MinTerminalWidth = 60f, MaxTerminalWidth = 120f;
+        /// <summary>Metres at one end of the landside hall kept for arrivals (baggage reclaim), and of the security wall for their way out.</summary>
+        public const float ReclaimWidth = 12f, ArrivalsGap = 4f;
         public const int MinFloorCols = 8, MaxFloorCols = 16;
 
         /// <summary>Check-in desks, security lanes and gates as the hall shows them (their levels, capped).</summary>
         public int CheckinDesks { get { return Math.Max(2, Math.Min(40, Level("checkin") * 2)); } }
         public int SecurityLanes { get { return Math.Max(1, Math.Min(24, Level("security"))); } }
         public int GateLounges { get { return Math.Max(1, Math.Min(24, Level("gates"))); } }
+        /// <summary>Baggage carousels in the arrivals corner: more as the gates multiply.</summary>
+        public int Carousels { get { int g = GateLounges; return g >= 14 ? 3 : g >= 6 ? 2 : 1; } }
 
         /// <summary>The hall's width in metres (across, as you look in from the doors): what its desks, lanes and gates need, in whole floor cells.</summary>
         public float TerminalLength
@@ -101,7 +105,7 @@ namespace Crosswind.Core
             {
                 int islands = (CheckinDesks + 5) / 6;
                 float want = MinTerminalWidth + (Level("checkin") + Level("security") + Level("gates")) * 0.9f;
-                want = Math.Max(want, Math.Max(islands * 13.4f + 4, Math.Max(SecurityLanes * 4.6f, GateLounges * 4.4f)));
+                want = Math.Max(want, Math.Max(islands * 13.4f + 4 + ReclaimWidth, Math.Max(SecurityLanes * 4.6f + ArrivalsGap, GateLounges * 4.4f)));
                 want = Math.Max(MinTerminalWidth, Math.Min(MaxTerminalWidth, want));
                 return (float)Math.Ceiling(want / Cell) * Cell;
             }

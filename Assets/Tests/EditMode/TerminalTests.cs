@@ -32,8 +32,8 @@ namespace Crosswind.Tests
             // Wider with what stands across it.
             for (int i = 0; i < 12; i++) { s.Upgrade("checkin"); s.Upgrade("security"); s.Upgrade("gates"); }
             Assert.Greater(s.TerminalLength, w0);
-            Assert.GreaterOrEqual(s.TerminalLength, s.SecurityLanes * 4.6f - 2);
-            Assert.GreaterOrEqual(s.TerminalLength, (s.CheckinDesks + 5) / 6 * 13.4f);
+            Assert.GreaterOrEqual(s.TerminalLength, s.SecurityLanes * 4.6f + Sim.ArrivalsGap - 2, "room for the lanes beside the arrivals passage");
+            Assert.GreaterOrEqual(s.TerminalLength, (s.CheckinDesks + 5) / 6 * 13.4f + Sim.ReclaimWidth, "room for check-in beside baggage reclaim");
             // Deeper with the rating.
             s.State.ratingXp = Content.StarXp[6];
             Assert.AreEqual(Sim.MinFloorCols + 5, s.FloorCols);
@@ -43,6 +43,9 @@ namespace Crosswind.Tests
             for (int i = 0; i < 40; i++) { s.Upgrade("checkin"); s.Upgrade("security"); s.Upgrade("gates"); }
             Assert.AreEqual(Sim.MaxFloorCols, s.FloorCols);
             Assert.LessOrEqual(s.TerminalLength, Sim.MaxTerminalWidth);
+            Assert.GreaterOrEqual(s.TerminalLength, s.SecurityLanes * 4.6f + Sim.ArrivalsGap - 2, "even with every lane built");
+            Assert.GreaterOrEqual(s.TerminalLength, (s.CheckinDesks + 5) / 6 * 13.4f + Sim.ReclaimWidth, "and every desk");
+            Assert.AreEqual(3, s.Carousels);
             Assert.LessOrEqual(s.TerminalLength / s.TerminalDepth, 2f);
             Assert.AreEqual(s.FloorRows * Sim.Cell, s.TerminalLength - 4, 0.01f, "the floor runs the width of the hall, in whole cells");
         }

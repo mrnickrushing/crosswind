@@ -22,7 +22,7 @@ namespace Crosswind.Game
         Button _placeOk, _itemUp;
         AmenityDef _placing; PlacedAmenity _moving, _picked;
         int _placeX, _placeZ, _placeRot;
-        GameObject _ghost; Material _ghostMat;
+        GameObject _ghost, _ghostItem; Material _ghostMat, _ghostItemMat;
         Interior.Agent _pax;
         string _shopGroup = "Food";
 
@@ -162,7 +162,7 @@ namespace Crosswind.Game
         void StopPlacing()
         {
             _placing = null; _moving = null;
-            if (_ghost != null) _ghost.SetActive(false);
+            if (_ghost != null) { _ghost.SetActive(false); _ghostItem.SetActive(false); }
         }
 
         void ConfirmPlace()
@@ -284,16 +284,26 @@ namespace Crosswind.Game
                     _ghostMat = new Material(Shader.Find("Sprites/Default"));
                     _ghost.GetComponent<MeshRenderer>().sharedMaterial = _ghostMat;
                     _ghost.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    // The thing itself, see-through, standing on its footprint.
+                    _ghostItem = new GameObject("Ghost item");
+                    _ghostItem.AddComponent<MeshFilter>();
+                    _ghostItemMat = new Material(Shader.Find("Sprites/Default"));
+                    var gr = _ghostItem.AddComponent<MeshRenderer>(); gr.sharedMaterial = _ghostItemMat; gr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 }
-                _ghost.SetActive(true);
-                _ghost.transform.position = Interior.Instance.FloorPoint(_placeX, _placeZ, w, d) + Vector3.up * (0.9f + Mathf.Sin(Time.unscaledTime * 4) * 0.05f);
-                _ghost.transform.localScale = new Vector3(w * Sim.Cell - 0.1f, 1.8f, d * Sim.Cell - 0.1f);
-                _ghostMat.color = can ? new Color(0.3f, 0.95f, 0.5f, 0.45f) : new Color(1f, 0.3f, 0.25f, 0.45f);
+                _ghost.SetActive(true); _ghostItem.SetActive(true);
+                var at = Interior.Instance.FloorPoint(_placeX, _placeZ, w, d);
+                _ghost.transform.position = at + Vector3.up * 0.06f;
+                _ghost.transform.localScale = new Vector3(w * Sim.Cell - 0.1f, 0.1f, d * Sim.Cell - 0.1f);
+                _ghostMat.color = can ? new Color(0.3f, 0.95f, 0.5f, 0.55f) : new Color(1f, 0.3f, 0.25f, 0.55f);
+                _ghostItem.GetComponent<MeshFilter>().sharedMesh = Interior.ItemMesh(_placing, _moving != null ? _moving.level : 1, Interior.Variant(_placeX, _placeZ));
+                _ghostItem.transform.position = at + Vector3.up * (0.12f + Mathf.Sin(Time.unscaledTime * 4) * 0.05f);
+                _ghostItem.transform.rotation = Quaternion.Euler(0, _placeRot * 90, 0);
+                _ghostItemMat.color = can ? new Color(0.8f, 1f, 0.85f, 0.8f) : new Color(1f, 0.55f, 0.5f, 0.7f);
                 _placeText.text = "<b>" + _placing.Name + "</b>  " + _placing.W + " x " + _placing.D + "\n<color=#FFFFFFA0>Tap the floor to choose the spot." + (free ? "" : _placeZ >= 0 && _placeZ + d <= _sim.FloorRows && !_sim.BayOpen(Sim.BayOf(_placeZ)) ? "  <color=#FF8070>That floor is not open yet.</color>" : "  <color=#FF8070>No room there.</color>") + "</color>";
                 _placeOk.GetComponent<Image>().color = can ? Ui.Green : Ui.Off;
                 _placeOk.GetComponentInChildren<Text>().text = _moving != null ? "PUT HERE" : "PLACE\n<size=24>" + Format.Money(cost) + "</size>";
             }
-            else if (_ghost != null && _ghost.activeSelf) _ghost.SetActive(false);
+            else if (_ghost != null && _ghost.activeSelf) { _ghost.SetActive(false); _ghostItem.SetActive(false); }
 
             if (_picked != null)
             {

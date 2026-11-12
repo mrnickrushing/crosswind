@@ -478,10 +478,13 @@ namespace Crosswind.Game
         // Every placed item is its own object with a mesh made once for its kind, level and look: placing or moving one
         // thing does not rebuild the others, and what is off screen is not drawn.
         const int ItemVariants = 6;
+        /// <summary>Which of an item's looks stands at a cell.</summary>
+        public static int Variant(int x, int z) { return (x * 7 + z * 13) % ItemVariants; }
         static readonly Dictionary<string, Mesh> _itemMeshes = new Dictionary<string, Mesh>();
         readonly List<(Mesh mesh, Vector3 at, float yaw)> _items = new List<(Mesh, Vector3, float)>();
 
-        static Mesh ItemMesh(AmenityDef d, int level, int variant)
+        /// <summary>The mesh of an item as it will stand (for the placing preview, too).</summary>
+        public static Mesh ItemMesh(AmenityDef d, int level, int variant)
         {
             string key = d.Id + " " + level + " " + variant;
             Mesh m;
@@ -540,7 +543,7 @@ namespace Crosswind.Game
                 var d = Sim.AmenityById(p.id);
                 int w, dp; Sim.Footprint(d, p.rot, out w, out dp);
                 var c = corner + new Vector3((p.x + w * 0.5f) * Sim.Cell, 0, (p.z + dp * 0.5f) * Sim.Cell);
-                _items.Add((ItemMesh(d, p.level, (p.x * 7 + p.z * 13) % ItemVariants), c, p.rot * 90f));
+                _items.Add((ItemMesh(d, p.level, Variant(p.x, p.z)), c, p.rot * 90f));
                 // Its name over the front, for the units that have a fascia.
                 string sign = SignText(d.Id);
                 if (sign != null)

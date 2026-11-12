@@ -77,11 +77,25 @@ PROPS = {
     "fish": "pp:etCg5GTESNY", "goldfish": "pp:3GPUntjwqCa", "coral_a": "pp:80uVAty6wZ2", "coral_b": "pp:4KUXdtDdgHR", "seahorse": "pp:d_36p3CahYa", "anemone": "pp:5mWGVL6VgMd",
     "airliner": "pp:8ciDd9k8wha", "airliner_b": "pp:a3XrQkLNna9", "jet": "pp:bgUY8zN2Bq9",
 }
-SET = {"billboard": dict(turn=180), "bookshelf_grid": dict(turn=90), "clock": dict(turn=90, double=True), "piano": dict(turn=90), "coral_a": dict(faces=2600)}      # id: dict(turn=degrees, faces=n, leaf=True, double=True)
+# id: dict(turn=degrees, faces=n, leaf=True, double=True). The caps keep a fully furnished terminal (two hundred items)
+# near 300k triangles: without them it was over a million.
+SET = {"bookshelf_grid": dict(turn=90), "clock": dict(turn=90, double=True, faces=150), "piano": dict(turn=90, faces=700)}
 for _p in "plant_a plant_b plant_c plant_pot palm_tall palm_short palm_bend bush bush_small fern leaves flower_red flower_yellow flower_purple".split():
     SET.setdefault(_p, {})["leaf"] = True
-SMALL = ("burger fries soda soda_can cup_coffee cup_tea mug croissant donut cake cupcake muffin loaf pie bowl_broth bowl_soup sushi maki dim_sum pot_stew pan plate pizza sandwich salad "
-         "wine_red wine_white cocktail glass_wine bottle ice_cream sundae pizza_box bag steamer ramen udon steamer_buns espresso cup wine phone cube duck books keyboard").split()
+CAPS = {80: "plate glass_wine cup_coffee cup_tea mug croissant donut muffin cupcake soda wine wine_red wine_white bottle cocktail cube books phone",
+        110: "ramen udon pot_stew pan steamer steamer_buns lamp_ceiling",
+        160: "goldfish fish duck broom register blender microwave",
+        200: "seahorse bucket houseplant_b houseplant_c display_small",
+        250: "panda koala luggage desk_white chair_desk houseplant_a roomba",
+        300: "coral_a coral_b anemone clothing_rack stove wheelie atm gacha swing shelf_boxes sink",
+        350: "shelf_bags display_cans bench_park",
+        400: "vacuum slide claw dance pinball jet air_hockey",
+        450: "fiddle airliner airliner_b",
+        500: "bookcase_books display_flowers",
+        800: "fountain fountain_tiers"}
+for _n, _ids in CAPS.items():
+    for _p in _ids.split():
+        SET.setdefault(_p, {})["faces"] = _n
 
 
 def manifest():
@@ -138,7 +152,7 @@ def one(pid):
     if not os.path.exists(src):
         return pid + " MISSING " + src
     s = SET.get(pid, {})
-    faces = s.get("faces", 260 if pid in SMALL else 1400 if spec.startswith("pp:") else 0)
+    faces = s.get("faces", 500 if spec.startswith("pp:") else 400)
     cmd = ["blender", "-b", "--factory-startup", "-P", os.path.join(ROOT, "Tools", "blender", "model_import.py"), "--", src, os.path.join(OUT, pid + ".fbx"), "--size", "1", "--turn", str(s.get("turn", 0))]
     if faces:
         cmd += ["--maxfaces", str(faces)]

@@ -175,6 +175,16 @@ namespace Crosswind.Game
             g.Build(_static.transform);
             foreach (var l in _labels) Lettering(l.text, l.at, l.yaw, l.size, l.color);
             _labels.Clear();
+            foreach (var it in _items)
+            {
+                var go = new GameObject(it.mesh.name);
+                go.transform.SetParent(_static.transform, false);
+                go.transform.localPosition = it.at;
+                go.transform.localRotation = Quaternion.Euler(0, it.yaw, 0);
+                go.AddComponent<MeshFilter>().sharedMesh = it.mesh;
+                go.AddComponent<MeshRenderer>().sharedMaterial = Materials.World;
+            }
+            _items.Clear();
         }
 
         void Update()
@@ -315,6 +325,24 @@ namespace Crosswind.Game
             go.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
+        // Every placed item is its own object with a mesh made once for its kind, level and look: placing or moving one
+        // thing does not rebuild the others, and what is off screen is not drawn.
+        const int ItemVariants = 6;
+        static readonly Dictionary<string, Mesh> _itemMeshes = new Dictionary<string, Mesh>();
+        readonly List<(Mesh mesh, Vector3 at, float yaw)> _items = new List<(Mesh, Vector3, float)>();
+
+        static Mesh ItemMesh(AmenityDef d, int level, int variant)
+        {
+            string key = d.Id + " " + level + " " + variant;
+            Mesh m;
+            if (_itemMeshes.TryGetValue(key, out m) && m != null) return m;
+            var mb = new MeshBuilder { Smoothness = 0.25f };
+            Furnish.Amenity(mb, d, d.W * Sim.Cell, d.D * Sim.Cell, level, variant);
+            m = mb.ToMesh(key);
+            m.UploadMeshData(true);      // drawn only: the copy kept for reading is not needed
+            return _itemMeshes[key] = m;
+        }
+
         void DrawFloor(MeshBuilder mb, Ground g, float x0, float z0)
         {
             var corner = FloorCorner;
@@ -331,9 +359,7 @@ namespace Crosswind.Game
                 var d = Sim.AmenityById(p.id);
                 int w, dp; Sim.Footprint(d, p.rot, out w, out dp);
                 var c = corner + new Vector3((p.x + w * 0.5f) * Sim.Cell, 0, (p.z + dp * 0.5f) * Sim.Cell);
-                mb.Push().Translate(c).RotateY(p.rot * 90);
-                Furnish.Amenity(mb, d, d.W * Sim.Cell, d.D * Sim.Cell, p.level, p.x * 7 + p.z * 13);
-                mb.Pop();
+                _items.Add((ItemMesh(d, p.level, (p.x * 7 + p.z * 13) % ItemVariants), c, p.rot * 90f));
                 // Its name over the front, for the units that have a fascia.
                 string sign = SignText(d.Id);
                 if (sign != null)

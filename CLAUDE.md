@@ -175,6 +175,10 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   uses the same props for check-in desks, gate desks and seats, and bags on the belts. A new prop: add it to `PROPS`,
   `build <id>`, check it with a `Studio.Shot`, then update `CREDITS.md` and the "Terminal furniture" row under EMPIRE.
   Props the code doesn't name are not shipped (prune the table and the folder together).
+  Budget (measured 2026-11-11 in the Editor): one of each item at level 3 is 75k triangles; a terminal with every cell
+  used (201 items, all level 3) is about 600k, each item its own object with a mesh cached per kind, level and one of
+  six looks (`Interior.ItemMesh`), so `Rebuild` takes 50 ms and off-screen items are culled. Keep `CAPS` in
+  `props.py` when adding props: before them the same terminal was 1.1M triangles in one mesh and 840 ms to rebuild.
 - Contract kinds (`Booking.kind`: `Sim.Charter`, `Series`, `Freight`, `Vip`): freight (the freight and mail airlines,
   2-4 flights, by night where the runway is lit) needs the cargo terminal; a VIP flight (airlines that ask for grade A
   or B; one flight, standard A) needs a Premium Lounge placed; both pay and earn more (`KindNeeds` is the reason shown).

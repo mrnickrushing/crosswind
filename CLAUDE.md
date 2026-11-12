@@ -171,6 +171,10 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   `FloorFree`, `FindSpot` and `PlaceBlocked` ("That floor is not open yet") only use open bays; `NextBay`, `FloorUse`
   serve the bots, which buy a bay when the open floor is 70% used. UI: a tap on fenced floor opens the bay card
   (`Hud.Terminal`). Bays are indexed from the hall's -z end and new ones appear at the +z end as it widens.
+- Passengers keep to the aisles (`Interior.Walk`): between the places they have business (`Agent.Stop` marks those;
+  they pause only there) the way is found over the floor's cells plus one ring of aisle cells (`BuildGrid`: `_solid`
+  where an item of two cells or more stands or a bay is fenced), breadth-first from where they are, then straightened
+  wherever the view is clear (`Clear`). A destination that is walled in is reached from the nearest free cell.
 - Incidents (`Core/Sim.Incidents.cs`, `IncidentTests`; from 2 stars and 15 flights): every 4 to 8 game minutes
   `IncidentTick` puts one of twelve `Incidents` on the desk (`State.incident`: id, `expiresAt`, `value` = what a minute
   of the airport is worth, an `airline`); `IncidentStory`, `IncidentDoes(choice)`, `IncidentBlocked(choice)`,

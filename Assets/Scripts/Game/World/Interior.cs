@@ -26,7 +26,7 @@ namespace Crosswind.Game
         // Where the crowd goes.
         readonly List<Vector3> _doors = new List<Vector3>(), _desks = new List<Vector3>(), _lanes = new List<Vector3>(), _shops = new List<Vector3>(), _seats = new List<Vector3>(), _gates = new List<Vector3>();
 
-        public sealed class Agent { public int Seed; public int Kind; public Vector3 Pos, Target; public int Step; public float Wait, Speed, Phase; public bool Arriving; public Vector3[] Path; }
+        public sealed class Agent { public int Seed; public int Kind; public Vector3 Pos, Target; public int Step; public float Wait, Speed, Phase; public bool Arriving; public Vector3[] Path; public bool[] Stop; }
         readonly List<Agent> _agents = new List<Agent>();
         static Mesh[][] _walk; static Mesh[] _idle;
         readonly List<Matrix4x4>[] _batches = new List<Matrix4x4>[12 * 5];
@@ -172,6 +172,7 @@ namespace Crosswind.Game
             }
             _static = mb.ToObject("Static", transform);
             g.Build(_static.transform);
+            BuildGrid();
             foreach (var l in _labels) Lettering(l.text, l.at, l.yaw, l.size, l.color);
             _labels.Clear();
             foreach (var it in _items)
@@ -211,7 +212,7 @@ namespace Crosswind.Game
                     if (d < 0.25f)
                     {
                         a.Step++;
-                        a.Wait = a.Step < a.Path.Length ? Random.Range(0.5f, 7f) : 0;
+                        a.Wait = a.Step < a.Path.Length && a.Stop[a.Step - 1] ? Random.Range(0.5f, 7f) : 0;      // they pause where they have business, not at every corner
                         if (a.Step >= a.Path.Length) { _agents.RemoveAt(i); continue; }
                     }
                     else { a.Pos += to / d * Mathf.Min(d, a.Speed * dt); a.Target = to / d; walking = true; }
@@ -233,27 +234,134 @@ namespace Crosswind.Game
         {
             if (_doors.Count == 0 || _gates.Count == 0 || _lanes.Count == 0 || _desks.Count == 0) return;
             Vector3 R(List<Vector3> l) { return l[Random.Range(0, l.Count)] + new Vector3(Random.Range(-0.4f, 0.4f), 0, Random.Range(-0.4f, 0.4f)); }
-            var path = new List<Vector3>();
+            // Where they have business, in order; between those they keep to the aisles (see Walk).
+            var goals = new List<Vector3>();
             if (!arriving)
             {
-                path.Add(R(_doors)); path.Add(R(_desks));
-                var lane = R(_lanes); path.Add(lane + Vector3.left * 3.5f); path.Add(lane + Vector3.right * 3.5f);
-                if (_shops.Count > 0 && Random.value < 0.7f) path.Add(R(_shops));
-                if (_seats.Count > 0 && Random.value < 0.6f) path.Add(R(_seats));
-                path.Add(R(_gates));
+                goals.Add(R(_doors)); goals.Add(R(_desks));
+                var lane = R(_lanes); goals.Add(lane + Vector3.left * 3.5f); goals.Add(lane + Vector3.right * 3f);
+                if (_shops.Count > 0 && Random.value < 0.7f) goals.Add(R(_shops));
+                if (_seats.Count > 0 && Random.value < 0.6f) goals.Add(R(_seats));
+                goals.Add(R(_gates));
             }
             else
             {
-                path.Add(R(_gates));
-                if (_shops.Count > 0 && Random.value < 0.3f) path.Add(R(_shops));
-                var lane = R(_lanes); path.Add(lane + Vector3.right * 3.5f + Vector3.forward * 1.6f); path.Add(lane + Vector3.left * 3.5f + Vector3.forward * 1.6f);
-                path.Add(R(_doors));
+                goals.Add(R(_gates));
+                if (_shops.Count > 0 && Random.value < 0.3f) goals.Add(R(_shops));
+                var lane = R(_lanes); goals.Add(lane + Vector3.right * 3f + Vector3.forward * 1.6f); goals.Add(lane + Vector3.left * 3.5f + Vector3.forward * 1.6f);
+                goals.Add(R(_doors));
             }
-            var a = new Agent { Seed = Random.Range(1, 1 << 30), Arriving = arriving, Kind = Random.Range(0, 12), Path = path.ToArray(), Speed = Random.Range(1.6f, 2.6f), Phase = Random.Range(0, 4) };
+            var path = new List<Vector3> { goals[0] };
+            var stop = new List<bool> { true };
+            for (int i = 1; i < goals.Count; i++)
+            {
+                Walk(goals[i - 1], goals[i], path);
+                while (stop.Count < path.Count - 1) stop.Add(false);
+                stop.Add(true);
+            }
+            var a = new Agent { Seed = Random.Range(1, 1 << 30), Arriving = arriving, Kind = Random.Range(0, 12), Path = path.ToArray(), Stop = stop.ToArray(), Speed = Random.Range(1.6f, 2.6f), Phase = Random.Range(0, 4) };
             // Start part-way along, so the hall is full the moment you look in.
             int start = _agents.Count < want * 0.8f ? Random.Range(0, path.Count - 1) : 0;
             a.Pos = path[start]; a.Step = start + 1 < path.Count ? start + 1 : start; a.Target = Vector3.right;
             _agents.Add(a);
+        }
+
+        // ------------------------------------------------------------------ finding a way round the furniture
+
+        // The floor as cells, with one more ring of cells round it (the aisles along security, the gates and the end
+        // walls, always clear): true where something stands or a bay is fenced off.
+        bool[,] _solid = new bool[0, 0];
+        int[,] _from = new int[0, 0];       // the cell each was reached from, in the last search
+        readonly Queue<int> _open = new Queue<int>();
+
+        void BuildGrid()
+        {
+            int cols = _sim.FloorCols + 2, rows = _sim.FloorRows + 2;
+            _solid = new bool[cols, rows]; _from = new int[cols, rows];
+            for (int z = 0; z < _sim.FloorRows; z++)
+                if (!_sim.BayOpen(Sim.BayOf(z))) for (int x = 0; x < _sim.FloorCols; x++) _solid[x + 1, z + 1] = true;
+            foreach (var p in _sim.State.terminal)
+            {
+                var d = Sim.AmenityById(p.id);
+                // Planters, bins and the like are walked round without a detour: only what fills its cells counts.
+                if (d == null || d.W * d.D < 2) continue;
+                int w, dp; Sim.Footprint(d, p.rot, out w, out dp);
+                for (int x = p.x; x < p.x + w; x++) for (int z = p.z; z < p.z + dp; z++) if (x >= 0 && z >= 0 && x < _sim.FloorCols && z < _sim.FloorRows) _solid[x + 1, z + 1] = true;
+            }
+        }
+
+        bool Cell(Vector3 at, out int x, out int z)
+        {
+            var c = FloorCorner;
+            x = Mathf.FloorToInt((at.x - c.x) / Sim.Cell) + 1; z = Mathf.FloorToInt((at.z - c.z) / Sim.Cell) + 1;
+            return x >= 0 && z >= 0 && x < _solid.GetLength(0) && z < _solid.GetLength(1);
+        }
+
+        Vector3 CellCentre(int x, int z) { var c = FloorCorner; return new Vector3(c.x + (x - 0.5f) * Sim.Cell, 0, c.z + (z - 0.5f) * Sim.Cell); }
+
+        /// <summary>Whether the straight line between two points crosses nothing solid.</summary>
+        bool Clear(Vector3 a, Vector3 b)
+        {
+            float len = Vector3.Distance(a, b);
+            int n = Mathf.Max(1, Mathf.CeilToInt(len / 0.6f));
+            for (int i = 0; i <= n; i++)
+            {
+                int x, z;
+                if (Cell(Vector3.Lerp(a, b, i / (float)n), out x, out z) && _solid[x, z]) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Adds the way from one point to another to a path: straight when nothing is between them, otherwise along
+        /// the free cells of the floor (the shortest way, then straightened wherever the view is clear). Where they
+        /// are going may itself be inside something (a seat in the lounge): the last step goes in.
+        /// </summary>
+        void Walk(Vector3 from, Vector3 to, List<Vector3> path)
+        {
+            int cols = _solid.GetLength(0), rows = _solid.GetLength(1);
+            int ax, az, bx, bz;
+            bool inA = Cell(from, out ax, out az), inB = Cell(to, out bx, out bz);
+            if (cols == 0 || Clear(from, to)) { path.Add(to); return; }
+            // Outside the floor (the check-in hall, the gate lounges): step onto the ring first, or off it last.
+            ax = Mathf.Clamp(ax, 0, cols - 1); az = Mathf.Clamp(az, 0, rows - 1); bx = Mathf.Clamp(bx, 0, cols - 1); bz = Mathf.Clamp(bz, 0, rows - 1);
+            for (int x = 0; x < cols; x++) for (int z = 0; z < rows; z++) _from[x, z] = -1;
+            _open.Clear();
+            int start = ax + az * cols, goal = bx + bz * cols, best = start;
+            float bestD = float.MaxValue;
+            _from[ax, az] = start; _open.Enqueue(start);      // they may start inside something (leaving the lounge)
+            while (_open.Count > 0)
+            {
+                int cur = _open.Dequeue(), cx = cur % cols, cz = cur / cols;
+                if (cur == goal) { best = goal; break; }
+                // Somewhere walled in (a seat deep in a block of shops) is reached from the nearest free cell to it.
+                float d = (CellCentre(cx, cz) - to).sqrMagnitude;
+                if (d < bestD && cur != start) { bestD = d; best = cur; }
+                for (int k = 0; k < 4; k++)
+                {
+                    int nx = cx + (k == 0 ? 1 : k == 1 ? -1 : 0), nz = cz + (k == 2 ? 1 : k == 3 ? -1 : 0);
+                    if (nx < 0 || nz < 0 || nx >= cols || nz >= rows || _from[nx, nz] >= 0) continue;
+                    if (_solid[nx, nz] && nx + nz * cols != goal) continue;
+                    _from[nx, nz] = cur; _open.Enqueue(nx + nz * cols);
+                }
+            }
+            if (best == start) { path.Add(to); return; }       // nowhere to go but straight there
+            var cells = new List<Vector3>();
+            for (int cur = best; cur != start; cur = _from[cur % cols, cur / cols]) cells.Add(CellCentre(cur % cols, cur / cols));
+            cells.Reverse();
+            // Straighten: from where they stand, walk to the furthest cell in clear view.
+            var at = from; int i = 0;
+            while (i < cells.Count)
+            {
+                int far = i;
+                for (int j = cells.Count - 1; j > i; j--) if (Clear(at, cells[j])) { far = j; break; }
+                // A step of jitter, so a crowd does not walk one line.
+                var p = cells[far] + new Vector3(Random.Range(-0.3f, 0.3f), 0, Random.Range(-0.3f, 0.3f));
+                bool last = far == cells.Count - 1;
+                if (!last || best != goal || !inB || !Clear(at, to)) { path.Add(p); at = p; }
+                i = far + 1;
+            }
+            path.Add(to);
         }
 
         // ------------------------------------------------------------------ the concourse floor

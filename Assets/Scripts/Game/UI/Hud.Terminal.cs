@@ -348,20 +348,22 @@ namespace Crosswind.Game
                     string name = First[seed % First.Length] + " " + Last[(seed / 31) % Last.Length];
                     var routes = _sim.State.contracts; var r = routes.Count > 0 ? Content.Routes[routes[seed % routes.Count].route] : null;
                     string trip = r == null ? "" : (_pax.Arriving ? "Just in from " : "Flying to ") + r.Destination + (r.Airline == "own" ? "" : " with " + Content.Airlines[r.Airline].Name);
-                    float sum = 0; int worst = 0; float worstV = 2; int best = 0; float bestV = -1;
+                    float sum = 0; int worst = 0; float worstV = 2; int best = 0; float bestV = -1, asked = 0;
                     var sb = new System.Text.StringBuilder();
                     for (int i = 0; i < needs.Count; i++)
                     {
-                        float v = Personal(needs[i].Value, seed, i); sum += v;
+                        // What nobody looks for at an airport this small is not rated, and never what they remark on.
+                        if (needs[i].Unasked) { sb.Append("<color=#FFFFFF70>").Append(needs[i].Name).Append("  not needed yet</color>\n"); continue; }
+                        float v = Personal(needs[i].Value, seed, i); sum += v; asked++;
                         if (v < worstV) { worstV = v; worst = i; }
                         if (v > bestV) { bestV = v; best = i; }
                         int stars = Mathf.Clamp(Mathf.RoundToInt(v * 5), 1, 5);
                         string col = v >= 0.8f ? "#5ED58A" : v >= 0.5f ? "#FFC83D" : "#FF7A6B";
                         sb.Append(needs[i].Name).Append("  <color=").Append(col).Append(">").Append(new string('★', stars)).Append("</color><color=#FFFFFF30>").Append(new string('★', 5 - stars)).Append("</color>\n");
                     }
-                    float mood = sum / needs.Count;
+                    float mood = sum / Mathf.Max(1, asked);
                     string moodWord = mood >= 0.85f ? "Delighted" : mood >= 0.65f ? "Happy" : mood >= 0.45f ? "Getting by" : "Fed up";
-                    string think = worstV >= 0.8f ? "\"Best airport I've been through. " + needs[best].Name + " especially.\""
+                    string think = worstV >= 0.8f ? (asked <= 1 ? (_pax.Arriving ? "\"Quick and easy. Off the aircraft and out of the door in ten minutes.\"" : "\"Quick and easy. Off the kerb and at the gate in ten minutes.\"") : "\"Best airport I've been through. " + needs[best].Name + " especially.\"")
                         : needs[worst].Queue ? "\"That queue took forever.\""
                         : needs[worst].Want == Want.Food ? "\"Is there nowhere to eat in this place?\""
                         : needs[worst].Want == Want.Seating ? "\"I've been standing for an hour.\""

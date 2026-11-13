@@ -59,8 +59,9 @@ user id, the friends account), Purchase History (RevenueCat); not linked, for an
 statistics id), Product Interaction and Performance Data (frame rate). No tracking. Keep it in step with
 `docs/privacy.html` and with anything new the game sends.
 
-The age rating answers `userGeneratedContent` yes (friends see each other's chosen names, screened by
-`FriendRules.Rude` / the Worker's `rude`, with REMOVE / BLOCK / REPORT on every friend). The app is offered everywhere
+The age rating answers `userGeneratedContent` no: Apple asks about broad distribution, and a name is only seen by
+friends who swapped codes (still screened by `FriendRules.Rude` / the Worker's `rude`, with REMOVE / BLOCK / REPORT on
+every friend). The app is offered everywhere
 but China mainland (a game with in-app purchases needs an approval number there).
 
 Left for the website before submitting: picking the build, adding the in-app purchases and Game Center items to the

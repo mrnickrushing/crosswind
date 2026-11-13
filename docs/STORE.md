@@ -16,8 +16,9 @@ Products are `Sim.Products` (`Assets/Scripts/Core/Sim.Store.cs`); `Tools/appstor
 | crosswind.double | Non-consumable | $9.99 | Golden Runway: all income doubled |
 
 Purchases go through `Assets/Scripts/Game/App/Store.cs`: RevenueCat on device (`RevenueCatStore`, compiled when the
-package defines `CROSSWIND_REVENUECAT`), a test store with instant pretend purchases in the Editor and development
-builds, and nothing at all in a release build whose store isn't working (never free). `Sim.BeginPurchase` notes a
+package defines `CROSSWIND_REVENUECAT`), a test store with instant pretend purchases in the Editor only
+(device builds, TestFlight included, use the App Store sandbox), and nothing at all on a device whose store isn't
+working (never free). `Sim.BeginPurchase` notes a
 purchase before it starts, `Sim.Grant` pays out once per App Store transaction, and `Sim.ReconcilePurchases` delivers
 one that was charged but never reported (a crash, Ask to Buy) at the next launch. `Sim.RestoreOwned` brings the two
 one-time products back (EMPIRE > Restore purchases, and automatically on Sign in with Apple).

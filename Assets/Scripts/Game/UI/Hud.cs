@@ -227,6 +227,7 @@ namespace Crosswind.Game
             BuildTerminalUi();
             BuildOps();
             BuildGuide();
+            BuildTutorial();
             // Toast and the star banner.
             BuildFeedback();
         }
@@ -289,6 +290,7 @@ namespace Crosswind.Game
             UpdateServiceButtons();
             UpdatePops();
             UpdateGuide();
+            UpdateTutorial();
             if ((_refreshIn -= Time.unscaledDeltaTime) <= 0 || _dirty) { _refreshIn = 0.5f; if (_tab >= 0) RefreshSheet(); _dirty = false; }
             UpdateFeedback();
         }
@@ -360,7 +362,7 @@ namespace Crosswind.Game
                 sb.Label.transform.SetParent(sb.Bg.transform, false); sb.Label.transform.SetAsLastSibling();
                 sb.Label.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 16), new Vector2(140, 34));
                 sb.Label.fontSize = 28; Outline(sb.Label);
-                b.onClick.AddListener(() => { if (_sim.Dispatch(sb.Flight, sb.Service)) { _dirty = true; Sfx.Play("dispatch", 0.7f); } else Sfx.Play("error", 0.5f); });
+                b.onClick.AddListener(() => { if (_sim.Dispatch(sb.Flight, sb.Service)) { _dirty = true; Sfx.Play("dispatch", 0.7f); TutorialDispatched(); } else Sfx.Play("error", 0.5f); });
                 _serviceButtons.Add(sb);
             }
             _serviceButtons[i].Rt.gameObject.SetActive(true);

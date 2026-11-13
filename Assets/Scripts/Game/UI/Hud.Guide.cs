@@ -7,27 +7,17 @@ using UnityEngine.UI;
 namespace Crosswind.Game
 {
     /// <summary>
-    /// The first minute, shown not told: a bouncing pointer over the next thing to tap (the FUEL button on the first
-    /// parked aircraft, CLAIM on the guide card, then BUILD), until the player has done each once. And tapping an
-    /// aircraft opens a small card about its flight.
+    /// Tapping an aircraft opens a small card about its flight (the first-run tutorial is in Hud.Tutorial).
     /// </summary>
     public sealed partial class Hud
     {
-        RectTransform _hand, _info;
-        Text _handText, _infoText;
+        RectTransform _info;
+        Text _infoText;
         int _infoFlight = -1;
         float _infoT;
 
         void BuildGuide()
         {
-            var img = Ui.Img("Hand", _root, Ui.Gold); img.sprite = Ui.Circle;
-            _hand = img.rectTransform;
-            _hand.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(70, 70));
-            _handText = Ui.Label("T", _hand, "", 34, Color.white);
-            _handText.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 1), new Vector2(0, -8), new Vector2(520, 50));
-            Outline(_handText);
-            _hand.gameObject.SetActive(false);
-
             _info = Ui.Img("Info", _root, Ui.Panel, true).rectTransform;
             _info.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0), Vector2.zero, new Vector2(520, 190));
             _infoText = Ui.Label("T", _info, "", 30, Color.white, TextAnchor.UpperLeft, false);
@@ -37,25 +27,6 @@ namespace Crosswind.Game
 
         void UpdateGuide()
         {
-            // The pointer.
-            var st = _sim.State;
-            Vector2? at = null; string say = null;
-            if (!st.tutorialDone && _tab < 0 && _away == null)
-            {
-                var waiting = _serviceButtons.FirstOrDefault(b => b.Rt.gameObject.activeSelf);
-                if (st.flightsHandled == 0 && waiting != null) { at = waiting.Rt.anchoredPosition + new Vector2(0, -70); say = "Tap to send the fuel truck"; }
-                else if (_sim.GoalDone && st.goalIndex < 3) { at = CanvasPos((RectTransform)_goalClaim.transform) + new Vector2(0, -90); say = "Collect your reward"; }
-                else if (st.goalIndex == 2 && _sim.UpgradeBlocked("stands") == null) { at = CanvasPos((RectTransform)_tabs[0].transform) + new Vector2(120, -20); say = "Open BUILD and add a stand"; }
-                if (st.goalIndex >= 3) { st.tutorialDone = true; }
-            }
-            _hand.gameObject.SetActive(at.HasValue);
-            if (at.HasValue)
-            {
-                _hand.anchoredPosition = at.Value + new Vector2(0, Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 26);
-                _hand.SetAsLastSibling();
-                _handText.text = say;
-            }
-
             // The flight card follows its aircraft and closes by itself.
             if (_infoFlight >= 0)
             {

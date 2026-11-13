@@ -36,7 +36,7 @@ namespace Crosswind.Game
         void Header(string text)
         {
             var t = Ui.Label("Header", _list ?? _sheetList, text, 28, new Color(0.45f, 0.8f, 1f), TextAnchor.LowerLeft);
-            t.resizeTextForBestFit = true; t.resizeTextMinSize = 16; t.resizeTextMaxSize = 28; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate;
+            t.resizeTextForBestFit = true; t.resizeTextMinSize = 22; t.resizeTextMaxSize = 26; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate;
             var rt = t.rectTransform;
             rt.anchorMin = new Vector2(0, 1); rt.anchorMax = new Vector2(1, 1); rt.pivot = new Vector2(0.5f, 1);
             rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero; rt.anchoredPosition = new Vector2(12, -_rowY); rt.sizeDelta = new Vector2(0, 50);
@@ -75,6 +75,8 @@ namespace Crosswind.Game
         /// <summary>Red when passengers are unhappy with it, amber in between, green when they have no complaints.</summary>
         static Color ScoreTint(float v) { return v < 0.4f ? TintRed : v < 0.8f ? TintGold : TintGreen; }
 
+        const int TitleSize = 32, BodySize = 24;
+
         /// <summary>A row: an icon tile, a title, a line under it, and a button on the right that is grey with the reason when it can't be used.</summary>
         void Entry(string title, string tag, string body, string button, string blocked, System.Action act, Color? accent = null)
         {
@@ -110,13 +112,18 @@ namespace Crosswind.Game
                 left = 144; _ic = null;
             }
             float right = button == null ? -24 : -250;
-            var t = Ui.Label("Title", row, title + (tag != null ? "  <size=26><color=#FFFFFF90>" + tag + "</color></size>" : ""), 36, Color.white, TextAnchor.UpperLeft);
-            t.rectTransform.Fill(); t.rectTransform.offsetMin = new Vector2(left, 0); t.rectTransform.offsetMax = new Vector2(right, -10);
-            t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate; t.resizeTextForBestFit = true; t.resizeTextMinSize = 22; t.resizeTextMaxSize = 36;
-            t.rectTransform.offsetMin = new Vector2(left, 96);
-            var b = Ui.Label("Body", row, body, 30, Ui.Dim, TextAnchor.UpperLeft, false);
-            b.rectTransform.Fill(); b.rectTransform.offsetMin = new Vector2(left, _bar >= 0 ? 34 : 10); b.rectTransform.offsetMax = new Vector2(right, -56);
-            b.resizeTextForBestFit = true; b.resizeTextMinSize = 20; b.resizeTextMaxSize = 28; b.verticalOverflow = VerticalWrapMode.Truncate;
+            // Every row uses the same sizes: a 32-point title and 24-point lines under it. A longer text makes the row
+            // taller instead of shrinking its letters, so the rows of a list read as one list.
+            var t = Ui.Label("Title", row, title + (tag != null ? "  <size=24><color=#FFFFFF90>" + tag + "</color></size>" : ""), TitleSize, Color.white, TextAnchor.UpperLeft);
+            var trt = t.rectTransform; trt.anchorMin = new Vector2(0, 1); trt.anchorMax = new Vector2(1, 1); trt.pivot = new Vector2(0, 1);
+            trt.offsetMin = new Vector2(left, -54); trt.offsetMax = new Vector2(right, -12);
+            t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate; t.resizeTextForBestFit = true; t.resizeTextMinSize = TitleSize - 4; t.resizeTextMaxSize = TitleSize;
+            float foot = _bar >= 0 ? 36 : 16;
+            var b = Ui.Label("Body", row, body, BodySize, Ui.Dim, TextAnchor.UpperLeft, false);
+            b.rectTransform.Fill(); b.rectTransform.offsetMin = new Vector2(left, foot); b.rectTransform.offsetMax = new Vector2(right, -58);
+            b.resizeTextForBestFit = false; b.horizontalOverflow = HorizontalWrapMode.Wrap; b.verticalOverflow = VerticalWrapMode.Overflow; b.lineSpacing = 1.05f;
+            float need = 58 + b.preferredHeight + foot;
+            if (need > row.sizeDelta.y) { float grow = Mathf.Ceil(need - row.sizeDelta.y); row.sizeDelta = new Vector2(row.sizeDelta.x, row.sizeDelta.y + grow); _rowY += grow; }
             if (_bar >= 0)
             {
                 var track = Ui.Img("Bar", row, new Color(0, 0, 0, 0.45f), true).rectTransform;
@@ -153,14 +160,14 @@ namespace Crosswind.Game
             {
                 var strip = Ui.Img("Why", button, new Color(0, 0, 0, 0.42f), true).rectTransform;
                 strip.anchorMin = new Vector2(0, 0); strip.anchorMax = new Vector2(1, foot); strip.offsetMin = new Vector2(7, 9); strip.offsetMax = new Vector2(-7, 0);
-                var why = Line(strip, blocked, 22, 13, new Color(1f, 0.82f, 0.45f), 0, 1, 6);
+                var why = Line(strip, blocked, 20, 15, new Color(1f, 0.82f, 0.45f), 0, 1, 6);
                 why.horizontalOverflow = HorizontalWrapMode.Wrap; why.lineSpacing = 0.85f;
             }
             var ink = ok ? Color.white : new Color(1, 1, 1, 0.72f);
-            if (value == null) { Shade(Line(button, head, 34, 16, ink, foot, top, 10)); return; }
+            if (value == null) { Shade(Line(button, head, 32, 24, ink, foot, top, 10)); return; }
             float mid = foot + (top - foot) * (ok ? 0.5f : 0.48f);
-            Shade(Line(button, head, ok ? 30 : 26, 14, ink, mid, top, 10));
-            Shade(Line(button, value, ok ? 36 : 30, 14, ink, foot, mid, 10));
+            Shade(Line(button, head, 26, 20, ink, mid, top, 10));
+            Shade(Line(button, value, ok ? 32 : 28, 22, ink, foot, mid, 10));
         }
 
         /// <summary>One line of a button, shrunk to fit the band between two heights (0 the foot, 1 the top).</summary>
@@ -246,7 +253,7 @@ namespace Crosswind.Game
                         float secs = s.BuildSeconds(id);
                         string blocked = s.UpgradeBlocked(id);
                         string why = blocked == null ? null : blocked.StartsWith("Need ") ? blocked : blocked;
-                        Ico(FacilityIcon(id), FacilityTint(id)).Entry(d.Name, (level > 0 ? "LEVEL " + level : "NOT BUILT") + (secs > 0 ? " · " + Format.Time(secs) + " TO BUILD" : ""), d.Blurb, level >= d.MaxLevel ? "MAX" : (level > 0 ? "UPGRADE\n" : "BUILD\n") + "<size=34>" + Format.Money(s.Cost(id)) + "</size>",
+                        Ico(FacilityIcon(id), FacilityTint(id)).Entry(d.Name, (level > 0 ? "LEVEL " + level : "NOT BUILT") + (secs > 0 ? " · " + Format.Time(secs) : ""), d.Blurb, level >= d.MaxLevel ? "MAX" : (level > 0 ? "UPGRADE\n" : "BUILD\n") + "<size=34>" + Format.Money(s.Cost(id)) + "</size>",
                             blocked != null && blocked.StartsWith("Need ") ? blocked : why, () => { if (s.Upgrade(id)) if (secs > 60) Reminders.AskOnce(); Toast(secs > 0 ? d.Name + ": the crew has started" : d.Name + (level > 0 ? " upgraded to level " + (level + 1) : " built")); });
                     }
                 }
@@ -262,7 +269,7 @@ namespace Crosswind.Game
                     int nextTerms = (c.terms + 1) % 3;
                     Ico("stands", Models.AirlineColor(r.Airline)).Entry(r.Destination, Content.Airlines[r.Airline].Name + " · " + Sim.Mood(mood).ToUpper(),
                         plane.Name + "  ·  " + Mathf.RoundToInt(r.FlightsPerHour * Sim.TermsFlights(c.terms)) + " flights an hour  ·  " + Format.Money(s.FlightValue(r) * Sim.TermsPay(c.terms) * s.RelationPay(r.Airline)) + " a flight on time  ·  terms: " + Sim.TermsName[c.terms],
-                        "TERMS\n<size=30>" + Sim.TermsName[nextTerms] + "</size>", null, () => { s.SetTerms(r.Id, nextTerms); Toast(r.Destination + ": " + Sim.TermsBlurb[nextTerms]); }, Ui.Card);
+                        "SWITCH TO\n<size=30>" + Sim.TermsName[nextTerms] + "</size>", null, () => { s.SetTerms(r.Id, nextTerms); Toast(r.Destination + ": " + Sim.TermsBlurb[nextTerms]); }, Ui.Card);
                 }
                 PlanSection();
                 Header("AIRLINES: MEET THEIR PUNCTUALITY DEAL TO BECOME A PARTNER");
@@ -322,7 +329,7 @@ namespace Crosswind.Game
                     if (d.Group != "Services" || id == "hangar" || id == "cargo") continue;
                     int ml = s.ManagerLevel(id);
                     if (hired)
-                        Pic("mgr_" + id, FacilityTint(id), ml + "").Entry(d.Name + " manager", "LEVEL " + ml, "Sends the crews out the moment an aircraft parks. Crews work " + (ml * 10) + "% faster; training adds 10%.",
+                        Pic("mgr_" + id, FacilityTint(id), ml + "").Entry(d.Name + " manager", "LEVEL " + ml, "Crews start the moment an aircraft parks and work " + (ml * 10) + "% faster. Training adds 10%.",
                             ml >= Sim.MaxManagerLevel ? null : "TRAIN\n<size=34>" + Format.Money(s.TrainCost(id)) + "</size>", s.TrainBlocked(id), () => { if (s.Train(id)) Toast(d.Name + " manager trained to level " + (ml + 1)); }, Ui.Blue);
                     else
                         Pic("mgr_" + id, FacilityTint(id)).Entry(d.Name + " manager", null, "No more tapping for this service, and its flights earn while the app is closed.",
@@ -575,7 +582,7 @@ namespace Crosswind.Game
             var s = _sim;
             Header("FINANCE");
             int next = (s.FeeLevel + 1) % 5;
-            Ico("tag", TintGold).Entry("Fee policy: " + Sim.FeeName[s.FeeLevel], null, Sim.FeeBlurb(s.FeeLevel), "CHANGE\n<size=24>" + Sim.FeeName[next] + "</size>", s.FeeBlocked(next),
+            Ico("tag", TintGold).Entry("Fee policy: " + Sim.FeeName[s.FeeLevel], null, Sim.FeeBlurb(s.FeeLevel), "SWITCH TO\n<size=24>" + Sim.FeeName[next] + "</size>", s.FeeBlocked(next),
                 () => { if (s.SetFees(next)) Toast("Fees: " + Sim.FeeName[next].ToLower() + ". " + Sim.FeeBlurb(next)); }, Ui.Blue);
             if (s.InDebt)
                 Ico("bank", TintRed).Entry("Loan", "OWED " + Format.Money(s.State.loanOwed), "The bank takes " + Mathf.RoundToInt((float)Sim.LoanShare * 100) + "% of every payment until it is repaid (" + Mathf.RoundToInt((float)(1 - s.State.loanOwed / System.Math.Max(1, s.State.loanTotal)) * 100) + "% done). Pay it off early from cash.",

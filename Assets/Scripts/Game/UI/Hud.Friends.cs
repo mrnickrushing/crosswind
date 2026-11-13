@@ -69,7 +69,7 @@ namespace Crosswind.Game
             if (!AppleAccount.SignedIn)
             {
                 Header("YOUR ACCOUNT");
-                Ico("user", TintSocial).Entry("Sign in with Apple", null, "Creates your Crosswind account. Add friends by code, compare airports, and swap a gift every day. We never see your email: only an anonymous id.",
+                Ico("user", TintSocial).Entry("Sign in with Apple", null, "Your Crosswind account: add friends by code, compare airports, swap a daily gift. We never see your email.",
                     "SIGN IN", AppleAccount.Supported ? null : "On iPhone and iPad", () => AppleAccount.SignIn((ok, msg) => { if (ok) { Toast("Signed in"); EnsureRegistered(); } else if (msg != null) Toast(msg); _dirty = true; }), Ui.Ink + new Color(0.1f, 0.1f, 0.1f, 0));
                 Ico("pen").Entry("Manager's name", s.DisplayName.ToUpper(), "What friends will see beside your airport.", "RENAME", null, AskName, Ui.Blue);
                 GameCenterRows();
@@ -109,7 +109,7 @@ namespace Crosswind.Game
         void GameCenterRows()
         {
             Header("GAME CENTER  ·  THE WHOLE WORLD");
-            Ico("trophy", TintGold).Entry("Leaderboards", null, "Flights handled, Wings earned and days closed at grade A, against every Crosswind manager. Uses your Game Center name.", "OPEN", GameCenter.Blocked, GameCenter.ShowBoards, Ui.Gold);
+            Ico("trophy", TintGold).Entry("Leaderboards", null, "Flights, Wings and grade-A days against every Crosswind manager, under your Game Center name.", "OPEN", GameCenter.Blocked, GameCenter.ShowBoards, Ui.Gold);
             Ico("star", TintGold).Entry("Achievements", null, "Every achievement you finish here is also kept on your Game Center profile.", "OPEN", GameCenter.Blocked, GameCenter.ShowAchievements, Ui.Card);
         }
 

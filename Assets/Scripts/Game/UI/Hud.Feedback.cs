@@ -180,6 +180,7 @@ namespace Crosswind.Game
             Sfx.Play("star");
             _bannerT = 4f; _bannerAge = 0;
             _dirty = true;
+            RateSoon(stars);
         }
 
         void UpdateFeedback()

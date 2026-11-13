@@ -105,6 +105,7 @@ namespace Crosswind.Core
         public List<string> transactions = new List<string>();     // store transactions already granted
         public List<PendingPurchase> pending = new List<PendingPurchase>();   // purchases started and not yet paid out
         public bool tutorialDone;
+        public int tutorialStep;                                     // how far the first-run tutorial has got (Hud.Tutorial)
 
         public List<LevelEntry> relations = new List<LevelEntry>();   // each airline's satisfaction with you, 0..100 (starts at 50)
 

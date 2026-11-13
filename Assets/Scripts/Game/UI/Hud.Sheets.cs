@@ -440,6 +440,7 @@ namespace Crosswind.Game
             Ico("bell").Entry("Reminders", Reminders.On ? "ON" : "OFF", "A notification when the builders or research finish, a free crate is ready, or the airport has earned all it can.", Reminders.On ? "TURN OFF" : "TURN ON", null, () => { Reminders.On = !Reminders.On; }, Ui.Card);
             Ico("cloud", TintAir).Entry("iCloud save", CloudSave.Available ? "ON" : "OFF", CloudSave.Available ? "Your airport is kept in your own iCloud and follows you to a new phone." + (CloudSave.LastPushed > 0 ? " Last saved " + Format.Time(System.Math.Max(0, SaveSystem.Now - CloudSave.LastPushed)) + " ago." : "")
                 : "Sign in to iCloud in the iPhone's Settings to keep your airport safe and move it to a new phone.", null, null, null);
+            Ico("star", TintGold).Entry("Rate Crosswind", null, "Enjoying the game? A rating on the App Store helps other players find it.", "RATE", null, OpenStoreReview, Ui.Gold);
             Ico("trash", TintRed).Entry("Erase everything", null, "Deletes your airports, team and progress from this device and from your iCloud, and gives the statistics a new anonymous id. This can't be undone.", "ERASE", null, ConfirmErase, Ui.Red);
             Header("CREDITS");
             Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Ground and floor textures and the sky from Poly Haven and ambientCG. Interface sounds and small icons by Kenney. Aircraft, airport vehicles and buildings are our own.", null, null, null);

@@ -12,7 +12,7 @@ Products are `Sim.Products` (`Assets/Scripts/Core/Sim.Store.cs`); `Tools/appstor
 | crosswind.gems.small | Consumable | $1.99 | 80 gems |
 | crosswind.gems.medium | Consumable | $9.99 | 500 gems |
 | crosswind.gems.large | Consumable | $19.99 | 1,400 gems |
-| crosswind.starter | Non-consumable | $4.99 | Founder's Pack: 300 gems and a third building crew |
+| crosswind.starter | Non-consumable | $4.99 | Founder's Pack: 300 gems (paid with the purchase only; a restore brings back the crew, not the gems) and a third building crew |
 | crosswind.double | Non-consumable | $9.99 | Golden Runway: all income doubled |
 
 Purchases go through `Assets/Scripts/Game/App/Store.cs`: RevenueCat on device (`RevenueCatStore`, compiled when the
@@ -52,10 +52,18 @@ jobs run there from the train repo's branch `codemagic/crosswind`, reading this 
 Screenshots: Play mode, then `Tools/store-shot.sh <iphone|ipad> out.png` (2868x1320 and 2752x2064), saved as JPG in
 `docs/appstore/screens/`.
 
-Left for the website before submitting: App Privacy answers (purchase history and user ID through RevenueCat; for
-the friends service a user ID and name; for the anonymous statistics a device ID and product interaction, not linked
-to the player; no tracking), picking the build, adding the in-app purchases and Game Center items to the version,
-review contact and notes.
+App Privacy (published 2026-11-12 on the website): linked to the player and used for app functionality: Name (the
+manager's name friends see), Gameplay Content (airport name, stars, flights shown to friends), User ID (RevenueCat app
+user id, the friends account), Purchase History (RevenueCat); not linked, for analytics: Device ID (the hashed
+statistics id), Product Interaction and Performance Data (frame rate). No tracking. Keep it in step with
+`docs/privacy.html` and with anything new the game sends.
+
+The age rating answers `userGeneratedContent` yes (friends see each other's chosen names, screened by
+`FriendRules.Rude` / the Worker's `rude`, with REMOVE / BLOCK / REPORT on every friend). The app is offered everywhere
+but China mainland (a game with in-app purchases needs an approval number there).
+
+Left for the website before submitting: picking the build, adding the in-app purchases and Game Center items to the
+version, review contact and notes.
 
 Site (GitHub Pages, branch `gh-pages`, copied from `docs/`): https://mrnickrushing.github.io/crosswind/ with
 `privacy.html` and `support.html`.

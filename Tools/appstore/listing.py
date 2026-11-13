@@ -10,7 +10,7 @@ https://raw.githubusercontent.com/mrnickrushing/crosswind/<branch>/ (the workflo
 It sets, on the app info and the version being prepared for submission:
   - categories, the content rights declaration, the age rating answers;
   - en-US subtitle and privacy policy URL; description, keywords, promotional text, support and marketing URLs;
-  - copyright; a free price and availability in every territory, if the app has none yet;
+  - copyright; a free price and availability in every territory but China mainland, if the app has none yet;
   - the screenshot sets (APP_IPHONE_67, APP_IPAD_PRO_3GEN_129), replaced only when the pictures differ.
 Every section runs even if another fails; the exit code says whether all of them worked. Safe to run again.
 Left for the website: App Privacy answers, the build, the in-app purchases to submit with it, review contact, Submit.
@@ -198,7 +198,8 @@ def _():
     if have and have.get("data"):
         print("  already set")
         return
-    ts = [t["id"] for t in pages("/v1/territories?limit=200")]
+    # Not China mainland: games with in-app purchases need a game approval (ISBN) number there.
+    ts = [t["id"] for t in pages("/v1/territories?limit=200") if t["id"] != "CHN"]
     call("POST", "/v2/appAvailabilities", {
         "data": {"type": "appAvailabilities", "attributes": {"availableInNewTerritories": True}, "relationships": {
             "app": {"data": {"type": "apps", "id": APP}},

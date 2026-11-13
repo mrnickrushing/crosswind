@@ -38,7 +38,7 @@ namespace Crosswind.Core
         /// </summary>
         public static string CleanName(string name)
         {
-            if (string.IsNullOrEmpty(name)) return DefaultName;
+            if (string.IsNullOrEmpty(name) || Rude(name)) return DefaultName;
             var sb = new StringBuilder(NameMax);
             int n = Math.Min(name.Length, 400);
             for (int i = 0; i < n; i++)
@@ -51,7 +51,37 @@ namespace Crosswind.Core
             }
             if (sb.Length > NameMax) sb.Length = NameMax;
             string s = sb.ToString().Trim(' ');
-            return s.Length == 0 ? DefaultName : s;
+            return s.Length == 0 || Rude(s) ? DefaultName : s;
+        }
+
+        // Names other players see are screened (App Review guideline 1.2), the same way as the server (worker.js):
+        // folded to lower-case letters (common digit and symbol swaps undone, everything else a gap), then refused
+        // when it holds one of Roots anywhere, even split up by gaps, or one of Words as a whole word.
+        static readonly string[] Roots = { "fuck", "fuk", "shit", "cunt", "nigg", "niga", "faggot", "bitch", "whore", "slut",
+            "rapist", "nazi", "hitler", "porn", "penis", "vagina", "retard", "wank", "twat", "kike", "chink", "dildo", "pussy",
+            "bastard", "asshole", "jizz", "boner", "blowjob", "handjob", "kkk" };
+        static readonly string[] Words = { "ass", "arse", "dicks", "cock", "cocks", "fag", "fags", "spic", "tit", "tits", "cum",
+            "sex", "rape", "raped", "nude", "nudes", "anal", "piss", "coon", "gook", "homo", "dyke", "tranny" };
+        const string SwapFrom = "0134578@$!", SwapTo = "oieastbasi";
+
+        /// <summary>True when a name would be refused for what it says (it then shows as "Airport Manager").</summary>
+        public static bool Rude(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            int n = Math.Min(name.Length, 400);
+            var folded = new StringBuilder(n);
+            for (int i = 0; i < n; i++)
+            {
+                char c = char.ToLowerInvariant(name[i]);
+                int k = SwapFrom.IndexOf(c);
+                if (k >= 0) c = SwapTo[k];
+                folded.Append(c >= 'a' && c <= 'z' ? c : ' ');
+            }
+            var words = folded.ToString().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string joined = string.Concat(words);
+            foreach (var r in Roots) if (joined.Contains(r)) return true;
+            foreach (var w in words) if (Array.IndexOf(Words, w) >= 0) return true;
+            return false;
         }
 
         /// <summary>The code in upper case when it is six characters of <see cref="Alphabet"/> (typed in any case,

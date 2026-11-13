@@ -47,7 +47,8 @@
     "Made by Rushing Technologies."
   ],
   "ageRating": {
-    "lootBox": true
+    "lootBox": true,
+    "userGeneratedContent": true
   },
   "contentRightsDeclaration": "USES_THIRD_PARTY_CONTENT",
   "screenshots": {

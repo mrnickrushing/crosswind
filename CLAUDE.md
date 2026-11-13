@@ -1,6 +1,6 @@
 # Crosswind: working notes for coding agents
 
-Airport tycoon for iPhone and iPad (portrait), Unity **6000.0.85f1**, URP. Rushing Technologies. Working title.
+Airport tycoon for iPhone and iPad (landscape), Unity **6000.0.85f1**, URP. Rushing Technologies. Working title.
 Design: `docs/DESIGN.md` (pitch, systems, monetisation, milestones). Original names, airlines and aircraft only: no
 real brands, nothing recreated from an existing game. Free models only (CC0 first; CC BY credited in `CREDITS.md`
 and in the game); never paid AI art without asking.
@@ -44,7 +44,7 @@ and in the game); never paid AI art without asking.
   (the imported Sketchfab planes and the Kenney works buildings were removed). `World/Interior` is the terminal cutaway at
   `Interior.Origin` (INSIDE button, `CameraRig.SetInside`): furniture by level, a crowd drawn with
   `Graphics.DrawMeshInstanced`. `UI/Hud.Guide` is the first-minute pointer and the tap-an-aircraft card.
-  `App/Store` buys through RevenueCat on device and a test store in the Editor and development builds (`Sim.Grant`
+  `App/Store` buys through RevenueCat on device and a test store in the Editor only (`Sim.Grant`
   is the real grant, once per transaction); Game Center is `Platform/GameCenter`. Purchases, Game Center, the App
   Store Connect setup scripts (`Tools/appstore`), the Codemagic jobs and the listing: see `docs/STORE.md`.
 - `Game/Debug/PlayBot` (Editor): `PlayBot.Begin(30)` plays the real game greedily at 30x; `PlayBot.Report()`.
@@ -64,6 +64,9 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
 
 ## Before committing
 
+- Every class the save holds must be `[Serializable]`: JsonUtility silently drops the field otherwise (the terminal's
+  furniture was lost at every launch until 2026-11-12). `SaveTests` walks `GameState` and fails on one that isn't.
+
 - Keep `com.unity.pipeline` out of `Packages/manifest.json`; don't commit `Packages/packages-lock.json` or
   `ProjectSettings/Packages/com.unity.pipeline/`.
 - Core tests passing; once there is a Game layer: recompile with 0 errors and Play mode with 0 Console errors.
@@ -74,7 +77,7 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
 - Since 2026-11-10 the game is LANDSCAPE (iPhone and iPad; canvas 1920x1080, `Ui.SafeArea`). HUD (`UI/Hud.cs`): a navigation rail on the left (`TabNames`, plus TERMINAL/AIRFIELD), a compact status block and the guide card top-left, clock top-centre, the flight board top-right (`Hud.Board.cs`), drawers down the right side. Scratch captures use 1920x1080.
 - The camera looks from the airfield toward the terminal (`CameraRig.Yaw = 128`): stands are one row of at most six, nose in, with jet bridges (`Sim.MaxStands`, `Layout.PerColumn`); stand levels past six speed every turnaround instead (`Sim.StandBoost`).
 - The terminal is furnished by the player (`Core/Sim.Terminal.cs`): 23 `Amenities` placed on the concourse grid (`FloorCols` x `FloorRows`, 2 m cells; `Place`, `MoveAmenity`, `UpgradeAmenity` to level 3, `SellAmenity`, `PlaceAnywhere` for bots), eight `Needs` (queues + `Want`s) behind `Satisfaction`; `RetailPull`/`LoungeLevel` replace the old shops/lounge facility levels (the shops, seating, info and lounge facilities are gone). `World/Interior.cs` draws them (`Amenity`, `FloorPoint`, `CellAt`, `ItemAt`, `AgentNear`); `UI/Hud.Terminal.cs` is the SHOP, placing (tap floor, ROTATE, PLACE), the item card (upgrade/move/sell), the ratings strip and the passenger card (a tap on a passenger: their own star ratings and a remark).
-- Accounts and friends: `Platform/AppleAccount.cs` (Sign in with Apple via `com.lupidan.apple-signin-unity`; a stand-in account in the Editor), `Platform/FriendsClient.cs` -> the Worker `crosswind-friends` (`Tools/friends-worker`, D1 `crosswind-friends`, https://crosswind-friends.mrnickrushing.workers.dev), rules in `Core/Friends.cs`, `Core/Sim.Social.cs` (name, a gift of gems from each friend every 20 h), UI `Hud.Friends.cs` (code, add/remove, ranking, sign out, delete account; `Prompt` is the text-entry box). Not done: revoking the Apple token on account deletion (needs a server-side Apple key).
+- Accounts and friends: `Platform/AppleAccount.cs` (Sign in with Apple via `com.lupidan.apple-signin-unity`; a stand-in account in the Editor), `Platform/FriendsClient.cs` -> the Worker `crosswind-friends` (`Tools/friends-worker`, D1 `crosswind-friends`, https://crosswind-friends.mrnickrushing.workers.dev), rules in `Core/Friends.cs`, `Core/Sim.Social.cs` (name, a gift of gems from each friend every 20 h), UI `Hud.Friends.cs` (code, add/remove, ranking, sign out, delete account; `Prompt` is the text-entry box). Names are screened on both sides (`FriendRules.Rude`, `rude` in worker.js: keep the word lists in step); MANAGE > REMOVE on a friend offers REMOVE, BLOCK (`/v1/friends/block`: they can't add you again) and REPORT (`/v1/friends/report`: a row in `reports` with the name, plus a block). Delete account registers again first when the token is missing or stale, so it never says "deleted" without the server erasing it. Not done: revoking the Apple token on account deletion (needs a server-side Apple key).
 - Finance (`Core/Sim.Finance.cs`, EMPIRE): fee policy (`SetFees`, five levels from 3 stars), one bank loan at a time repaid from a fifth of every payment (`TakeLoan`, `RepayLoan`), income by source (`State.incomeBy`).
 - People are Quaternius characters (CC0; `Tools/art/people.py` downloads, `Tools/art/models.py` poses and slims them to `person_N_*`, `worker_*`); The staff's faces are painted portraits, not these models: `Tools/art/portraits.py` (Higgsfield GPT Image 2.5, one sheet of busts on a clear background per `gen`, 1 credit at medium/2k: ask first) cuts `art-src/portraits/<sheet>.png` into `Resources/UI/Faces/<id>.png` (team ids, `mgr_<facility>`), and `Hud.FaceTile` sets one in its frame (`UI/Fx/face_bg`, `face_frame`, tinted by rarity or department; `Badge` for the level; a dark shape for someone not met). Row buttons are laid out by `Hud.ButtonFace` (action, price, and the reason on a strip when blocked, each line its own best-fit label): don't put `<size>` tags in a button label, best fit ignores them and the text spills out.
 - If the Editor stops answering the pipeline after a restart, look for a modal dialog (`wmctrl -l`), e.g. "URP Material upgrade"; keep `ProjectSettings/URPProjectSettings.asset` committed as the Editor writes it.

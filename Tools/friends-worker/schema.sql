@@ -20,3 +20,21 @@ CREATE TABLE IF NOT EXISTS friends (
   PRIMARY KEY (player, friend)
 ) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS friends_friend ON friends(friend);
+
+-- A player who blocked another (both ways, a block keeps either from adding the other again).
+CREATE TABLE IF NOT EXISTS blocks (
+  player  INTEGER NOT NULL,             -- players.id of who blocked
+  blocked INTEGER NOT NULL,             -- players.id of who was blocked
+  added   INTEGER NOT NULL,             -- unix seconds
+  PRIMARY KEY (player, blocked)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS blocks_blocked ON blocks(blocked);
+
+-- Reports for the developer to review: who reported whom and the display name shown at the time.
+CREATE TABLE IF NOT EXISTS reports (
+  reporter INTEGER NOT NULL,            -- players.id
+  reported INTEGER NOT NULL,            -- players.id
+  name     TEXT NOT NULL,               -- the reported player's display name when reported
+  added    INTEGER NOT NULL,            -- unix seconds
+  PRIMARY KEY (reporter, reported)
+) WITHOUT ROWID;

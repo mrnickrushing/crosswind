@@ -37,6 +37,19 @@ namespace Crosswind.Game
         static readonly int[] TabPlace = { 0, 2, 3, 4, 5, 6, 1 };
         static readonly string[] RailArt = { "rail_build", "rail_airlines", "rail_staff", "rail_research", "rail_empire", "rail_friends", "rail_ops" };
         Text _gems, _weather, _chips, _oppText, _vitals;
+        readonly Dictionary<Text, string> _fitted = new Dictionary<Text, string>();
+
+        /// <summary>Shrinks a one-line label until it fits its width (only when its text has changed).</summary>
+        void FitOneLine(Text t, int max, int min)
+        {
+            float room = t.rectTransform.rect.width;
+            if (room <= 1) return;                                   // not laid out yet
+            string key = t.text + "|" + (int)room, was;
+            if (_fitted.TryGetValue(t, out was) && was == key) return;
+            _fitted[t] = key;
+            t.fontSize = max;
+            while (t.fontSize > min && t.preferredWidth > room) t.fontSize--;
+        }
         RectTransform _opp, _empireDot, _staffDot;
 
         public static Hud Create()
@@ -174,7 +187,8 @@ namespace Crosswind.Game
             ((RectTransform)vitals.transform).Fill();
             _vitals = Ui.Label("Vitals", clock, "", 24, Ui.Dim, TextAnchor.MiddleCenter, false);
             _vitals.rectTransform.anchorMin = new Vector2(0, 0); _vitals.rectTransform.anchorMax = new Vector2(1, 0.46f); _vitals.rectTransform.offsetMin = new Vector2(10, 8); _vitals.rectTransform.offsetMax = new Vector2(-10, 0);
-            _vitals.resizeTextForBestFit = true; _vitals.resizeTextMinSize = 16; _vitals.resizeTextMaxSize = 24;
+            // One line always: best fit would rather wrap ("REPUTATION" over "124") than shrink, so the size is set by hand.
+            _vitals.horizontalOverflow = HorizontalWrapMode.Overflow;
             _chips = Ui.Label("Chips", _safe, "", 30, Ui.Gold);
             _chips.rectTransform.Place(new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(1084, -118), new Vector2(620, 44));
             Outline(_chips);
@@ -252,8 +266,9 @@ namespace Crosswind.Game
             int hh = (int)_sim.Hour, mm = (int)((_sim.Hour - hh) * 60) / 10 * 10;
             string clock = Sim.Weekdays[_sim.Weekday].Substring(0, 3) + "  " + hh.ToString("00") + ":" + mm.ToString("00") + (w == Weather.Clear ? "   CLEAR" : "   ");
             float otp = _sim.OnTimeToday, sat = _sim.Satisfaction;
-            _vitals.text = "ON TIME <color=" + (otp >= 0.9f ? "#7CE08A" : otp >= 0.75f ? "#FFC83D" : "#FF8070") + ">" + Mathf.RoundToInt(otp * 100) + "%</color>   PASSENGERS <color=" + (sat >= 0.8f ? "#7CE08A" : sat >= 0.6f ? "#FFC83D" : "#FF8070") + ">" + Mathf.RoundToInt(sat * 100) + "%</color>"
+            _vitals.text = "ON TIME <color=" + (otp >= 0.9f ? "#7CE08A" : otp >= 0.75f ? "#FFC83D" : "#FF8070") + ">" + Mathf.RoundToInt(otp * 100) + "%</color>   PASSENGERS <color=" + (sat >= 0.8f ? "#7CE08A" : sat >= 0.6f ? "#FFC83D" : "#FF8070") + ">" + Format.Satisfied(sat) + "</color>"
                 + (_sim.ContractsOpen ? "   REPUTATION <color=#FFFFFF>" + _sim.RepTotal + "</color>" : "");
+            FitOneLine(_vitals, 24, 15);
             _weather.text = clock + (w == Weather.Clear ? "" : (w == Weather.Rain ? "RAIN" : w == Weather.Fog ? "FOG" : w == Weather.Storm ? "STORM" : "SNOW") + "  <size=24>runway " + Mathf.RoundToInt(_sim.WeatherFactor * 100) + "%</size>");
             _chips.text = (_sim.Rush ? "RUSH x2  " + Format.Time(_sim.State.rushUntil - _sim.State.time) + "   " : "") + (_sim.Boosted ? "BOOST x2  " + Format.Time(_sim.BoostLeft) : "");
             var o = _sim.State.opportunity;

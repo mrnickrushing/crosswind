@@ -28,7 +28,7 @@ namespace Crosswind.Game
             Instance = this;
             Application.targetFrameRate = 60;
             QualitySettings.vSyncCount = 0;
-            Screen.sleepTimeout = SleepTimeout.NeverSleep;
+            Screen.sleepTimeout = SleepTimeout.NeverSleep;   // KeepAwake lets it sleep again after a while untouched
             foreach (var cam in FindObjectsByType<Camera>(FindObjectsSortMode.None)) Destroy(cam.gameObject);
             foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None)) Destroy(l.gameObject);
 
@@ -115,6 +115,18 @@ namespace Crosswind.Game
             Sfx.TickMusic(Sim.Night, Time.unscaledDeltaTime);
             Sfx.TickAmbience(CameraRig.Inside, Interior.Instance != null ? Interior.Instance.Crowd : 0, Time.unscaledDeltaTime);
             if ((_saveIn -= Time.unscaledDeltaTime) <= 0) { _saveIn = 10f; Save(); }
+            KeepAwake();
+        }
+
+        float _lastTouch;
+        /// <summary>The screen stays on while the airport is being played and for five minutes after the last touch,
+        /// then the device's own auto-lock applies again (an idle airport earns offline anyway).</summary>
+        void KeepAwake()
+        {
+            var p = UnityEngine.InputSystem.Pointer.current;
+            if (p != null && p.press.isPressed) _lastTouch = Time.unscaledTime;
+            int want = Time.unscaledTime - _lastTouch < 300f ? SleepTimeout.NeverSleep : SleepTimeout.SystemSetting;
+            if (Screen.sleepTimeout != want) Screen.sleepTimeout = want;
         }
 
         public void ClearAway() { AwaySeconds = 0; }

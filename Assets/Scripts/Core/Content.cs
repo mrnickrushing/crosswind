@@ -126,7 +126,7 @@ namespace Crosswind.Core
             Line("sunhop", "Sunhop Holidays", "Two weeks of somewhere else.", 1.1f, 1.2f);
             Line("zip", "Zip", "Cheap seats, tight turns.", 0.85f, 0.8f);
             Line("meridian", "Meridian Airways", "The long way, properly.", 1.4f, 1.0f);
-            Line("atlas", "Atlas Freight", "Night and day, by the tonne.", 1.25f, 1.3f);
+            Line("atlas", "Tallyman Freight", "Night and day, by the tonne.", 1.25f, 1.3f);
             Line("fjord", "Fjordlink", "Small fields, big weather.", 1.15f, 1.1f);
             Line("solstice", "Solstice", "Somewhere it is always summer.", 1.3f, 0.9f);
             Line("crown", "Crown Executive", "Your time, our business.", 2.2f, 0.7f);
@@ -170,7 +170,7 @@ namespace Crosswind.Core
             Is("sunhop", "SH", 1, 2, 1, 2, 3);
             Is("zip", "ZP", 2, 3, 1, 3, 2);
             Is("meridian", "MD", 2, 1, 1, 3, 4);
-            Is("atlas", "AF", 3, 4, 4, 3, 1);
+            Is("atlas", "TQ", 3, 4, 4, 3, 1);
             Is("fjord", "FJ", 0, 2, 1, 2, 3);
             Is("solstice", "SL", 1, 1, 2, 1, 3);
             Is("crown", "CE", 2, 0, 1, 3, 2);

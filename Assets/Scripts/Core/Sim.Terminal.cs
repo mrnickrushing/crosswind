@@ -19,7 +19,7 @@ namespace Crosswind.Core
         public bool Earns;              // food and shops take money from every passenger
     }
 
-    public sealed class PlacedAmenity { public string id; public int x, z, rot, level = 1; }
+    [Serializable] public sealed class PlacedAmenity { public string id; public int x, z, rot, level = 1; }
 
     /// <summary>One line of the terminal's report: a need, how well it is met (0..1), and what to do about it.</summary>
     public sealed class Need

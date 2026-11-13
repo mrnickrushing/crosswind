@@ -39,20 +39,22 @@ namespace Crosswind.Core
             new ProductDef { Id = "crosswind.gems.small", Name = "Handful of Gems", Blurb = "80 gems", Gems = 80, FallbackPrice = "$1.99" },
             new ProductDef { Id = "crosswind.gems.medium", Name = "Case of Gems", Blurb = "500 gems: best for a first upgrade spree", Gems = 500, FallbackPrice = "$9.99" },
             new ProductDef { Id = "crosswind.gems.large", Name = "Vault of Gems", Blurb = "1,400 gems", Gems = 1400, FallbackPrice = "$19.99" },
-            new ProductDef { Id = "crosswind.starter", Name = "Founder's Pack", Blurb = "300 gems and a third building crew, for good. One time only.", Gems = 300, Once = true, FallbackPrice = "$4.99" },
+            new ProductDef { Id = "crosswind.starter", Name = "Founder's Pack", Blurb = "300 gems now and a third building crew for good. One time only.", Gems = 300, Once = true, FallbackPrice = "$4.99" },
             new ProductDef { Id = "crosswind.double", Name = "Golden Runway", Blurb = "All income doubled, for good, at every airport.", Once = true, FallbackPrice = "$9.99" },
         };
 
         public bool Owns(string product) { return State.owned.Contains(product); }
 
-        /// <summary>Grants a purchase (idempotent per transaction). Returns false if this transaction was already granted.</summary>
-        public bool Grant(string product, string transaction)
+        /// <summary>Grants a purchase (idempotent per transaction). Returns false if this transaction was already granted.
+        /// A restore (<paramref name="restored"/>) brings back what is kept for good (the crew, the doubled income) but not a
+        /// pack's gems: those were paid out with the purchase itself, so erasing the game and restoring can't mint more.</summary>
+        public bool Grant(string product, string transaction, bool restored = false)
         {
             var p = Products.Find(x => x.Id == product);
             if (p == null) return false;
             if (!string.IsNullOrEmpty(transaction)) { if (State.transactions.Contains(transaction)) return false; State.transactions.Add(transaction); }
             if (p.Once) { if (State.owned.Contains(product)) return false; State.owned.Add(product); }
-            State.gems += p.Gems;
+            if (!restored) State.gems += p.Gems;
             EndPurchase(product);
             Changed?.Invoke();
             return true;
@@ -117,7 +119,7 @@ namespace Crosswind.Core
             {
                 var p = Product(id);
                 if (p == null || !p.Once || State.owned.Contains(id)) continue;
-                if (Grant(id, null)) n++;
+                if (Grant(id, null, restored: true)) n++;
             }
             return n;
         }

@@ -13,7 +13,7 @@ namespace Crosswind.Game
 {
     /// <summary>
     /// The player's account: Sign in with Apple (optional). Signing in creates the account the friends service knows
-    /// (only a hash of Apple's opaque user id ever leaves the phone), and names the manager from the first name Apple
+    /// (Apple's opaque user id goes to it over HTTPS and is stored there only as a hash), and names the manager from the first name Apple
     /// sends if none was chosen. The airport itself travels through iCloud (<see cref="CloudSave"/>). In the Editor a
     /// stand-in account lets the whole flow be played without an iPhone.
     /// </summary>

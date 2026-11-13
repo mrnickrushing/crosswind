@@ -73,9 +73,21 @@ namespace Crosswind.Tests
             var s = Airport(); int gems = s.State.gems;
             Assert.AreEqual(2, s.RestoreOwned(new[] { "crosswind.starter", "crosswind.double", "crosswind.gems.large", "something.else" }));
             Assert.IsTrue(s.Owns("crosswind.starter")); Assert.IsTrue(s.Owns("crosswind.double"));
-            Assert.AreEqual(gems + 300, s.State.gems, "the pack's gems, not the gem purchase");
+            Assert.AreEqual(gems, s.State.gems, "a restore brings the crew back, never the pack's gems again");
             Assert.AreEqual(0, s.RestoreOwned(new[] { "crosswind.starter", "crosswind.double" }));
-            Assert.AreEqual(gems + 300, s.State.gems);
+            Assert.AreEqual(gems, s.State.gems);
+        }
+
+        [Test]
+        public void ErasingAndRestoringMintsNoGems()
+        {
+            var s = Airport(); int gems = s.State.gems;
+            Assert.IsTrue(s.Grant("crosswind.starter", "tx-pack"));
+            Assert.AreEqual(gems + 300, s.State.gems, "the purchase itself pays the gems");
+            var fresh = Airport(); int start = fresh.State.gems;      // Erase everything, then RESTORE
+            Assert.AreEqual(1, fresh.RestoreOwned(new[] { "crosswind.starter" }));
+            Assert.IsTrue(fresh.Owns("crosswind.starter"));
+            Assert.AreEqual(start, fresh.State.gems);
         }
 
         [Test]

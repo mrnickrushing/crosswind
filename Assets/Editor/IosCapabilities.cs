@@ -49,6 +49,13 @@ namespace Crosswind.EditorTools
             proj.AddFrameworkToProject(proj.GetUnityFrameworkTargetGuid(), "AuthenticationServices.framework", true);     // Sign in with Apple
             proj.AddFrameworkToProject(proj.GetUnityFrameworkTargetGuid(), "GameKit.framework", false);                   // Game Center
             proj.WriteToFile(projPath);
+
+            // Only HTTPS through the system: exempt encryption, so App Store Connect doesn't ask at every upload.
+            var plistPath = Path.Combine(path, "Info.plist");
+            var plist = new PlistDocument();
+            plist.ReadFromFile(plistPath);
+            plist.root.SetBoolean("ITSAppUsesNonExemptEncryption", false);
+            plist.WriteToFile(plistPath);
         }
     }
 }

@@ -24,6 +24,14 @@ namespace Crosswind.Core
             return sign + digits + Suffix[tier];
         }
 
+        /// <summary>Passenger satisfaction as a share: "87%", never past "100%"; above every need met (shops and a
+        /// lounge take it to 150%) it reads "100%+" so the screen never shows more than all of them pleased.</summary>
+        public static string Satisfied(float sat)
+        {
+            int pct = (int)Math.Round(sat * 100, MidpointRounding.AwayFromZero);
+            return pct > 100 ? "100%+" : Math.Max(0, pct) + "%";
+        }
+
         /// <summary>"45s", "3m 20s", "2h 05m", "1d 4h".</summary>
         public static string Time(double seconds)
         {

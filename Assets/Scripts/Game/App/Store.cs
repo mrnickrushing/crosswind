@@ -26,9 +26,10 @@ namespace Crosswind.Game
     }
 
     /// <summary>
-    /// Buying things. On an iPhone or iPad purchases go through the App Store by way of RevenueCat (the package
-    /// defines CROSSWIND_REVENUECAT; see docs/STORE.md). In the Editor and in development builds a test store grants
-    /// at once so the shop can be tried; a release build without a working store sells nothing, never gives for free.
+    /// Buying things. On an iPhone or iPad (development builds too) purchases go through the App Store by way of
+    /// RevenueCat (the package defines CROSSWIND_REVENUECAT; see docs/STORE.md; TestFlight uses the sandbox). In the
+    /// Editor a test store grants at once so the shop can be tried; a device without a working store sells nothing,
+    /// never gives for free.
     /// Every grant goes through <see cref="Sim.Grant"/>, once per App Store transaction, and a purchase is noted
     /// before it starts so one cut short by a crash is paid out at the next launch.
     /// </summary>
@@ -59,11 +60,13 @@ namespace Crosswind.Game
 
         static void OnAccount() { Current.Identify(AppleAccount.SignedIn ? AppleAccount.UserId : null); }
 
-        /// <summary>The test store is in use (Editor and development builds): purchases are pretend.</summary>
+        /// <summary>The test store is in use (the Editor): purchases are pretend.</summary>
         public static bool Testing { get { return Current is TestStore; } }
         public static bool Available { get { return Current.Ready; } }
 
-        public static string Price(ProductDef p) { var s = Current.Price(p.Id); return string.IsNullOrEmpty(s) ? p.FallbackPrice : s; }
+        /// <summary>The App Store's price in the player's own currency; until it has loaded, "..." (the fallback US
+        /// price only in the test store, where nothing is charged).</summary>
+        public static string Price(ProductDef p) { var s = Current.Price(p.Id); return !string.IsNullOrEmpty(s) ? s : Testing ? p.FallbackPrice : "..."; }
 
         static bool _buying;
 

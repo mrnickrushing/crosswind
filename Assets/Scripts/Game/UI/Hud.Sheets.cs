@@ -200,7 +200,7 @@ namespace Crosswind.Game
                             "FINISH\n<size=34>" + Gems(s.BuildSkipGems(job)) + "</size>", s.State.gems < s.BuildSkipGems(job) ? "Not enough gems" : null, () => s.SkipBuild(job.facility), Ui.Blue);
                     }
                 }
-                Header("PASSENGERS: " + Mathf.RoundToInt(s.Satisfaction * 100) + "% SATISFIED (THEY SPEND MORE WHEN HAPPY)");
+                Header("PASSENGERS: " + (s.Satisfaction > 1.005f ? "DELIGHTED, SPENDING " + Mathf.RoundToInt((s.Satisfaction - 1) * 100) + "% MORE" : Format.Satisfied(s.Satisfaction) + " SATISFIED (THEY SPEND MORE WHEN HAPPY)"));
                 foreach (var need in s.Needs)
                 {
                     // Something nobody asks for yet at this size is said so, not shown as a need met in full.
@@ -373,7 +373,7 @@ namespace Crosswind.Game
                 {
                     int gi = System.Array.IndexOf(Sim.Grades, rep.grade); int rg = s.ReportGems(rep);
                     var gt = gi <= 0 ? TintGold : gi == 1 ? TintGreen : gi == 2 ? TintAir : TintRed;
-                    string body = rep.flights + " flights, " + Mathf.RoundToInt(100f * rep.onTime / Mathf.Max(1, rep.flights)) + "% on time  ·  took " + Format.Money(rep.income) + "  ·  passengers " + Mathf.RoundToInt(rep.satisfaction * 100) + "%"
+                    string body = rep.flights + " flights, " + Mathf.RoundToInt(100f * rep.onTime / Mathf.Max(1, rep.flights)) + "% on time  ·  took " + Format.Money(rep.income) + "  ·  passengers " + Format.Satisfied(rep.satisfaction)
                         + (rep.dry > 0 ? "  ·  " + rep.dry + " fuelled by a supplier" : "") + (rep.runway < Sim.WornAt ? "  ·  runway worn" : "");
                     Ico("medal", gt).Bar(rep.score, gi <= 1 ? Ui.Green : gi == 2 ? Ui.Gold : Ui.Red).Entry("Day " + rep.day + " report", "GRADE " + rep.grade + (rep.streak > 1 ? "  ·  " + rep.streak + " GOOD DAYS RUNNING" : ""), body,
                         rep.claimed ? null : rep.bonus > 0 || rg > 0 ? "COLLECT\n<size=34>" + (rep.bonus > 0 ? Format.Money(rep.bonus) : "") + (rg > 0 ? (rep.bonus > 0 ? " + " : "") + rg + " gems" : "") + "</size>" : "OK", null,
@@ -435,7 +435,7 @@ namespace Crosswind.Game
                 : "Sign in to iCloud in the iPhone's Settings to keep your airport safe and move it to a new phone.", null, null, null);
             Ico("trash", TintRed).Entry("Erase everything", null, "Deletes your airports, team and progress from this device and from your iCloud, and gives the statistics a new anonymous id. This can't be undone.", "ERASE", null, ConfirmErase, Ui.Red);
             Header("CREDITS");
-            Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Ground and floor textures from Poly Haven and ambientCG. Aircraft, airport vehicles and buildings are our own.", null, null, null);
+            Ico("users", TintSocial).Entry("People, vehicles and buildings", "CC0", "Characters and cars by Quaternius. Ground and floor textures and the sky from Poly Haven and ambientCG. Interface sounds and small icons by Kenney. Aircraft, airport vehicles and buildings are our own.", null, null, null);
             Ico("pen").Entry("Icons and lettering", null, "Flat glyphs from Font Awesome Free (CC BY 4.0, fontawesome.com). Lettering in Barlow by Jeremy Tribby (SIL Open Font License).", null, null, null);
             Ico("couch", TintGold).Entry("Terminal furniture", "CC BY / CC0", "Free 3D models, recoloured and slimmed for the game. CC0: Kenney (Furniture Kit, Mini Market, Mini Arcade, Food Kit, Nature Kit, City Kit Roads), Quaternius. CC BY 3.0, via poly.pizza: Poly by Google (the fountain, slide, swing, fish and corals, soft toys, luggage, model aircraft and more), J-Toastie (ATM), jeremy (piano), Josh (baggage belts), dook (security scanners).", null, null, null);
             Ico("star", TintGold).Entry("Picture icons", "CC BY / CC0", "Renders of free 3D models. CC BY 3.0, via poly.pizza: Poly by Google (most of them), Casey Tumbers (trophy), Tom\u00e1\u0161 Bayer (calendar), William Murphy (clipboard), jeremy (hammer). CC BY 4.0, via Sketchfab: abass20 (control tower), rikugo.studio (chart). CC0: Quaternius, Kenney, CreativeTrio.", null, null, null);

@@ -8,6 +8,15 @@ namespace Crosswind.Tests
         const double Now = 1_800_000_000;
 
         [Test]
+        public void RudeNamesAreRefused()
+        {
+            foreach (var bad in new[] { "F u c k", "sh1t head", "Big Ass", "N.a.z.i", "Pen Island" })
+                Assert.AreEqual(FriendRules.DefaultName, FriendRules.CleanName(bad), bad);
+            foreach (var fine in new[] { "Cassandra", "Dickens", "Bassett", "Grass Hopper", "J0hn", "Dick Smith", "Essex Air" })
+                Assert.AreEqual(fine, FriendRules.CleanName(fine), fine);
+        }
+
+        [Test]
         public void ANameKeepsLettersDigitsAndAFewMarks()
         {
             Assert.AreEqual("O'Hare-2 Intl._", FriendRules.CleanName("O'Hare-2 Intl._"));

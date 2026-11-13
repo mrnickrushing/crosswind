@@ -117,6 +117,20 @@ namespace Crosswind.Game
             Tell(done, true, "");
         }
 
+        /// <summary>Ends the friendship and stops that player adding this one again; with <paramref name="report"/> the
+        /// developer is also sent their name to look at.</summary>
+        public static IEnumerator Block(string code, bool report, Action<bool, string> done)
+        {
+            if (!SignedIn) { Tell(done, false, SignInAgain); yield break; }
+            string valid = FriendRules.ValidCode(code);
+            if (valid == null) { Tell(done, false, "No airport has that code"); yield break; }
+            string error = null;
+            yield return Send("POST", report ? "/v1/friends/report" : "/v1/friends/block", JsonUtility.ToJson(new CodeBody { code = valid }), true, (r, e) => { error = e; });
+            if (error != null) { Tell(done, false, error); yield break; }
+            _friends.RemoveAll(x => x.Code == valid);
+            Tell(done, true, "");
+        }
+
         /// <summary>Fetches the friend list into <see cref="Friends"/> and hands it over. When the server can't be
         /// reached the callback gets the list as it was (<see cref="Fresh"/> says which).</summary>
         public static IEnumerator Refresh(Action<List<FriendInfo>> done)
@@ -135,17 +149,16 @@ namespace Crosswind.Game
         }
 
         /// <summary>Erases the player and every friendship on the server, then forgets the token and code here.
-        /// done(false) when the server couldn't be reached: nothing was erased, and the device stays signed in so
-        /// it can be tried again.</summary>
+        /// done(false) when nothing was erased: the server couldn't be reached, or this device holds no working token
+        /// (never registered, or replaced by a sign-in elsewhere). The caller registers again and retries then, so
+        /// "Account deleted" is only ever said when the server has really erased it.</summary>
         public static IEnumerator DeleteAccount(Action<bool> done)
         {
-            if (!SignedIn) { Forget(); Tell(done, true); yield break; }   // nothing of this device's to erase
+            if (!SignedIn) { Tell(done, false); yield break; }
             string error = null;
             yield return Send("POST", "/v1/delete", "{}", true, (r, e) => { error = e; });
-            // A token the server no longer knows (Send has already dropped it) means there is nothing left to erase with it.
-            bool gone = error == null || !SignedIn;
-            if (gone) Forget();
-            Tell(done, gone);
+            if (error == null) Forget();
+            Tell(done, error == null);
         }
 
         /// <summary>Forgets the token, code and cached friends on this device only (signing out).</summary>

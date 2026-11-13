@@ -1,7 +1,8 @@
 // Crosswind friends: sign in with an opaque account id, get a short friend code, add friends by code and see their
 // airports (Game/Platform/FriendsClient.cs; rules shared with Core/Friends.cs). Stored in D1 (schema.sql). The account
 // id and the bearer token are kept only as SHA-256 hashes; no IPs, emails or other request details are stored or
-// logged. The only free text is the display name, cleaned by cleanName. See README.md.
+// logged. The only free text is the display name, cleaned and screened by cleanName; players can block and report
+// one another (blocks, reports). See README.md.
 
 const MAX_BODY = 4 * 1024, MAX_FRIENDS = 50, NAME_MAX = 20, MAP_MAX = 24;
 const MAX_STARS = 99, MAX_FLIGHTS = 2_000_000_000;
@@ -9,6 +10,16 @@ const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O/1/I; 32 symbols
 const CODE_LEN = 6;
 const DEFAULT_NAME = "Airport Manager";
 const OK_CHAR = /^[\p{L}\p{Nd} '\-._]$/u;
+
+// Names others can see are screened (App Review guideline 1.2). Keep in step with FriendRules (Core/Friends.cs):
+// a name is folded (lower case, common digit/symbol swaps undone, everything but letters dropped) and refused when
+// it holds one of ROOTS anywhere or one of WORDS as a whole word; a refused name becomes "Airport Manager".
+const ROOTS = ["fuck", "fuk", "shit", "cunt", "nigg", "niga", "faggot", "bitch", "whore", "slut", "rapist", "nazi",
+  "hitler", "porn", "penis", "vagina", "retard", "wank", "twat", "kike", "chink", "dildo", "pussy", "bastard", "asshole",
+  "jizz", "boner", "blowjob", "handjob", "kkk"];
+const WORDS = ["ass", "arse", "dicks", "cock", "cocks", "fag", "fags", "spic", "tit", "tits", "cum", "sex", "rape",
+  "raped", "nude", "nudes", "anal", "piss", "coon", "gook", "homo", "dyke", "tranny"];
+const SWAPS = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "8": "b", "@": "a", "$": "s", "!": "i" };
 
 // Per-IP limits, per isolate, in memory only: the key is a hash of the address salted with a value that dies with
 // the isolate, so nothing about an address is ever written anywhere.
@@ -38,7 +49,7 @@ async function route(req, env) {
   }
 
   const handler = { "/v1/register": register, "/v1/profile": profile, "/v1/friends/add": add,
-    "/v1/friends/remove": remove, "/v1/delete": del }[path];
+    "/v1/friends/remove": remove, "/v1/friends/block": block, "/v1/friends/report": report, "/v1/delete": del }[path];
   if (!handler) return fail(404, "Not found");
   if (req.method !== "POST") return fail(405, "POST only");
 
@@ -94,6 +105,10 @@ async function add(req, env, body, me) {
   if (code === me.code) return fail(409, "That's your own code");
   const other = await env.DB.prepare("SELECT id, code, name, map, stars, flights, last_seen FROM players WHERE code = ?").bind(code).first();
   if (!other) return fail(404, "No airport has that code");
+  // Either side having blocked the other reads as an unknown code, so a block can't be probed or worked round.
+  const blocked = await env.DB.prepare("SELECT 1 FROM blocks WHERE (player = ?1 AND blocked = ?2) OR (player = ?2 AND blocked = ?1)")
+    .bind(me.id, other.id).first();
+  if (blocked) return fail(404, "No airport has that code");
   const counts = await env.DB.prepare(
     "SELECT (SELECT COUNT(*) FROM friends WHERE player = ?1 AND friend = ?2) AS already, " +
     "(SELECT COUNT(*) FROM friends WHERE player = ?1) AS mine, (SELECT COUNT(*) FROM friends WHERE player = ?2) AS theirs")
@@ -117,6 +132,31 @@ async function remove(_req, env, body, me) {
   return json({ ok: true });   // also when there was nothing to remove: the list ends up the same
 }
 
+// Ends the friendship both ways and stops that player adding this one again (and this one them).
+async function block(_req, env, body, me) {
+  const other = await byCode(env, body.code);
+  if (!other || other.id === me.id) return fail(404, "No airport has that code");
+  const del = env.DB.prepare("DELETE FROM friends WHERE player = ? AND friend = ?");
+  await env.DB.batch([del.bind(me.id, other.id), del.bind(other.id, me.id),
+    env.DB.prepare("INSERT OR IGNORE INTO blocks (player, blocked, added) VALUES (?, ?, ?)").bind(me.id, other.id, now())]);
+  return json({ ok: true });
+}
+
+// A block, plus a note for the developer to look at: the name as it was shown, so it can be cleared or the
+// filter extended. One open report per pair.
+async function report(req, env, body, me) {
+  const other = await byCode(env, body.code);
+  if (!other || other.id === me.id) return fail(404, "No airport has that code");
+  await env.DB.prepare("INSERT OR IGNORE INTO reports (reporter, reported, name, added) VALUES (?, ?, ?, ?)")
+    .bind(me.id, other.id, other.name, now()).run();
+  return block(req, env, body, me);
+}
+
+async function byCode(env, raw) {
+  const code = validCode(raw);
+  return code ? env.DB.prepare("SELECT id, name FROM players WHERE code = ?").bind(code).first() : null;
+}
+
 async function listFriends(env, me) {
   const [rows] = await env.DB.batch([
     env.DB.prepare("SELECT p.code, p.name, p.map, p.stars, p.flights, p.last_seen FROM friends f JOIN players p ON p.id = f.friend " +
@@ -129,6 +169,8 @@ async function listFriends(env, me) {
 async function del(_req, env, _body, me) {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM friends WHERE player = ?1 OR friend = ?1").bind(me.id),
+    env.DB.prepare("DELETE FROM blocks WHERE player = ?1 OR blocked = ?1").bind(me.id),
+    env.DB.prepare("DELETE FROM reports WHERE reporter = ?1 OR reported = ?1").bind(me.id),
     env.DB.prepare("DELETE FROM players WHERE id = ?").bind(me.id),
   ]);
   return json({ ok: true });
@@ -152,7 +194,27 @@ function cleanProfile(b) {
 
 // Keep in step with FriendRules.CleanName (Core/Friends.cs): letters, digits, space and '-._ only (judged one UTF-16
 // unit at a time, as C# does), runs of spaces become one, 20 characters at most, "Airport Manager" when nothing is left.
-function cleanName(v) { return cleanText(v, NAME_MAX) || DEFAULT_NAME; }
+function cleanName(v) {
+  if (typeof v === "string" && rude(v)) return DEFAULT_NAME;
+  const n = cleanText(v, NAME_MAX) || DEFAULT_NAME;
+  return rude(n) ? DEFAULT_NAME : n;
+}
+
+function fold(s) {
+  let out = "";
+  for (const ch of s.toLowerCase()) {
+    const c = SWAPS[ch] || ch;
+    out += c >= "a" && c <= "z" ? c : " ";
+  }
+  return out;
+}
+
+function rude(s) {
+  const words = fold(s.slice(0, 400)).split(" ").filter(w => w !== "");
+  const joined = words.join("");
+  if (ROOTS.some(r => joined.includes(r))) return true;
+  return words.some(w => WORDS.includes(w));
+}
 
 function cleanText(v, max) {
   if (typeof v !== "string") return "";

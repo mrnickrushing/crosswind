@@ -45,6 +45,7 @@ namespace Crosswind.Game
         /// <summary>Signed in with Apple but not (or no longer) known to the friends service: register, quietly.</summary>
         void EnsureRegistered(System.Action then = null)
         {
+            if (_friendBusy && then != null && !FriendsClient.SignedIn) { Toast("Connecting to the server, try again in a moment"); return; }
             if (!AppleAccount.SignedIn || FriendsClient.SignedIn || _friendBusy) { if (FriendsClient.SignedIn && then != null) then(); return; }
             _friendBusy = true;
             FriendsClient.Run(FriendsClient.Register(AppleAccount.UserId, _sim.DisplayName, _sim.Map.Name, _sim.Stars, _sim.State.flightsHandled, (ok, msg) =>
@@ -92,7 +93,7 @@ namespace Crosswind.Game
                 var fr = f; bool ready = s.GiftReady(f.Code);
                 string body = f.Map + "  ·  " + f.Flights + " flights  ·  " + FriendRules.LastSeenText(f.LastSeen, SaveSystem.Now);
                 if (_friendManage)
-                    Ico("user", TintAir).Entry(f.Name, "★ " + f.Stars, body, "REMOVE", null, () => FriendsClient.Run(FriendsClient.Remove(fr.Code, (ok, msg) => { Toast(ok ? fr.Name + " removed" : msg); _dirty = true; })), Ui.Red);
+                    Ico("user", TintAir).Entry(f.Name, "★ " + f.Stars, body, "REMOVE", null, () => FriendChoices(fr), Ui.Red);
                 else
                     Ico("user", TintAir).Entry(f.Name, "★ " + f.Stars, body, ready ? "GIFT\n<size=26>+" + Sim.FriendGiftGems + " gems</size>" : "GIFT", ready ? null : "in " + Format.Time(s.GiftWait(f.Code)),
                         () => { if (s.CollectGift(fr.Code)) { Reward(0, Sim.FriendGiftGems); Sfx.Play("claim"); } }, Ui.Gold);
@@ -117,6 +118,45 @@ namespace Crosswind.Game
             Prompt("MANAGER'S NAME", FriendRules.DefaultName, _sim.State.playerName, FriendRules.NameMax, false, v => { _sim.Rename(v); GameRoot.Instance.Save(); SyncProfile(true); Toast("Name: " + _sim.DisplayName); _dirty = true; });
         }
 
+        /// <summary>Erases the account on the server. With no working token here (offline at sign-in, or replaced by a
+        /// sign-in on another device) it registers again with the Apple ID first, which finds the same account.</summary>
+        void DeleteAccountNow(bool retried)
+        {
+            System.Action again = () => EnsureRegistered(() => DeleteAccountNow(true));
+            if (!FriendsClient.SignedIn) { if (retried) Toast("Couldn't reach the server: nothing was deleted. Try again."); else again(); return; }
+            FriendsClient.Run(FriendsClient.DeleteAccount(ok =>
+            {
+                if (!ok && !FriendsClient.SignedIn && !retried) { again(); return; }
+                if (!ok) { Toast("Couldn't reach the server: nothing was deleted. Try again."); return; }
+                AppleAccount.SignOut(); _sim.State.gifts.Clear(); GameRoot.Instance.Save();
+                Toast("Account deleted"); _dirty = true;
+            }));
+        }
+
+        /// <summary>REMOVE on a friend: just remove, or block (they can't add you again), or report their name and block.</summary>
+        void FriendChoices(FriendInfo fr)
+        {
+            if (_confirm != null) Destroy(_confirm.gameObject);
+            _confirm = Ui.Img("Confirm", _root, new Color(0, 0, 0, 0.7f)).rectTransform;
+            _confirm.Fill(); _confirm.GetComponent<Image>().raycastTarget = true;
+            var box = Ui.ArtImg("Box", _confirm, "panel", Color.white).rectTransform;
+            box.Place(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1180, 560));
+            Ui.Label("T", box, fr.Name.ToUpperInvariant(), 52, Color.white).rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -36), new Vector2(1100, 70));
+            Ui.Label("B", box, "REMOVE ends the friendship for both of you. BLOCK also stops them adding you again. REPORT sends us their name to check, and blocks them.", 32, Ui.Dim, TextAnchor.UpperCenter, false)
+                .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(1080, 200));
+            System.Action close = () => { if (_confirm != null) Destroy(_confirm.gameObject); _confirm = null; };
+            System.Action<bool, string> after = null;
+            System.Action<string> run = what => after = (ok, msg) => { Toast(ok ? what : msg); _dirty = true; };
+            var remove = Ui.Button("Remove", box, "REMOVE", Ui.Blue, () => { close(); run(fr.Name + " removed"); FriendsClient.Run(FriendsClient.Remove(fr.Code, after)); }, 38);
+            ((RectTransform)remove.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-405, 150), new Vector2(330, 100));
+            var block = Ui.Button("Block", box, "BLOCK", Ui.Red, () => { close(); run(fr.Name + " blocked"); FriendsClient.Run(FriendsClient.Block(fr.Code, false, after)); }, 38);
+            ((RectTransform)block.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 150), new Vector2(330, 100));
+            var report = Ui.Button("Report", box, "REPORT", Ui.Red, () => { close(); run("Reported and blocked. Thank you"); FriendsClient.Run(FriendsClient.Block(fr.Code, true, after)); }, 38);
+            ((RectTransform)report.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(405, 150), new Vector2(330, 100));
+            var keep = Ui.Button("Keep", box, "CANCEL", Ui.Off, close, 36);
+            ((RectTransform)keep.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 30), new Vector2(330, 92));
+        }
+
         void ConfirmDeleteAccount()
         {
             if (_confirm != null) Destroy(_confirm.gameObject);
@@ -130,12 +170,7 @@ namespace Crosswind.Game
             var yes = Ui.Button("Yes", box, "DELETE", Ui.Red, () =>
             {
                 Destroy(_confirm.gameObject); _confirm = null;
-                FriendsClient.Run(FriendsClient.DeleteAccount(ok =>
-                {
-                    if (!ok) { Toast("Couldn't reach the server: nothing was deleted. Try again."); return; }
-                    AppleAccount.SignOut(); _sim.State.gifts.Clear(); GameRoot.Instance.Save();
-                    Toast("Account deleted"); _dirty = true;
-                }));
+                DeleteAccountNow(false);
             }, 40);
             ((RectTransform)yes.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(210, 40), new Vector2(380, 104));
             var no = Ui.Button("No", box, "KEEP IT", Ui.Green, () => { Destroy(_confirm.gameObject); _confirm = null; }, 40);

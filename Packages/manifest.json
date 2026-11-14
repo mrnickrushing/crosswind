@@ -46,7 +46,8 @@
     "com.unity.modules.xr": "1.0.0",
     "com.unity.cinemachine": "3.1.7",
     "com.lupidan.apple-signin-unity": "1.5.0",
-    "com.revenuecat.purchases-unity": "10.0.0"
+    "com.revenuecat.purchases-unity": "10.0.0",
+    "com.google.ads.mobile": "11.7.0"
   },
   "scopedRegistries": [
     {
@@ -55,7 +56,8 @@
       "scopes": [
         "com.lupidan",
         "com.revenuecat",
-        "com.google.external-dependency-manager"
+        "com.google.external-dependency-manager",
+        "com.google.ads.mobile"
       ]
     }
   ]

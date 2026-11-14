@@ -8,6 +8,7 @@ namespace Crosswind.Core
     {
         public string Id, Name, Blurb, FallbackPrice;
         public int Gems;
+        public double WarpHours;        // a time warp: this many hours of income now, and every timer that far on
         public bool Once;               // non-consumable: bought once, restored on a new phone
     }
 
@@ -40,6 +41,7 @@ namespace Crosswind.Core
             new ProductDef { Id = "crosswind.gems.medium", Name = "Case of Gems", Blurb = "500 gems: best for a first upgrade spree", Gems = 500, FallbackPrice = "$9.99" },
             new ProductDef { Id = "crosswind.gems.large", Name = "Vault of Gems", Blurb = "1,400 gems", Gems = 1400, FallbackPrice = "$19.99" },
             new ProductDef { Id = "crosswind.starter", Name = "Founder's Pack", Blurb = "300 gems now and a third building crew for good. One time only.", Gems = 300, Once = true, FallbackPrice = "$4.99" },
+            new ProductDef { Id = "crosswind.warp", Name = "Time Warp", Blurb = "Two hours in a moment: two hours of income now, and every build, study and timer two hours further on.", WarpHours = 2, FallbackPrice = "$0.99" },
             new ProductDef { Id = "crosswind.double", Name = "Golden Runway", Blurb = "All income doubled, for good, at every airport.", Once = true, FallbackPrice = "$9.99" },
         };
 
@@ -55,9 +57,30 @@ namespace Crosswind.Core
             if (!string.IsNullOrEmpty(transaction)) { if (State.transactions.Contains(transaction)) return false; State.transactions.Add(transaction); }
             if (p.Once) { if (State.owned.Contains(product)) return false; State.owned.Add(product); }
             if (!restored) State.gems += p.Gems;
+            if (!restored && p.WarpHours > 0) Warp(p.WarpHours * 3600);
             EndPurchase(product);
             Changed?.Invoke();
             return true;
+        }
+
+        /// <summary>What a warp of this long would pay right now: the airport's income for that time, managers or not.</summary>
+        public double WarpEarnings(double seconds) { return Math.Floor(Math.Max(IdleRate(), State.incomeRate) * Math.Max(0, seconds)); }
+
+        /// <summary>
+        /// A time warp: pays the income of the time skipped and brings every running timer that much nearer (builds,
+        /// research, the next free crate, the contract market, the free boost). A boost that is running is left
+        /// alone: skipping time must never cost the player anything. Returns what was paid.
+        /// </summary>
+        public double Warp(double seconds)
+        {
+            if (seconds <= 0) return 0;
+            double got = WarpEarnings(seconds);
+            if (got > 0) Earn(AfterLoan(got), false);
+            foreach (var b in State.builds) b.doneAt -= seconds;
+            if (State.research != null) State.research.doneAt -= seconds;
+            State.freeCrateAt -= seconds; State.marketAt -= seconds; State.freeBoostAt -= seconds;
+            Changed?.Invoke();
+            return got;
         }
 
         public static ProductDef Product(string id) { return Products.Find(x => x.Id == id); }

@@ -112,6 +112,8 @@ namespace Crosswind.Game
             if (!_ready) return;
             Sim.Tick(Time.deltaTime * Speed);
             GameCenter.Sync(Sim);
+            if (Sim.State.tutorialDone) Ads.Start();      // no advert SDK during the first-run tutorial
+            Ads.Tick();
             Sfx.TickMusic(Sim.Night, Time.unscaledDeltaTime);
             Sfx.TickAmbience(CameraRig.Inside, Interior.Instance != null ? Interior.Instance.Crowd : 0, Time.unscaledDeltaTime);
             if ((_saveIn -= Time.unscaledDeltaTime) <= 0) { _saveIn = 10f; Save(); }

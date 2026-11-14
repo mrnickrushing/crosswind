@@ -99,6 +99,7 @@ namespace Crosswind.Core
         public ResearchJob research;                                // JsonUtility writes an empty one for null: see Repair
         public List<LevelEntry> managerLevels = new List<LevelEntry>();
         public double boostUntil;
+        public int adDay = -1, adCount;                              // rewarded adverts watched on a day (Sim.Ads)
         public double freeBoostAt;                                  // real time the next free boost is ready                                   // real time the 2x income boost ends
         public List<string> achievements = new List<string>();     // claimed
         public List<string> owned = new List<string>();            // one-time purchases

@@ -37,6 +37,7 @@ MonoBehaviour:
     - com.lupidan
     - com.revenuecat
     - com.google.external-dependency-manager
+    - com.google.ads.mobile
     m_IsDefault: 0
     m_Capabilities: 0
     m_ConfigSource: 4

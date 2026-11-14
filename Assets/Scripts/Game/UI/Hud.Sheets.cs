@@ -408,6 +408,13 @@ namespace Crosswind.Game
             Header("BOOST");
             Ico("bolt", TintGreen).Entry("Free boost", s.FreeBoostReady ? "READY" : "IN " + Format.Time(s.FreeBoostIn), "Double income for " + Content.BoostMinutes + " minutes, on the house, every " + Sim.FreeBoostHours + " hours.",
                 "TAKE IT", s.FreeBoostReady ? null : "Not ready yet", () => { if (s.TakeFreeBoost()) Toast("Income doubled for " + Content.BoostMinutes + " minutes"); }, Ui.Green);
+            if (s.AdOffered(AdReward.Boost) && Ads.Ready)
+                Ico("bolt", TintGreen).Entry("Boost for an advert", s.AdsLeft + " LEFT TODAY", "Watch a short advert for " + Content.BoostMinutes + " minutes of double income. Only if you want to: nothing here needs it.",
+                    "WATCH", null, () => Ads.Show(watched =>
+                    {
+                        if (watched && s.BoostByAd()) { Toast("Income doubled for " + Content.BoostMinutes + " minutes"); GameRoot.Instance.Save(); }
+                        else if (!watched) Toast("The advert wasn't finished, so there's no boost.");
+                    }), Ui.Green);
             Ico("bolt", TintGold).Entry("Double income", s.Boosted ? Format.Time(s.BoostLeft) + " LEFT" : null, "Everything the airport earns is doubled for " + Content.BoostMinutes + " minutes. Stacks up to 4 hours.",
                 "BOOST\n<size=34>" + Content.BoostGems + " gems</size>", s.State.gems < Content.BoostGems ? "Not enough gems" : null, () => { if (s.BuyBoost()) Toast("Income doubled for " + Content.BoostMinutes + " minutes"); }, Ui.Gold);
 
@@ -572,6 +579,23 @@ namespace Crosswind.Game
                 if (got > 0) { Reward(got, 0); Sfx.Play("claim"); }
             }, 56);
             ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(520, 124));
+            // Twice over for a short advert, if the player wants one: the two buttons side by side.
+            if (_sim.AdOffered(AdReward.Double) && Ads.Ready)
+            {
+                ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-218, 46), new Vector2(410, 124));
+                var twice = Ui.Button("Double", box, "DOUBLE IT\n<size=30>WATCH AN ADVERT</size>", Ui.Gold, () =>
+                    Ads.Show(watched =>
+                    {
+                        if (!watched) { Toast("The advert wasn't finished: collect, or try again."); return; }
+                        double got = _sim.CollectOfflineByAd(GameRoot.Instance.AwaySeconds);
+                        if (got <= 0) return;
+                        GameRoot.Instance.ClearAway();
+                        GameRoot.Instance.Save();
+                        Destroy(_away.gameObject); _away = null;
+                        Reward(got, 0); Sfx.Play("claim");
+                    }), 44);
+                ((RectTransform)twice.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(218, 46), new Vector2(410, 124));
+            }
         }
 
         // ------------------------------------------------------------------ finance

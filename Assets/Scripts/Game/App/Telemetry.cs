@@ -73,7 +73,7 @@ namespace Crosswind.Game
             if (_firstLaunch) { PlayerPrefs.SetString(IdKey, Guid.NewGuid().ToString("N")); PlayerPrefs.Save(); }
             _user = Hash(PlayerPrefs.GetString(IdKey) + Salt);
             _sessionId = Guid.NewGuid().ToString();
-            _test = Debug.isDebugBuild || IsTestFlight();
+            _test = TestBuild;
             var saved = PlayerPrefs.GetString(QueueKey, "");
             if (saved.Length > 0 && Sharing) _queue.AddRange(saved.Split('\n'));
             PlayerPrefs.DeleteKey(QueueKey);
@@ -220,6 +220,9 @@ namespace Crosswind.Game
                 return b.ToString();
             }
         }
+
+/// <summary>A debug or TestFlight build: its statistics are marked test, and it shows test adverts only.</summary>
+        public static bool TestBuild { get { return Debug.isDebugBuild || IsTestFlight(); } }
 
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] static extern bool CWIsTestFlight();

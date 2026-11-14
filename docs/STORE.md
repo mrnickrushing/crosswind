@@ -14,6 +14,7 @@ Products are `Sim.Products` (`Assets/Scripts/Core/Sim.Store.cs`); `Tools/appstor
 | crosswind.gems.large | Consumable | $19.99 | 1,400 gems |
 | crosswind.starter | Non-consumable | $4.99 | Founder's Pack: 300 gems (paid with the purchase only; a restore brings back the crew, not the gems) and a third building crew |
 | crosswind.double | Non-consumable | $9.99 | Golden Runway: all income doubled |
+| crosswind.warp | Consumable | $0.99 | Time Warp: two hours of income now, and every running timer (builds, research, free crate, market, free boost) two hours nearer |
 
 Purchases go through `Assets/Scripts/Game/App/Store.cs`: RevenueCat on device (`RevenueCatStore`, compiled when the
 package defines `CROSSWIND_REVENUECAT`), a test store with instant pretend purchases in the Editor only
@@ -69,3 +70,12 @@ version, review contact and notes.
 
 Site (GitHub Pages, branch `gh-pages`, copied from `docs/`): https://mrnickrushing.github.io/crosswind/ with
 `privacy.html` and `support.html`.
+
+## Adverts
+
+Rewarded only, never shown unasked (`Core/Sim.Ads.cs`, `Game/Platform/Ads.cs`, Google AdMob through
+`com.google.ads.mobile`, a Swift package in the Xcode project). Two places: DOUBLE IT on the welcome-back card pays
+the time away twice over, and "Boost for an advert" in the Empire sheet gives half an hour of double income. Six a
+day (`AdsPerDay`), requests non-personalised (`npa`) and family-safe, the SDK starts only once the tutorial is done.
+The App ID is in `Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset`; debug and TestFlight builds use
+Google's public test unit (`Telemetry.TestBuild`), App Store builds the game's own (`Ads.LiveUnit`).

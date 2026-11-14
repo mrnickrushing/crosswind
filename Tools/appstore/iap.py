@@ -33,6 +33,7 @@ PRODUCTS = [
     ("crosswind.gems.large", "CONSUMABLE", "19.99", "Vault of Gems", "1,400 gems"),
     ("crosswind.starter", "NON_CONSUMABLE", "4.99", "Founder's Pack", "300 gems and a third building crew for good"),
     ("crosswind.double", "NON_CONSUMABLE", "9.99", "Golden Runway", "All income doubled for good, at every airport"),
+    ("crosswind.warp", "CONSUMABLE", "0.99", "Time Warp", "Two hours of income now, every timer two hours on"),
 ]
 
 

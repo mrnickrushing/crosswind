@@ -99,6 +99,7 @@ namespace Crosswind.Game
                         () => { if (s.CollectGift(fr.Code)) { Reward(0, Sim.FriendGiftGems); Sfx.Play("claim"); } }, Ui.Gold);
             }
 
+            CoopSection();
             GameCenterRows();
             Header("ACCOUNT");
             Ico("signout").Entry("Sign out", null, "Your airport stays on this device and in your iCloud. Your friends keep you on their list.", "SIGN OUT", null, () => { AppleAccount.SignOut(); Toast("Signed out"); }, Ui.Card);

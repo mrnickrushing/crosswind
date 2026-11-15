@@ -177,6 +177,13 @@ namespace Crosswind.Core
         public double dayOpenMoney = -1;                             // cash when the day opened (-1: not yet counted)
         public int contractsSigned, contractsDone, fullMarks;         // contracts signed, flown to the end, and of those with all three marks
 
+        // Co-op week with friends (Sim.Coop): this week's passengers, what the friends service last said of the group.
+        public int coopWeek = -1;                                    // the week these belong to
+        public long coopPassengers;                                  // passengers handled this week, both ways, at any airport
+        public long coopFriends;                                     // the friends' part of the group total, as last reported
+        public int coopMembers = 1;                                  // players the group goal is set for (you and friends who flew)
+        public int coopClaimed;                                      // tiers claimed this week
+
         public static GameState New()
         {
             var s = new GameState { money = Content.StartMoney, time = 60 };      // a new airport opens at eight in the morning
@@ -263,6 +270,8 @@ namespace Crosswind.Core
             if (ledger == null) ledger = new List<DayLedger>();
             ledger.RemoveAll(l => l == null);
             if (today == null) today = new DayLedger();
+            if (coopMembers < 1) coopMembers = 1;
+            if (coopPassengers < 0 || coopFriends < 0 || coopClaimed < 0) { coopPassengers = 0; coopFriends = 0; coopClaimed = 0; }
         }
     }
 }

@@ -294,6 +294,7 @@ namespace Crosswind.Game
             if ((_refreshIn -= Time.unscaledDeltaTime) <= 0 || _dirty) { _refreshIn = 0.5f; if (_tab >= 0) RefreshSheet(); _dirty = false; }
             UpdateFeedback();
             UpdateRate();
+            UpdateCoop();
         }
 
         static void Outline(Text t) { var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.75f); o.effectDistance = new Vector2(2, -2); }

@@ -120,7 +120,7 @@ namespace Crosswind.Core
                 }
                 State.gradeStreak = streak;
                 State.report = r;
-                if (g == 0) State.daysAtA++;
+                if (g == 0) { State.daysAtA++; JournalGradeA(r.day); }
                 DayEnded?.Invoke(r);
                 Changed?.Invoke();
             }

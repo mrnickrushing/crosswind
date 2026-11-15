@@ -167,11 +167,12 @@ namespace Crosswind.Core
 
         /// <summary>
         /// Sells the stake in this airport for Wings and opens another: buildings, routes, money and rating start
-        /// again there; Wings, gems, research and achievements stay.
+        /// again there; Wings, gems, research, achievements, the journal and the hall of fame stay (<paramref name="photo"/>: the last photo taken here, for its line).
         /// </summary>
-        public bool SellAndMove(string toMap)
+        public bool SellAndMove(string toMap, string photo = null)
         {
             if (SellBlocked(toMap) != null) return false;
+            KeepLegacy(photo);
             int gained = WingsOnSale;
             var old = State;
             if (!old.mapsRun.Contains(old.map)) old.mapsRun.Add(old.map);

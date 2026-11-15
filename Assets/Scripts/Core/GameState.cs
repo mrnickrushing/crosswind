@@ -196,6 +196,13 @@ namespace Crosswind.Core
         public List<string> board = new List<string>();              // this week's three on offer
         public List<string> boardHired = new List<string>();         // of those, the ones already hired this week
 
+        // The journal and the hall of fame (Sim.Journal): kept for good, across airports.
+        public List<JournalEntry> journal = new List<JournalEntry>();     // firsts, in the order they happened
+        public List<string> journalPaid = new List<string>();        // pages whose gems have been collected
+        public bool journalSet;                                      // an older save has been back-filled (once)
+        public List<LegacyRecord> legacy = new List<LegacyRecord>(); // airports sold, oldest first
+        public int trophies;                                         // one for every airport sold
+
         public static GameState New()
         {
             var s = new GameState { money = Content.StartMoney, time = 60 };      // a new airport opens at eight in the morning
@@ -290,6 +297,13 @@ namespace Crosswind.Core
             if (wanted == null || (wanted != "" && Sim.CrewById(wanted) == null)) wanted = "";
             if (boardHired == null) boardHired = new List<string>();
             if (board == null || board.Exists(b => Sim.CrewById(b) == null)) { board = new List<string>(); boardHired.Clear(); }
+            if (journal == null) journal = new List<JournalEntry>();
+            journal.RemoveAll(e => e == null || string.IsNullOrEmpty(e.kind) || string.IsNullOrEmpty(e.id));
+            if (journalPaid == null) journalPaid = new List<string>();
+            if (legacy == null) legacy = new List<LegacyRecord>();
+            legacy.RemoveAll(l => l == null || string.IsNullOrEmpty(l.map));
+            foreach (var l in legacy) { if (l.photo == null) l.photo = ""; if (l.bestAirline == null) l.bestAirline = ""; }
+            Sim.BackfillJournal(this);
         }
     }
 }

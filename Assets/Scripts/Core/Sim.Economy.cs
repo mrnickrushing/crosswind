@@ -68,6 +68,7 @@ namespace Crosswind.Core
             Earn(AfterLoan(paid), true);
             CountDay(onTime, dry, paid);
             if (!onTime) { if (f.waited >= LateWait) State.dayLateCrew++; else if (f.slowBoard) State.dayLateQueue++; }
+            JournalFlight(f, r);
             if (f.contract != 0) ContractFlew(f, onTime, dry);
             State.flightsHandled++;
             Count("flights", 1);

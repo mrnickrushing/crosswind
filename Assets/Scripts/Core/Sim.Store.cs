@@ -63,6 +63,38 @@ namespace Crosswind.Core
             return true;
         }
 
+        /// <summary>What a time warp would do if bought now: the money it pays (after the bank's share), and what it finishes.</summary>
+        public sealed class WarpPreview
+        {
+            public double Money, ToBank;
+            public readonly List<string> Finishes = new List<string>();
+        }
+
+        /// <summary>Everything a warp of this long would bring, worked out without changing anything.</summary>
+        public WarpPreview PreviewWarp(double seconds)
+        {
+            var p = new WarpPreview();
+            double got = WarpEarnings(seconds);
+            p.ToBank = InDebt ? Math.Min(State.loanOwed, got * LoanShare) : 0;
+            p.Money = got - p.ToBank;
+            double now = RealNow();
+            foreach (var b in State.builds)
+                if (b.doneAt - now <= seconds) p.Finishes.Add(Content.Facilities[b.facility].Name + " level " + (Level(b.facility) + 1));
+            if (State.research != null && State.research.doneAt - now <= seconds) p.Finishes.Add(Content.ResearchById(State.research.id).Name + " (research)");
+            if (!FreeCrateReady && State.freeCrateAt - now <= seconds) p.Finishes.Add("the free crate");
+            if (ContractsOpen && State.marketAt - now <= seconds) p.Finishes.Add("new contract offers");
+            return p;
+        }
+
+        /// <summary>What a product gives, split into what is spent once and what is kept for good (the purchase card).</summary>
+        public void ProductContents(ProductDef p, List<string> once, List<string> forGood)
+        {
+            if (p.Gems > 0) once.Add(p.Gems + " gems");
+            if (p.WarpHours > 0) once.Add(p.WarpHours + " hours of the airport in a moment");
+            if (p.Id == "crosswind.starter") forGood.Add("a third building crew: three builds at once, at every airport");
+            if (p.Id == "crosswind.double") forGood.Add("all income doubled, at every airport");
+        }
+
         /// <summary>What a warp of this long would pay right now: the airport's income for that time, managers or not.</summary>
         public double WarpEarnings(double seconds) { return Math.Floor(Math.Max(IdleRate(), State.incomeRate) * Math.Max(0, seconds)); }
 

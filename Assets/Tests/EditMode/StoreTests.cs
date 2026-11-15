@@ -17,6 +17,41 @@ namespace Crosswind.Tests
         }
 
         [Test]
+        public void TheTimeWarpPreviewIsWhatTheWarpDoes()
+        {
+            var s = Airport();
+            s.State.incomeRate = 50;                    // 50 a second
+            s.State.money = 1e6;
+            int level = s.Level("runway");
+            s.State.builds.Add(new BuildJob { facility = "runway", doneAt = _clock + 3600, total = 3600 });     // an hour to go: inside a two-hour warp
+            s.State.loanOwed = 1000; s.State.loanTotal = 1000;
+            double before = s.State.money;
+            var p = s.PreviewWarp(2 * 3600);
+            Assert.AreEqual(before, s.State.money, "a preview changes nothing");
+            Assert.AreEqual(1000, s.State.loanOwed);
+            Assert.That(p.Finishes, Has.Some.StartsWith(Content.Facilities["runway"].Name));
+            Assert.AreEqual(1000, p.ToBank, 0.01, "the bank's share comes out first");
+            s.Warp(2 * 3600);
+            Assert.AreEqual(before + p.Money, s.State.money, 1, "it pays what it said");
+            s.Tick(0.1f);
+            Assert.IsNull(s.Building("runway"), "and the runway is finished");
+            Assert.AreEqual(level + 1, s.Level("runway"));
+        }
+
+        [Test]
+        public void EveryProductSaysWhatIsSpentAndWhatIsKept()
+        {
+            var s = Airport();
+            foreach (var prod in Sim.Products)
+            {
+                var once = new System.Collections.Generic.List<string>(); var keep = new System.Collections.Generic.List<string>();
+                s.ProductContents(prod, once, keep);
+                Assert.IsTrue(once.Count + keep.Count > 0, prod.Id + " says what it gives");
+                if (prod.Once) Assert.IsNotEmpty(keep, prod.Id + " is bought once and kept: it must say what is kept");
+            }
+        }
+
+        [Test]
         public void ATransactionPaysOnce()
         {
             var s = Airport(); int gems = s.State.gems;

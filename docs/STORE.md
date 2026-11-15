@@ -57,8 +57,9 @@ Screenshots: Play mode, then `Tools/store-shot.sh <iphone|ipad> out.png` (2868x1
 App Privacy (published 2026-11-12 on the website): linked to the player and used for app functionality: Name (the
 manager's name friends see), Gameplay Content (airport name, stars, flights shown to friends), User ID (RevenueCat app
 user id, the friends account), Purchase History (RevenueCat); not linked, for analytics: Device ID (the hashed
-statistics id), Product Interaction and Performance Data (frame rate). No tracking. Keep it in step with
-`docs/privacy.html` and with anything new the game sends.
+statistics id), Product Interaction (tutorial steps, goals, features tried, layout edits, offers opened, rewarded adverts
+finished) and Performance Data (frame rate). No tracking. Purchases are never sent as statistics (that would make Purchase
+History an analytics type too). Keep it in step with `docs/privacy.html` and with anything new the game sends.
 
 The age rating answers `userGeneratedContent` no: Apple asks about broad distribution, and a name is only seen by
 friends who swapped codes (still screened by `FriendRules.Rude` / the Worker's `rude`, with REMOVE / BLOCK / REPORT on

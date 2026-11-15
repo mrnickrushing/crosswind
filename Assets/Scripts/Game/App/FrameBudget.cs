@@ -47,6 +47,7 @@ namespace Crosswind.Game
         void Update()
         {
             // Half-second windows of unscaled frame time against the frame the target rate allows.
+            if (_held >= 0) return;          // a photo is being taken: leave the full resolution alone
             _sum += Time.unscaledDeltaTime; _frames++;
             if (_sum < 0.5f) return;
             float avg = _sum / _frames, budget = 1f / Mathf.Max(1, Application.targetFrameRate);
@@ -57,6 +58,18 @@ namespace Crosswind.Game
             // Two slow seconds lower it; twenty steady ones raise it (so it doesn't hunt up and down).
             if (_slowFor >= 2f && Scale > Floor + 0.001f) { SetScale(Scale - Step); _slowFor = 0; }
             else if (_quickFor >= 20f && Scale < _ceiling - 0.001f) { SetScale(Scale + Step); _quickFor = 0; }
+        }
+
+        static float _held = -1;
+        /// <summary>
+        /// Photo mode: the 3D view at the screen's full resolution while a picture is taken (on), then back to the budget
+        /// (off). Nothing in the Editor.
+        /// </summary>
+        public static void Sharp(bool on)
+        {
+            if (Instance == null || !Instance.enabled) return;
+            if (on && _held < 0) { _held = Scale; SetScale(1f); }
+            else if (!on && _held >= 0) { SetScale(_held); _held = -1; Instance._slowFor = Instance._quickFor = 0; }
         }
 
         static void SetScale(float s)

@@ -31,7 +31,7 @@ namespace Crosswind.Game
             "On-time flights please an airline. Happy airlines pay up to 30% more.",
             "A crowded hour chokes the runway: spread your routes in the day planner.",
             "Every new star brings a team crate. Put your best people on duty.",
-            "Queues at check-in and security cost you in the shops. Upgrade the slowest one.",
+            "Queues cost you in the shops. The passengers' QUEUES rating names the part holding them up.",
             "Storm coming? Landing aids keep the runway moving.",
             "Sell a finished airport for Wings: every one adds to all income, for good.",
             "Fuel is cheaper some days than others. Fill the tank farm on a cheap one.",

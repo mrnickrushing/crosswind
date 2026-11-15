@@ -13,8 +13,10 @@ namespace Crosswind.Game
 {
     /// <summary>
     /// Anonymous play statistics, sent to the game's own Cloudflare Worker (`Tools/stats-worker`, stored in D1), to see
-    /// where players stop: sittings, each guide goal reached, stars gained, airports sold, and a frame-rate sample
-    /// every five minutes. The player is a random id made on this device, hashed before it leaves it; nothing about
+    /// where players stop and what they use: sittings, the tutorial's steps, each guide goal reached, stars gained,
+    /// airports sold, the first manager of each department, contracts finished or given up, layout edits, features
+    /// tried (once a sitting each), offers looked at, rewarded adverts finished, and a frame-rate sample every five
+    /// minutes. Never purchases: those stay with the App Store and RevenueCat, so these events can't be tied to them. The player is a random id made on this device, hashed before it leaves it; nothing about
     /// the person, no advertising id, no IP kept, no tracking. Off in the Editor and when the player turns it off in
     /// Settings. Events wait in a small queue (kept across launches) and go out in batches.
     /// </summary>
@@ -64,7 +66,49 @@ namespace Crosswind.Game
         float _sendIn = 10f, _sampleIn = SampleEvery, _frameSum, _sittingStart;
         int _frames;
         Sim _sim;
-        int _goal = -1, _stars = -1, _airports = -1;
+        int _goal = -1, _stars = -1, _airports = -1, _tutStep = -1;
+        bool _tutDone;
+        readonly HashSet<string> _managers = new HashSet<string>();
+        readonly HashSet<string> _featuresThisSitting = new HashSet<string>();
+        readonly Dictionary<string, int> _edits = new Dictionary<string, int>();
+
+        /// <summary>Queues an event if statistics are on (anywhere in the game).</summary>
+        public static void Track(string type, params (string key, string value)[] extra) { if (Instance != null) Instance.Send(type, extra); }
+
+        /// <summary>A feature was used: sent the first time in a sitting (how many players find it, not how often they tap).</summary>
+        public static void Feature(string name, string detail = null)
+        {
+            if (Instance == null || !Instance._featuresThisSitting.Add(name)) return;
+            Instance.Send("Feature.used", ("Feature.name", name), ("Feature.detail", detail ?? ""));
+        }
+
+        /// <summary>A change to the terminal's layout (placed, moved, sold, upgraded, undone): counted, sent as one event when the sitting ends.</summary>
+        public static void LayoutEdit(string kind)
+        {
+            if (Instance == null) return;
+            int n; Instance._edits.TryGetValue(kind, out n); Instance._edits[kind] = n + 1;
+        }
+
+        /// <summary>An offer in the shop was opened (its preview card).</summary>
+        public static void OfferViewed(string product) { Track("Offer.viewed", ("Offer.product", product)); }
+
+        void SendEdits()
+        {
+            if (_edits.Count == 0) return;
+            var extra = new List<(string, string)>();
+            int total = 0;
+            foreach (var e in _edits) { extra.Add(("Layout." + e.Key, e.Value.ToString(CultureInfo.InvariantCulture))); total += e.Value; }
+            Send("Layout.edits", total, extra.ToArray());
+            _edits.Clear();
+        }
+
+        void Watch(Sim s)
+        {
+            s.ContractDone += r => Send(r.dropped ? "Contract.dropped" : "Contract.finished", ("Contract.kind", r.kind.ToString(CultureInfo.InvariantCulture)),
+                ("Contract.marks", ((r.punctual ? 1 : 0) + (r.serviced ? 1 : 0) + (r.standards ? 1 : 0)).ToString(CultureInfo.InvariantCulture)),
+                ("Contract.flights", r.flights.ToString(CultureInfo.InvariantCulture)));
+            s.DayEnded += r => Send("Day.closed", r.score, ("Day.grade", r.grade ?? ""), ("Day.index", r.day.ToString(CultureInfo.InvariantCulture)));
+        }
 
         void Awake()
         {
@@ -84,10 +128,21 @@ namespace Crosswind.Game
         {
             var s = GameRoot.Sim;
             if (s == null) return;
-            if (s != _sim) { _sim = s; _goal = s.State.goalIndex; _stars = s.Stars; _airports = s.State.mapsRun.Count; }
+            if (s != _sim)
+            {
+                _sim = s; _goal = s.State.goalIndex; _stars = s.Stars; _airports = s.State.mapsRun.Count;
+                _tutStep = s.State.tutorialStep; _tutDone = s.State.tutorialDone;
+                _managers.Clear(); foreach (var m in s.State.managers) _managers.Add(m);
+                Watch(s);
+            }
             if (!_started) { _started = true; Send("Session.started", ("Session.firstLaunch", _firstLaunch ? "true" : "false")); }
             if (s.State.goalIndex != _goal) { if (s.State.goalIndex > _goal) Send("Goal.reached"); _goal = s.State.goalIndex; }
             if (s.Stars != _stars) { if (s.Stars > _stars) Send("Stars.gained"); _stars = s.Stars; }
+            if (s.State.tutorialStep != _tutStep) { _tutStep = s.State.tutorialStep; if (!s.State.tutorialDone) Send("Tutorial.step", ("Tutorial.step", _tutStep.ToString(CultureInfo.InvariantCulture))); }
+            if (s.State.tutorialDone != _tutDone) { _tutDone = s.State.tutorialDone; if (_tutDone) Send("Tutorial.finished", ("Tutorial.step", s.State.tutorialStep.ToString(CultureInfo.InvariantCulture))); }
+            if (s.State.managers.Count != _managers.Count)
+                foreach (var m in s.State.managers)
+                    if (_managers.Add(m)) Send(_managers.Count == 1 ? "Automation.first" : "Automation.hired", ("Automation.department", m));
             if (s.State.mapsRun.Count != _airports) { _airports = s.State.mapsRun.Count; Send("Airport.sold", ("Game.wings", s.State.wings.ToString(CultureInfo.InvariantCulture))); }
 
             _frameSum += Time.unscaledDeltaTime; _frames++;
@@ -176,6 +231,7 @@ namespace Crosswind.Game
         {
             if (paused)
             {
+                SendEdits();
                 Send("Session.paused");
                 Keep();
                 Flush();
@@ -184,11 +240,12 @@ namespace Crosswind.Game
             {
                 _sessionId = Guid.NewGuid().ToString();   // back after a while: a new sitting
                 _sittingStart = Time.realtimeSinceStartup;
+                _featuresThisSitting.Clear();
                 Send("Session.started", ("Session.firstLaunch", "false"));
             }
         }
 
-        void OnApplicationQuit() { Keep(); }
+        void OnApplicationQuit() { SendEdits(); Keep(); }
 
         /// <summary>What hasn't gone out yet waits for the next launch.</summary>
         void Keep()

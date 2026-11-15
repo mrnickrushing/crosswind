@@ -13,7 +13,7 @@ namespace Crosswind.EditorTools
     /// and Game Center, in
     /// Crosswind.entitlements with the team and bundle written out (an ad-hoc signed archive doesn't expand
     /// $(TeamIdentifierPrefix)). The bundle id needs iCloud enabled on App Store Connect before a signed build.
-    /// Reminders are local notifications and need no capability.
+    /// Reminders are local notifications and need no capability. Photo mode's share sheet needs the reason for adding to Photos.
     /// </summary>
     public sealed class IosCapabilities : IPreprocessBuildWithReport
     {
@@ -55,6 +55,8 @@ namespace Crosswind.EditorTools
             var plist = new PlistDocument();
             plist.ReadFromFile(plistPath);
             plist.root.SetBoolean("ITSAppUsesNonExemptEncryption", false);
+            // Photo mode's share sheet offers "Save Image": iOS asks first, with this reason.
+            plist.root.SetString("NSPhotoLibraryAddUsageDescription", "Crosswind saves the photos you take of your airport to your library.");
             plist.WriteToFile(plistPath);
         }
     }

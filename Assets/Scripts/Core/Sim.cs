@@ -177,6 +177,7 @@ namespace Crosswind.Core
             State.money -= Cost(facility);
             State.upgradesBought++;
             Count("upgrade", 1);
+            Built(facility);
             if (seconds <= 0) FinishBuild(facility);
             else State.builds.Add(new BuildJob { facility = facility, doneAt = RealNow() + seconds, total = seconds });
             Changed?.Invoke();
@@ -318,6 +319,7 @@ namespace Crosswind.Core
                 case Phase.TaxiIn:
                     if (!Count(f, dt)) return;
                     f.parkedAt = State.time;
+                    f.slowBoard = TerminalSlows(plane);
                     Enter(f, Phase.Deplane, BoardTime(plane));
                     return;
                 case Phase.Deplane:
@@ -330,7 +332,7 @@ namespace Crosswind.Core
                     foreach (var j in f.jobs)
                     {
                         if (j.done) continue;
-                        if (!j.dispatched) { if (Automated(j.service) && CrewFree(j.service)) j.dispatched = true; else continue; }
+                        if (!j.dispatched) { if (Automated(j.service) && CrewFree(j.service)) j.dispatched = true; else { Waited(f, j.service, dt); continue; } }
                         j.left -= dt * CrewSpeed(j.service);
                         if (j.left <= 0) { j.done = true; Changed?.Invoke(); }
                     }
@@ -352,7 +354,7 @@ namespace Crosswind.Core
                     if (next != null)
                     {
                         if (next.service == Service.Deice) f.held += dt;      // the weather's delay, not the airport's
-                        if (!next.dispatched) { if (Automated(next.service) && CrewFree(next.service)) next.dispatched = true; else return; }
+                        if (!next.dispatched) { if (Automated(next.service) && CrewFree(next.service)) next.dispatched = true; else { if (next.service != Service.Deice) Waited(f, next.service, dt); return; } }
                         next.left -= dt * CrewSpeed(next.service);
                         if (next.left <= 0) { next.done = true; Changed?.Invoke(); }
                         return;
@@ -379,6 +381,13 @@ namespace Crosswind.Core
         }
 
         bool Count(FlightState f, float dt) { f.timer -= dt; return f.timer <= 0; }
+
+        /// <summary>A job stood waiting for a crew: counted against the flight and the day (the report says why flights ran late).</summary>
+        void Waited(FlightState f, Service s, float dt)
+        {
+            f.waited += dt;
+            State.dayWait[(int)s] += dt;
+        }
 
         void Enter(FlightState f, Phase p, float seconds)
         {
@@ -410,6 +419,9 @@ namespace Crosswind.Core
             }
             return -1;
         }
+
+        /// <summary>Whether the terminal, not the aircraft's doors, sets how long this one takes to board.</summary>
+        public bool TerminalSlows(AircraftDef plane) { return plane.Seats / Math.Max(1f, TerminalFlow) * 60f / 10f > plane.BoardSeconds; }
 
         /// <summary>Deplaning or boarding: quick when the terminal keeps up, slow when the aircraft outgrows it.</summary>
         float BoardTime(AircraftDef plane)

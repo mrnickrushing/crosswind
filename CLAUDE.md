@@ -229,3 +229,24 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   achievements must also go in `docs/appstore/gamecenter.json` (a test checks it) with a badge
   (`Tools/art/gc_badges.py` draws the missing ones), and App Store Connect only learns of them when the
   `crosswind-setup` job runs with `CROSSWIND_STEPS=gamecenter` (ask first).
+- Advice names the constraint (`Core/Sim.Advice.cs`, `AdviceTests`): `FlowLimiters` (the lowest of check-in, security,
+  gates; several when level), `LimiterSentence` (which part, its level against the others, what one more level does to
+  the queues), `QueueAdvice` (the queue `Need.Advice`, cached), `FlowFix` (the cheapest limiter not being built; also
+  `Need.Fix`). UI: a tap on a rating in the terminal strip opens the need card (`UI/Hud.Needs.cs`: INSPECT swings the
+  camera to `Interior.PartPoint`, UPGRADE; for wants SHOW ON THE FLOOR and SHOP), BUILD's need rows have the same buttons.
+- Day report coaching (`Sim.Report.cs`): flights count the seconds a job waited for a crew (`FlightState.waited`, by
+  service in `State.dayWait`) and whether the terminal slowed boarding (`slowBoard`); late ones go to `dayLateCrew` /
+  `dayLateQueue`; `Built` notes what was bought during the day. `Coaching(report)` turns a `DayReport` into
+  `ReportLine`s (each part's lost points, the cause, a facility to fix it) and a comparison with the day before
+  (`prev*` fields). EMPIRE shows them under the report, with an UPGRADE button where there is a fix.
+- HUD room: the goal card folds to one line (tap it; PlayerPrefs `cw_goal_folded`, always open during the tutorial) and
+  the flight board folds to its two most urgent rows (tap its heading; `cw_board_compact`).
+- Photo mode (`UI/Hud.Photo.cs`, the camera on the clock): hides the HUD, ANGLE sets `CameraRig.Angle` (pitch, yaw;
+  eased), TAKE PHOTO captures at full resolution (`FrameBudget.Sharp`) with a plate (airport, stars), saves to
+  `persistentDataPath/Photos` (`Hud.LastPhoto`), SHARE opens the share sheet (`Plugins/iOS/CrosswindShare.mm`;
+  `NSPhotoLibraryAddUsageDescription` from `IosCapabilities`).
+- Shop rows say what is spent and what is kept and open a card first (`UI/Hud.Offer.cs`, `Sim.ProductContents`); the
+  Time Warp card shows `Sim.PreviewWarp` (money after the bank's share, what it would finish).
+- Telemetry events (`Telemetry.Track/Feature/LayoutEdit/OfferViewed`; list in `Tools/stats-worker/README.md` with the
+  retention queries): never purchases (the privacy label and `docs/privacy.html` promise it). Glyphs added to
+  `Tools/art/icons.py` (render only new names: `icons.py camera eye`).

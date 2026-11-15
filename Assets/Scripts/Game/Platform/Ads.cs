@@ -78,8 +78,11 @@ namespace Crosswind.Game
 #endif
 
         /// <summary>Shows an advert; <paramref name="done"/> hears true only if it was watched to the reward.</summary>
-        public static void Show(Action<bool> done)
+        public static void Show(Action<bool> done, string reward = "")
         {
+            // A finished advert is counted (anonymously, with what it was for); one that wasn't finished, as offered but not finished.
+            var inner = done;
+            done = watched => { Telemetry.Track(watched ? "Ad.completed" : "Ad.unfinished", ("Ad.reward", reward)); inner(watched); };
 #if UNITY_EDITOR
             done(true);
 #elif UNITY_IOS

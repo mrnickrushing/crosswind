@@ -13,7 +13,10 @@ namespace Crosswind.Game
     /// </summary>
     public sealed partial class Hud
     {
-        const int BoardRows = 6;
+        const int BoardRows = 6, CompactRows = 2;
+        /// <summary>The board folded to the two flights that matter most (kept on this device): more of the airfield in view.</summary>
+        static bool BoardCompact { get { return PlayerPrefs.GetInt("cw_board_compact", 0) == 1; } set { PlayerPrefs.SetInt("cw_board_compact", value ? 1 : 0); PlayerPrefs.Save(); } }
+        Image _boardChev; int _boardShown = -1;
         RectTransform _board;
         readonly List<Text[]> _boardRows = new List<Text[]>();
         readonly int[] _boardFlight = new int[BoardRows];
@@ -26,6 +29,11 @@ namespace Crosswind.Game
             _board = Ui.ArtImg("Board", _safe, "panel", Color.white).rectTransform;
             _board.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-12, -12), new Vector2(520, 76 + BoardRows * 40));
             Ui.Label("Cap", _board, "FLIGHTS", 24, new Color(0.45f, 0.8f, 1f), TextAnchor.MiddleLeft).rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(20, -10), new Vector2(200, 34));
+            // A tap on the heading folds the board to its two most urgent rows, or opens it out again.
+            var head = Ui.Button("Head", _board, null, new Color(0, 0, 0, 0), () => { BoardCompact = !BoardCompact; Telemetry.Feature("board_compact", BoardCompact ? "compact" : "full"); _boardIn = 0; }, 20);
+            ((RectTransform)head.transform).Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), Vector2.zero, new Vector2(520, 52));
+            _boardChev = Ui.Img("Chevron", _board, new Color(1, 1, 1, 0.55f)); _boardChev.preserveAspect = true;
+            _boardChev.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(124, -16), new Vector2(22, 22));
             _boardCount = Ui.Label("Count", _board, "", 22, Ui.Dim, TextAnchor.MiddleRight, false);
             _boardCount.rectTransform.Place(new Vector2(1, 1), new Vector2(1, 1), new Vector2(-20, -10), new Vector2(300, 34));
             var well = Ui.ArtImg("Well", _board, "well", Color.white).rectTransform;
@@ -80,11 +88,20 @@ namespace Crosswind.Game
             var clock = _weather.transform.parent.gameObject; if (clock.activeSelf != (_tab < 0)) { clock.SetActive(_tab < 0); _chips.gameObject.SetActive(_tab < 0); }
             if (!show || (_boardIn -= Time.unscaledDeltaTime) > 0) return;
             _boardIn = 0.4f;
+            int rows = BoardCompact ? CompactRows : BoardRows;
+            if (_boardShown != rows)
+            {
+                _boardShown = rows;
+                _board.sizeDelta = new Vector2(520, 76 + rows * 40);
+                _boardChev.sprite = Ui.Ic(rows < BoardRows ? "chevrondown" : "chevronup");
+                for (int i = 0; i < BoardRows; i++) _boardRows[i][0].transform.parent.gameObject.SetActive(i < rows);
+            }
             var s = _sim;
             // Those that need you first, then by how far along they are.
-            var flights = s.State.flights.OrderByDescending(f => NeedsCrew(f)).ThenByDescending(f => (int)f.phase).ThenBy(f => f.id).Take(BoardRows).ToList();
-            _boardCount.text = s.State.flights.Count + " OF " + s.TowerSlots + " IN THE PATTERN";
-            for (int i = 0; i < BoardRows; i++)
+            var flights = s.State.flights.OrderByDescending(f => NeedsCrew(f)).ThenByDescending(f => (int)f.phase).ThenBy(f => f.id).Take(rows).ToList();
+            int waiting = s.State.flights.Count(NeedsCrew);
+            _boardCount.text = rows < BoardRows ? s.State.flights.Count + " OF " + s.TowerSlots + (waiting > 0 ? "  ·  <color=#FF8070>" + waiting + " WAITING</color>" : "") : s.State.flights.Count + " OF " + s.TowerSlots + " IN THE PATTERN";
+            for (int i = 0; i < rows; i++)
             {
                 var t = _boardRows[i];
                 if (i >= flights.Count) { t[0].text = i == 0 ? "" : ""; t[1].text = i == 0 && flights.Count == 0 ? "No traffic" : ""; t[1].color = Ui.Dim; t[2].text = ""; _boardFlight[i] = -1; continue; }

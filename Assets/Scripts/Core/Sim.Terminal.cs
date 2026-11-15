@@ -25,6 +25,8 @@ namespace Crosswind.Core
     public sealed class Need
     {
         public string Name, Advice; public float Value; public bool Queue; public Want Want;
+        /// <summary>The facility that fixes it, for a button beside the advice (null: something to place).</summary>
+        public string Fix;
         /// <summary>Met without anything placed for it: at this size of airport nobody asks for it yet.</summary>
         public bool Unasked;
     }
@@ -179,6 +181,7 @@ namespace Crosswind.Core
             State.baysBought++;
             AddRating(10);
             Count("upgrade", 1);
+            Built("terminal");
             Changed?.Invoke();
             return true;
         }
@@ -298,6 +301,7 @@ namespace Crosswind.Core
             State.terminal.Add(new PlacedAmenity { id = id, x = x, z = z, rot = rot & 3 });
             AddRating(6);
             Count("upgrade", 1);
+            Built("terminal");
             Changed?.Invoke();
             return true;
         }
@@ -367,6 +371,7 @@ namespace Crosswind.Core
             p.level++;
             AddRating(6);
             Count("upgrade", 1);
+            Built("terminal");
             Changed?.Invoke();
             return true;
         }
@@ -422,7 +427,7 @@ namespace Crosswind.Core
             {
                 double demand = Math.Max(1, PassengerDemand);
                 float Fit(double supply) { return (float)Math.Max(0, Math.Min(1, supply / demand)); }
-                var list = new List<Need> { new Need { Name = "Short queues", Queue = true, Value = Fit(TerminalFlow), Advice = "Upgrade the slowest of check-in, security and gates" } };
+                var list = new List<Need> { new Need { Name = "Short queues", Queue = true, Value = Fit(TerminalFlow), Advice = QueueAdvice ?? "Check-in, security and the gates keep up", Fix = FlowFix } };
                 foreach (var r in WantRules)
                 {
                     float placed = Supply(r.want);

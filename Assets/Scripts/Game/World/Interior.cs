@@ -971,6 +971,14 @@ namespace Crosswind.Game
         /// <summary>The floor's corner (cell 0,0) in the hall's own space: just past security, two metres in from the end wall. Cells run x toward the gates, z across the hall.</summary>
         public Vector3 FloorCorner { get { return new Vector3(-Width * 0.5f + Sim.TerminalFront, 0, -Length * 0.5f + 2f); } }
 
+        /// <summary>Where one of the hall's built parts stands (check-in, security, the gates), for the camera to look at.</summary>
+        public Vector3 PartPoint(string part)
+        {
+            float x0 = -Width * 0.5f;
+            float x = part == "checkin" ? x0 + 11.5f : part == "security" ? x0 + 21.5f : Width * 0.5f - Sim.TerminalBack * 0.5f;
+            return Origin + new Vector3(x, 0, 0);
+        }
+
         /// <summary>The middle of a footprint, in the world.</summary>
         public Vector3 FloorPoint(int x, int z, int w, int d) { return Origin + FloorCorner + new Vector3((x + w * 0.5f) * Sim.Cell, 0, (z + d * 0.5f) * Sim.Cell); }
 

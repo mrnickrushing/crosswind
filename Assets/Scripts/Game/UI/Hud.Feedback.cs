@@ -151,7 +151,7 @@ namespace Crosswind.Game
 
         public void Toast(string text)
         {
-            if (string.IsNullOrEmpty(text)) return;
+            if (string.IsNullOrEmpty(text) || _shooting) return;      // nothing walks into a photo
             _toastText.text = text;
             float w = Mathf.Clamp(_toastText.preferredWidth + 90, 320, 960);
             _toast.sizeDelta = new Vector2(w, 84);

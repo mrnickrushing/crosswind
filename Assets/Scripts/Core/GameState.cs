@@ -33,6 +33,8 @@ namespace Crosswind.Core
         public float held;              // seconds not counted against it: waiting at the gate by choice, and de-icing
         public int contract;            // the contract this flight belongs to (0: a route's ordinary flight)
         public int number;              // its flight number (after the airline's two letters)
+        public float waited;            // seconds a job of its stood waiting for a crew to be sent (the day report's "why late")
+        public bool slowBoard;          // the terminal could not move its passengers as fast as the aircraft could take them
         public List<ServiceJob> jobs = new List<ServiceJob>();
     }
 
@@ -152,6 +154,9 @@ namespace Crosswind.Core
         public int resurfaced;
         public int dayIndex = -1, dayFlights, dayOnTime, dayDry;     // the airport day being counted, and its tallies
         public double dayIncome;
+        public double[] dayWait = new double[6];                     // today: seconds jobs waited for a crew, by Service
+        public int dayLateCrew, dayLateQueue;                        // today: late flights that waited for a crew, or boarded slowly
+        public List<string> dayBuilt = new List<string>();           // today: what was built or upgraded (facility ids, "terminal")
         public DayReport report;                                     // the last day closed (null before the first: see Repair)
         public int gradeStreak, daysAtA;
         public int cheapFills;                                       // tankers bought well below par
@@ -263,6 +268,9 @@ namespace Crosswind.Core
             if (ledger == null) ledger = new List<DayLedger>();
             ledger.RemoveAll(l => l == null);
             if (today == null) today = new DayLedger();
+            if (dayWait == null || dayWait.Length != 6) dayWait = new double[6];
+            if (dayBuilt == null) dayBuilt = new List<string>();
+            if (report != null) report.Repair();
         }
     }
 }

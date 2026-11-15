@@ -67,6 +67,7 @@ namespace Crosswind.Core
             if (sum > 0) { var t = State.today; t.landing += paid * parts[0] / sum; t.pax += paid * parts[1] / sum; t.fuel += paid * parts[2] / sum; t.retail += paid * parts[3] / sum; t.cargo += paid * parts[4] / sum; }
             Earn(AfterLoan(paid), true);
             CountDay(onTime, dry, paid);
+            JournalFlight(f, r);
             if (f.contract != 0) ContractFlew(f, onTime, dry);
             State.flightsHandled++;
             Count("flights", 1);

@@ -439,6 +439,8 @@ namespace Crosswind.Game
             }
             Ico("cart").Entry("Restore purchases", null, "Brings back the Founder's Pack and Golden Runway on a new iPhone or iPad. Gems you bought travel with your iCloud save.", "RESTORE", null,
                 () => Store.Restore(msg => { Toast(msg); _dirty = true; }), Ui.Card);
+            JournalSection();
+            HallOfFameSection();
             Header("SETTINGS");
             Ico("sound").Entry("Sound", Sfx.Muted ? "OFF" : "ON", "Interface sounds and the airfield.", Sfx.Muted ? "TURN ON" : "TURN OFF", null, () => { Sfx.Muted = !Sfx.Muted; }, Ui.Card);
             Ico("sound", TintSocial).Entry("Music", Sfx.Music ? "ON" : "OFF", "A calm loop by day and a quieter one after dark.", Sfx.Music ? "TURN OFF" : "TURN ON", null, () => { Sfx.Music = !Sfx.Music; }, Ui.Blue);
@@ -481,7 +483,7 @@ namespace Crosswind.Game
                 .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(820, 380));
             var yes = Ui.Button("Yes", box, "SELL AND MOVE", Ui.Gold, () =>
             {
-                if (_sim.SellAndMove(m.Id)) { Toast("Welcome to " + m.Name); GameRoot.Instance.Save(); OpenTab(-1); }
+                if (_sim.SellAndMove(m.Id, LastPhotoPath())) { Toast("Welcome to " + m.Name); GameRoot.Instance.Save(); OpenTab(-1); }
                 Destroy(_confirm.gameObject); _confirm = null;
             }, 46);
             ((RectTransform)yes.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(210, 50), new Vector2(400, 120));

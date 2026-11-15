@@ -211,6 +211,11 @@ namespace Crosswind.Core
         public int coopMembers = 1;                                  // players the group goal is set for (you and friends who flew)
         public int coopClaimed;                                      // tiers claimed this week
 
+        // Your airline's look and name (Sim.Livery): zero is the Classic look with matched trim and no emblem.
+        public int liveryPattern, liveryTrim, emblem;                // indexes into Sim.LiveryPatterns, Sim.Trims, Sim.Emblems
+        public int fleetBest;                                        // the most aircraft owned at once, at any airport (opens livery items)
+        public string airlineName = "";                              // empty: "Your airline"
+
         public static GameState New()
         {
             var s = new GameState { money = Content.StartMoney, time = 60 };      // a new airport opens at eight in the morning
@@ -315,6 +320,12 @@ namespace Crosswind.Core
             Sim.BackfillJournal(this);
             if (coopMembers < 1) coopMembers = 1;
             if (coopPassengers < 0 || coopFriends < 0 || coopClaimed < 0) { coopPassengers = 0; coopFriends = 0; coopClaimed = 0; }
+            if (airlineName == null) airlineName = "";
+            if (liveryPattern < 0 || liveryPattern >= Sim.LiveryPatterns.Length) liveryPattern = 0;
+            if (liveryTrim < 0 || liveryTrim >= Sim.Trims.Length) liveryTrim = 0;
+            if (emblem < 0 || emblem >= Sim.Emblems.Length) emblem = 0;
+            int aircraft = 0; foreach (var f in fleet) if (f != null) aircraft += f.level;
+            if (fleetBest < aircraft) fleetBest = aircraft;
         }
     }
 }

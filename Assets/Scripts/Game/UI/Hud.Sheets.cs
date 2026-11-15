@@ -307,9 +307,7 @@ namespace Crosswind.Game
                         Sim.PartnerName[partner].ToUpper() + "  ·  " + Sim.Mood(mood).ToUpper() + " " + Mathf.RoundToInt(mood),
                         "Pays " + Mathf.RoundToInt((float)(s.RelationPay(line) * s.PartnerPay(line)) * 100) + "% of its fees." + (mood < 20 ? "  One more bad day and they cancel a route." : "") + "  " + dealLine, null, null, null);
                 }
-                Header("YOUR AIRLINE  ·  " + s.FleetSize + " AIRCRAFT  ·  EACH FLIGHT PAYS " + Mathf.RoundToInt((float)Sim.OwnPay * 100) + "%");
-                Ico("paint", Palette.Hex(Sim.LiveryHex[Mathf.Clamp(s.State.livery, 0, Sim.LiveryHex.Length - 1)])).Entry("Livery: " + Sim.Liveries[s.State.livery], null, "Your aircraft fly in your colours. New aircraft and the next arrivals wear the new paint.", "CHANGE", null,
-                    () => { s.SetLivery(s.State.livery + 1); Toast("Livery: " + Sim.Liveries[s.State.livery]); }, Palette.Hex(Sim.LiveryHex[s.State.livery]));
+                LiverySection();
                 foreach (AircraftClass ac in System.Enum.GetValues(typeof(AircraftClass)))
                 {
                     var pl = Content.Aircraft[ac]; var own = Content.Routes["own_" + ac.ToString().ToLower()];

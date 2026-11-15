@@ -160,6 +160,10 @@ namespace Crosswind.Core
         public List<string> dayBuilt = new List<string>();           // today: what was built or upgraded (facility ids, "terminal")
         public bool reachSet;                                        // the save knows that placement has reach (Sim.Coverage)
         public double reachGraceUntil;                               // an older layout's grace: real time it ends (-1: from the first tick, 0: none)
+        public List<string> ambitionsDone = new List<string>(), ambitionsClaimed = new List<string>();   // "map:id" (Sim.Ambitions)
+        public string pinnedAmbition = "";                           // the ambition pinned to the HUD ("": none)
+        public List<string> classesHere = new List<string>();        // aircraft classes ("a".."e") that have landed at this airport
+        public bool ambitionsSet;                                    // what an older airport had already done has been counted
         public DayReport report;                                     // the last day closed (null before the first: see Repair)
         public int gradeStreak, daysAtA;
         public int cheapFills;                                       // tankers bought well below par
@@ -306,6 +310,10 @@ namespace Crosswind.Core
             if (dayBuilt == null) dayBuilt = new List<string>();
             if (report != null) report.Repair();
             if (eventId == null) eventId = "";
+            if (ambitionsDone == null) ambitionsDone = new List<string>();
+            if (ambitionsClaimed == null) ambitionsClaimed = new List<string>();
+            if (classesHere == null) classesHere = new List<string>();
+            if (pinnedAmbition == null || (pinnedAmbition != "" && Sim.AmbitionById(pinnedAmbition) == null)) pinnedAmbition = "";
             if (specialism == null || (specialism != "" && Sim.SpecialismById(specialism) == null)) specialism = "";
             if (recruitTokens < 0) recruitTokens = 0;
             if (wanted == null || (wanted != "" && Sim.CrewById(wanted) == null)) wanted = "";

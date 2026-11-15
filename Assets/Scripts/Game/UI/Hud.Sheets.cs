@@ -422,6 +422,7 @@ namespace Crosswind.Game
                     }
                 }
             }
+            AmbitionSection();
             FinanceSection();
             Header("TODAY");
             for (int i = 0; i < s.State.tasks.Count; i++)

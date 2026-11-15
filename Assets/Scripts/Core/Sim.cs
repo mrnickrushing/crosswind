@@ -46,6 +46,8 @@ namespace Crosswind.Core
             EnsureReach();
             // And one in the middle of a week from before the longer rotation keeps that week's event.
             EnsureEventId();
+            // And one from before ambitions counts what it has already done.
+            EnsureAmbitions();
         }
 
         // ------------------------------------------------------------------ levels and what they mean
@@ -191,6 +193,7 @@ namespace Crosswind.Core
         void FinishBuild(string facility)
         {
             SetLevel(facility, Level(facility) + 1);
+            if (facility == "stands") CheckAmbitions();
             AddRating(2 + Level(facility) + Math.Max(0, Math.Log10(Math.Max(1, Cost(facility) / Map.CostScale)) - 3) * 12);
             BuildDone?.Invoke(facility);
         }
@@ -316,6 +319,7 @@ namespace Crosswind.Core
                     runwayBusy++;
                     Enter(f, Phase.Landing, plane.RunwaySeconds / RunwaySpeed);
                     WearRunway(r.Class);
+                    NoteLanding(r.Class);
                     return;
                 case Phase.Landing:
                     if (!Count(f, dt)) return;

@@ -295,3 +295,11 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   and `members`. Tiers `CoopBase` (2.5K/10K/30K/80K) x (5 + 4 x (members - 1)) / 5 pay `CoopGems` once each a week, in
   order; `COOP_BASE` in worker.js must match. Worker tests: `node --test` in `Tools/friends-worker`; the table is
   `migrations/0001_coop.sql` (run it with wrangler before deploying the worker; ask the owner first).
+- Ambitions (`Core/Sim.Ambitions.cs`, `AmbitionTests`; not the journal's "milestones"): first jet, full apron, first
+  wide-body, whole terminal open, first jumbo, per airport (kept as "map:id" in `ambitionsDone/Claimed`), each with
+  `AmbitionSteps` (what it needs, ticked; a facility to build) and gems. Class ones complete at the first landing here
+  (`NoteLanding` in `Advance`, `State.classesHere`, reset by `SellAndMove`); `AmbitionReached` fires once. One can be
+  pinned (`State.pinnedAmbition`). UI `UI/Hud.Ambition.cs`: the card under the goal card (the pinned one, or the next once
+  the guide is done), EMPIRE's AMBITIONS, the moment (the camera follows the first of a class in, the banner's kicker
+  `_bannerKicker`, the fanfare), and the star before/after (`ShootAirfield`: an offscreen camera from a fixed spot,
+  pictures in `persistentDataPath/Stars/<map>_<stars>.png`; a baseline is kept for the current rating).

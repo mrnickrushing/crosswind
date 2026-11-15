@@ -179,6 +179,7 @@ namespace Crosswind.Core
             State.money -= BayCost;
             State.bays.Add(bay);
             State.baysBought++;
+            CheckAmbitions();
             AddRating(10);
             Count("upgrade", 1);
             Built("terminal");

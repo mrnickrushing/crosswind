@@ -22,6 +22,8 @@ namespace Crosswind.Core
         public CrewDef Who;
         public bool New, LevelUp;
         public int Level, GemsBack;     // gems back when the card is already at the top level
+        public int Tokens;              // recruit tokens it gave (one a crate, more for a spare at the top level)
+        public bool Spare;              // they were already at the top level: no copy was added
     }
 
     /// <summary>
@@ -164,18 +166,10 @@ namespace Crosswind.Core
             if (rarity >= Rarity.Epic) State.sinceEpic = 0;
             var pool = Crew.Where(c => c.Rarity == rarity).ToList();
             var who = pool[Math.Min(pool.Count - 1, (int)(Rand() * pool.Count))];
-            var res = new CrateResult { Who = who };
-            int before = CrewLevel(who.Id);
-            if (before >= MaxCrewLevel) { res.GemsBack = GemsPerSpare * (1 + (int)rarity); State.gems += res.GemsBack; }
-            else
-            {
-                var e = State.crew.Find(l => l.id == who.Id);
-                if (e == null) State.crew.Add(new LevelEntry { id = who.Id, level = 1 }); else e.level++;
-            }
-            res.Level = CrewLevel(who.Id);
-            res.New = before == 0;
-            res.LevelUp = before > 0 && res.Level > before;
-            if (res.New && State.duty.Count(OnDuty) < DutyPlaces && !State.duty.Contains(who.Id)) State.duty.Add(who.Id);    // a free place is filled at once
+            var res = Join(who);
+            if (res.Spare) { res.GemsBack = GemsPerSpare * (1 + (int)rarity); State.gems += res.GemsBack; }
+            res.Tokens = TokensFor(res);
+            State.recruitTokens += res.Tokens;
             Changed?.Invoke();
             return res;
         }

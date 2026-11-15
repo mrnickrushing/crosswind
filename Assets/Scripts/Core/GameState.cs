@@ -188,6 +188,14 @@ namespace Crosswind.Core
         public double specialismAt;
         public int specialismChanges;
 
+        // Recruit board (Sim.Recruit): tokens from crates, three people on offer each week, one wanted pick.
+        public int recruitTokens;                                    // tokens held (one a crate, more for a spare at the top level)
+        public string wanted = "";                                   // the one team member the player is working toward ("" for none)
+        public int wantedMissed;                                     // boards since the wanted pick was last on one
+        public int boardWeek;                                        // the week the board below was drawn for
+        public List<string> board = new List<string>();              // this week's three on offer
+        public List<string> boardHired = new List<string>();         // of those, the ones already hired this week
+
         public static GameState New()
         {
             var s = new GameState { money = Content.StartMoney, time = 60 };      // a new airport opens at eight in the morning
@@ -278,6 +286,10 @@ namespace Crosswind.Core
             if (dayBuilt == null) dayBuilt = new List<string>();
             if (report != null) report.Repair();
             if (specialism == null || (specialism != "" && Sim.SpecialismById(specialism) == null)) specialism = "";
+            if (recruitTokens < 0) recruitTokens = 0;
+            if (wanted == null || (wanted != "" && Sim.CrewById(wanted) == null)) wanted = "";
+            if (boardHired == null) boardHired = new List<string>();
+            if (board == null || board.Exists(b => Sim.CrewById(b) == null)) { board = new List<string>(); boardHired.Clear(); }
         }
     }
 }

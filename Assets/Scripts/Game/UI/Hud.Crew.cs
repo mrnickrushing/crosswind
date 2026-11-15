@@ -70,6 +70,7 @@ namespace Crosswind.Game
                 () => { if (s.TakeFreeCrate()) OpenCrate(); }, Ui.Green);
             Ico("cart", TintLab).Entry("Buy a crate", null, "Odds: Common " + Sim.CrateOdds[0] + "%, Rare " + Sim.CrateOdds[1] + "%, Epic " + Sim.CrateOdds[2] + "%, Legendary " + Sim.CrateOdds[3] + "%. An Epic or better is certain by every " + Sim.CratePity + "th crate.",
                 "BUY\n<size=34>" + Gems(Sim.CrateGems) + "</size>", s.State.gems >= Sim.CrateGems ? null : "Need " + Gems(Sim.CrateGems - s.State.gems) + " more", () => { if (s.BuyCrate()) OpenCrate(); }, Ui.Blue);
+            RecruitSection();
 
             foreach (var d in Sim.Crew.OrderByDescending(c => s.OnDuty(c.Id)).ThenByDescending(c => s.CrewLevel(c.Id) > 0).ThenByDescending(c => (int)c.Rarity))
             {
@@ -150,6 +151,7 @@ namespace Crosswind.Game
                 : got.New ? Sim.CrewPerk(d, 1) + (_sim.OnDuty(d.Id) ? "  ·  on duty from now" : "  ·  put them on duty in STAFF")
                 : got.LevelUp ? Sim.CrewPerk(d, got.Level)
                 : _sim.CopiesToNext(d.Id) + " more for level " + (got.Level + 1);
+            if (got.Tokens > 0) what += "  ·  +" + Tokens(got.Tokens);
             bool good = got.New || got.LevelUp;
             var hl = Ui.Label("Head", plate, head, 44, good ? Ui.Gold : Color.white, TextAnchor.MiddleLeft);
             hl.rectTransform.anchorMin = new Vector2(0, 0.5f); hl.rectTransform.anchorMax = new Vector2(1, 1); hl.rectTransform.offsetMin = new Vector2(26, 0); hl.rectTransform.offsetMax = new Vector2(-20, -8);

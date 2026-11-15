@@ -19,7 +19,7 @@ namespace Crosswind.Game
         Text _photoAngle, _photoName, _photoStars;
         RawImage _photoThumb;
         Texture2D _photoTex;
-        int _angle;
+        int _angle, _starAfterShot;
         bool _shooting;
 
         /// <summary>The path of the last photo taken on this device (empty: none yet). Prestige keeps the one of each airport sold.</summary>
@@ -118,6 +118,9 @@ namespace Crosswind.Game
             _photoName.text = who + s.Map.Name.ToUpper();
             _photoStars.text = new string('★', s.Stars) + "<color=#FFFFFF40>" + new string('★', Mathf.Max(0, Content.MaxStars - s.Stars)) + "</color>   <color=#FFFFFFB0><size=24>CROSSWIND  ·  " + Format.Money(s.State.flightsHandled) + " FLIGHTS</size></color>";
             _photoBar.gameObject.SetActive(false); _photoDone.gameObject.SetActive(false);
+            // Feedback lives on the root canvas, outside what photo mode hides: a toast or a banner up now must not be in the picture.
+            _toastT = 0; _toast.gameObject.SetActive(false);
+            _bannerT = 0; _banner.gameObject.SetActive(false);
             _photoPlate.gameObject.SetActive(true);
             FrameBudget.Sharp(true);
             yield return null; yield return null;              // the full-resolution frame and the plate are drawn
@@ -142,6 +145,7 @@ namespace Crosswind.Game
             Sfx.Play("claim", 0.6f);
             Telemetry.Feature("photo_taken", Views[_angle].Name.ToLower());
             _shooting = false;
+            if (_starAfterShot > 0) { int st = _starAfterShot; _starAfterShot = 0; OnStar(st); }
         }
 
         void SharePhoto()

@@ -162,6 +162,7 @@ namespace Crosswind.Game
 
         void OnStar(int stars)
         {
+            if (_shooting) { _starAfterShot = stars; return; }     // not into a photo: it comes up once the picture is taken
             foreach (var st in _bannerStars) Destroy(st.gameObject);
             _bannerStars.Clear();
             var plate = _banner.GetChild(0);

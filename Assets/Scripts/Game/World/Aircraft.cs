@@ -31,7 +31,11 @@ namespace Crosswind.Game
 
         public static float Length(AircraftClass c) { return SpecOf(c).Length; }
 
-        struct Paint { public Color Body, Belly, Tail, Line, Engine; public int Style; public bool Windows; }
+        struct Paint
+        {
+            public Color Body, Belly, Tail, Line, Engine; public int Style; public bool Windows;
+            public bool Own; public string Pattern; public int Emblem; public Color Main, Trim;     // your airline only (Sim.Livery)
+        }
 
         static Paint PaintOf(string airline)
         {
@@ -48,8 +52,17 @@ namespace Crosswind.Game
                 case "crown": return new Paint { Body = Palette.Hex(0x23262B), Belly = Palette.Hex(0x23262B), Tail = Palette.Hex(0x23262B), Line = Palette.Hex(0xD4AF37), Engine = Palette.Hex(0xD4AF37), Style = 0, Windows = true };
                 case "own":
                 {
-                    var c = Palette.Hex(Sim.LiveryHex[Mathf.Clamp(GameRoot.Sim != null ? GameRoot.Sim.State.livery : 0, 0, Sim.LiveryHex.Length - 1)]);
-                    return new Paint { Body = white, Belly = c, Tail = c, Line = MeshBuilder.Lighten(c, 0.45f), Engine = c, Style = 2, Windows = true };
+                    // Classic with matched trim and no emblem is exactly the paint your airline had before patterns.
+                    var st = GameRoot.Sim != null ? GameRoot.Sim.State : null;
+                    var c = Palette.Hex(Sim.LiveryHex[Mathf.Clamp(st != null ? st.livery : 0, 0, Sim.LiveryHex.Length - 1)]);
+                    string pattern = Sim.LiveryPatterns[Mathf.Clamp(st != null ? st.liveryPattern : 0, 0, Sim.LiveryPatterns.Length - 1)].Id;
+                    int ti = Sim.TrimColour(st != null ? st.liveryTrim : 0);
+                    bool full = pattern == "full";
+                    var trim = ti >= 0 ? Palette.Hex(Sim.LiveryHex[ti]) : full ? white : MeshBuilder.Lighten(c, 0.45f);
+                    var p = new Paint { Body = white, Belly = c, Tail = c, Line = trim, Engine = ti >= 0 ? trim : full ? white : c, Style = 2, Windows = true,
+                        Own = true, Pattern = pattern, Emblem = Mathf.Clamp(st != null ? st.emblem : 0, 0, Sim.Emblems.Length - 1), Main = c, Trim = trim };
+                    if (full) { p.Body = c; p.Belly = c; p.Tail = trim; }
+                    return p;
                 }
                 default: return new Paint { Body = white, Belly = grey, Tail = Palette.Steel, Line = Palette.SteelDark, Engine = white, Style = 0, Windows = true };
             }
@@ -78,6 +91,7 @@ namespace Crosswind.Game
             Func<float, float, Color> skin = (t, up) =>
             {
                 // up: -1 at the keel .. 1 at the crown
+                if (p.Own && p.Pattern != "classic") return OwnSkin(p, t, up);
                 float tailEdge = p.Style == 2 ? 0.46f - up * 0.16f : p.Style == 1 ? 0.3f + up * 0.1f : 0.26f - up * 0.05f;
                 if (t < tailEdge) return p.Tail;
                 if (p.Style == 1 && t < tailEdge + 0.035f) return p.Line;
@@ -100,6 +114,8 @@ namespace Crosswind.Game
                     mb.QuadSmooth(Ring(a0, r0, t0, z0), Ring(a0, r1, t1, z1), Ring(a1, r1, t1, z1), Ring(a1, r0, t0, z0), n0, n0, n1, n1, col, col, col, col);
                 }
             }
+
+            if (p.Own) OwnBands(mb, p, rings, t => (t - 0.5f) * L, radius, lift, cy, R);
 
             // ---- glass: cockpit and cabin windows (dark, glossy, a hair proud of the skin), doors as thin outlines
             mb.Smoothness = 0.95f;
@@ -159,6 +175,14 @@ namespace Crosswind.Game
             float tz = -L * 0.5f + L * 0.07f, ty = cy + lift(0.07f) + R * 0.45f;
             float finH = R * (s.Props ? 2.6f : 3.0f), finChord = L * 0.15f;
             Surface(mb, new Vector3(0, ty, tz + finChord * 0.35f), new Vector3(0, ty + finH, tz - finChord * 0.5f), finChord, finChord * 0.42f, R * 0.12f, R * 0.07f, p.Tail, 1, true);
+            if (p.Own && p.Emblem > 0)
+            {
+                // Halfway up the fin, just outside its thickest line, on both sides.
+                const float u = 0.5f;
+                var mid = Vector3.Lerp(new Vector3(0, ty, tz + finChord * 0.35f), new Vector3(0, ty + finH, tz - finChord * 0.5f), u);
+                float chord = Mathf.Lerp(finChord, finChord * 0.42f, u), thick = Mathf.Lerp(R * 0.12f, R * 0.07f, u);
+                Emblem(mb, p, mid + Vector3.forward * chord * 0.04f, thick * 0.5f + Mathf.Max(0.012f, R * 0.025f), Mathf.Min(chord * 0.3f, finH * 0.2f));
+            }
             mb.Smoothness = 0.6f;
             foreach (float sx in new[] { -1f, 1f })
             {
@@ -188,6 +212,125 @@ namespace Crosswind.Game
                     mb.Cylinder(new Vector3(g.x + o - 0.05f, wr, g.z), new Vector3(g.x + o + 0.05f, wr, g.z), wr, 10, Palette.Tyre);
             }
             return mb;
+        }
+
+        static readonly Color Radome = Palette.Hex(0x3A3F46);
+
+        /// <summary>The fuselage's base colours for your own patterns other than Classic (stripes are laid over by <see cref="OwnBands"/>).</summary>
+        static Color OwnSkin(Paint p, float t, float up)
+        {
+            if (t < 0.26f - up * 0.05f) return p.Tail;                    // a straight tail edge
+            if (t > 0.975f) return Radome;
+            if (p.Pattern == "twotone" && up < -0.1f) return p.Main;     // the lower half, from the segment edge at 100 degrees
+            return p.Body;
+        }
+
+        /// <summary>
+        /// Stripes for your own patterns: bands laid a little proud of the skin, both sides, sampled on the fuselage's
+        /// own rings (and on its true circle, outside every facet) so they never dip under it. Angles in degrees from
+        /// the crown; the cabin windows sit at about 72-84, so every band stays past 86.
+        /// </summary>
+        static void OwnBands(MeshBuilder mb, Paint p, int rings, Func<float, float> zOf, Func<float, float> radius, Func<float, float> lift, float cy, float R)
+        {
+            switch (p.Pattern)
+            {
+                case "cheatline":
+                    Band(mb, rings, zOf, radius, lift, cy, R, 0.25f, 0.955f, t => 99, 6.5f, p.Main);
+                    Band(mb, rings, zOf, radius, lift, cy, R, 0.27f, 0.95f, t => 108, 1.8f, p.Trim);
+                    break;
+                case "twotone":
+                    Band(mb, rings, zOf, radius, lift, cy, R, 0.27f, 0.97f, t => 100, 4, p.Trim);
+                    break;
+                case "swoosh":
+                {
+                    // Low under the nose, rising toward the tail and levelling off under the windows.
+                    Func<float, float> centre = t => { float q = Mathf.Clamp01((0.96f - t) / 0.68f); return 148 - 52 * (1 - (1 - q) * (1 - q)); };
+                    Band(mb, rings, zOf, radius, lift, cy, R, 0.26f, 0.96f, centre, 9, p.Main);
+                    Band(mb, rings, zOf, radius, lift, cy, R, 0.27f, 0.955f, t => centre(t) + 12.5f, 2, p.Trim);
+                    break;
+                }
+                case "full":
+                    Band(mb, rings, zOf, radius, lift, cy, R, 0.27f, 0.955f, t => 97, 2, p.Trim);
+                    break;
+            }
+        }
+
+        static void Band(MeshBuilder mb, int rings, Func<float, float> zOf, Func<float, float> radius, Func<float, float> lift, float cy, float R,
+            float from, float to, Func<float, float> centre, float half, Color col)
+        {
+            float proud = R * 0.03f;
+            Vector3 At(float t, float deg, float sx)
+            {
+                float a = deg * Mathf.Deg2Rad, r = radius(t) + proud;
+                return new Vector3(sx * Mathf.Sin(a) * r, cy + lift(t) + Mathf.Cos(a) * r, zOf(t));
+            }
+            Vector3 Normal(float deg, float sx) { float a = deg * Mathf.Deg2Rad; return new Vector3(sx * Mathf.Sin(a), Mathf.Cos(a), 0); }
+            float t0 = from;
+            while (t0 < to - 1e-4f)
+            {
+                float t1 = Mathf.Min(to, (Mathf.Floor(t0 * rings + 1e-3f) + 1) / rings);      // to the next ring, where the skin bends
+                float c0 = centre(t0), c1 = centre(t1);
+                foreach (float sx in new[] { -1f, 1f })
+                {
+                    Vector3 a = At(t0, c0 - half, sx), b = At(t1, c1 - half, sx), c = At(t1, c1 + half, sx), d = At(t0, c0 + half, sx);
+                    Vector3 na = Normal(c0 - half, sx), nb = Normal(c1 - half, sx), nc = Normal(c1 + half, sx), nd = Normal(c0 + half, sx);
+                    if (Vector3.Dot(Vector3.Cross(b - a, c - a), na + nc) >= 0) mb.QuadSmooth(a, b, c, d, na, nb, nc, nd, col, col, col, col);
+                    else mb.QuadSmooth(d, c, b, a, nd, nc, nb, na, col, col, col, col);
+                }
+                t0 = t1;
+            }
+        }
+
+        /// <summary>
+        /// Your emblem on both faces of the fin: a flat shape in the trim colour (or your colour, or white, when the trim
+        /// would vanish into the tail). Shapes are drawn in a unit circle: u toward the nose, v up.
+        /// </summary>
+        static void Emblem(MeshBuilder mb, Paint p, Vector3 centre, float side, float size)
+        {
+            bool Same(Color a, Color b) { return Mathf.Abs(a.r - b.r) + Mathf.Abs(a.g - b.g) + Mathf.Abs(a.b - b.b) < 0.06f; }
+            var col = Same(p.Trim, p.Tail) ? (Same(p.Main, p.Tail) ? Palette.Hex(0xF4F5F2) : p.Main) : p.Trim;
+            var tris = new System.Collections.Generic.List<Vector2>();
+            void Tri(Vector2 a, Vector2 b, Vector2 c) { tris.Add(a); tris.Add(b); tris.Add(c); }
+            void Quad(Vector2 a, Vector2 b, Vector2 c, Vector2 d) { Tri(a, b, c); Tri(a, c, d); }
+            Vector2 Polar(float deg, float r) { float a = deg * Mathf.Deg2Rad; return new Vector2(Mathf.Cos(a) * r, Mathf.Sin(a) * r); }
+            switch (Sim.Emblems[p.Emblem].Id)
+            {
+                case "star":
+                    for (int k = 0; k < 10; k++) Tri(Vector2.zero, Polar(90 + k * 36, k % 2 == 0 ? 1 : 0.42f), Polar(90 + (k + 1) * 36, k % 2 == 0 ? 0.42f : 1));
+                    break;
+                case "chevron":
+                    Quad(new Vector2(0.35f, 0), new Vector2(0.85f, 0), new Vector2(-0.25f, 0.85f), new Vector2(-0.75f, 0.85f));
+                    Quad(new Vector2(0.35f, 0), new Vector2(-0.75f, -0.85f), new Vector2(-0.25f, -0.85f), new Vector2(0.85f, 0));
+                    break;
+                case "ring":
+                    for (int k = 0; k < 16; k++) Quad(Polar(k * 22.5f, 0.62f), Polar(k * 22.5f, 1), Polar((k + 1) * 22.5f, 1), Polar((k + 1) * 22.5f, 0.62f));
+                    break;
+                case "wing":
+                    // Three feathers swept up and forward, the lowest the longest.
+                    for (int k = 0; k < 3; k++)
+                    {
+                        float v = -0.8f + k * 0.55f, x0 = -0.95f + k * 0.12f, x1 = x0 + 1.55f - k * 0.38f;
+                        Quad(new Vector2(x0, v), new Vector2(x1, v), new Vector2(x1 + 0.3f, v + 0.34f), new Vector2(x0 + 0.3f, v + 0.34f));
+                    }
+                    break;
+                case "leaf":
+                {
+                    // A lens between two arcs, tipped up toward the nose.
+                    const int n = 8;
+                    var turn = Quaternion.Euler(0, 0, 40);
+                    Vector2 Edge(int i, float sgn) { float s = i / (float)n; return turn * new Vector3(-1 + 2 * s, sgn * 0.42f * Mathf.Sin(s * Mathf.PI), 0); }
+                    for (int i = 0; i < n; i++) Quad(Edge(i, 1), Edge(i + 1, 1), Edge(i + 1, -1), Edge(i, -1));
+                    break;
+                }
+            }
+            mb.Smoothness = 0.72f;
+            foreach (float sx in new[] { -1f, 1f })
+                for (int i = 0; i < tris.Count; i += 3)
+                {
+                    Vector3 W(Vector2 q) { return centre + new Vector3(sx * side, q.y * size, q.x * size); }
+                    Vector3 a = W(tris[i]), b = W(tris[i + 1]), c = W(tris[i + 2]);
+                    if (Vector3.Dot(Vector3.Cross(b - a, c - a), Vector3.right * sx) >= 0) mb.Tri(a, b, c, col); else mb.Tri(a, c, b, col);
+                }
         }
 
         /// <summary>A wing, fin or tailplane: a lens-shaped section lofted from the root to the tip (chords along Z, swept by the tip's Z).</summary>

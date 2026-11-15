@@ -100,7 +100,7 @@ namespace Crosswind.Core
         public List<LevelEntry> managerLevels = new List<LevelEntry>();
         public double boostUntil;
         public int adDay = -1, adCount;                              // rewarded adverts watched on a day (Sim.Ads)
-        public double freeBoostAt;                                  // real time the next free boost is ready                                   // real time the 2x income boost ends
+        public double freeBoostAt;                                  // no longer used: boosts are only for adverts (kept so old saves load)
         public List<string> achievements = new List<string>();     // claimed
         public List<string> owned = new List<string>();            // one-time purchases
         public List<string> transactions = new List<string>();     // store transactions already granted

@@ -14,7 +14,7 @@ Products are `Sim.Products` (`Assets/Scripts/Core/Sim.Store.cs`); `Tools/appstor
 | crosswind.gems.large | Consumable | $19.99 | 1,400 gems |
 | crosswind.starter | Non-consumable | $4.99 | Founder's Pack: 300 gems (paid with the purchase only; a restore brings back the crew, not the gems) and a third building crew |
 | crosswind.double | Non-consumable | $9.99 | Golden Runway: all income doubled |
-| crosswind.warp | Consumable | $0.99 | Time Warp: two hours of income now, and every running timer (builds, research, free crate, market, free boost) two hours nearer |
+| crosswind.warp | Consumable | $0.99 | Time Warp: two hours of income now, and every running timer (builds, research, free crate, market) two hours nearer |
 
 Purchases go through `Assets/Scripts/Game/App/Store.cs`: RevenueCat on device (`RevenueCatStore`, compiled when the
 package defines `CROSSWIND_REVENUECAT`), a test store with instant pretend purchases in the Editor only

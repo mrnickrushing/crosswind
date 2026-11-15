@@ -6,8 +6,8 @@ namespace Crosswind.Core
     public enum AdReward { Double, Boost }
 
     /// <summary>
-    /// Rewarded adverts: a free way to two things gems buy (the time away paid twice over, half an hour of double
-    /// income), a few times a day. The rules are here; showing the advert is <c>Game/Platform/Ads</c>.
+    /// Rewarded adverts: the only way to double (the time away paid twice over, half an hour of double income) short
+    /// of the Golden Runway purchase, a few times a day. The rules are here; showing the advert is <c>Game/Platform/Ads</c>.
     /// </summary>
     public sealed partial class Sim
     {

@@ -283,7 +283,7 @@ namespace Crosswind.Game
             }
             _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
             _opsDot.gameObject.SetActive(_tab != OpsTab && OpsWaiting);
-            _empireDot.gameObject.SetActive(_sim.ReportWaiting || _sim.SignInReady || _sim.EventWaiting > 0 || _sim.FreeBoostReady || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
+            _empireDot.gameObject.SetActive(_sim.ReportWaiting || _sim.SignInReady || _sim.EventWaiting > 0 || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateIncidentUi();
             UpdateBoard();
             UpdateTerminalUi();

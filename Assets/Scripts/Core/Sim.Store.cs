@@ -68,7 +68,7 @@ namespace Crosswind.Core
 
         /// <summary>
         /// A time warp: pays the income of the time skipped and brings every running timer that much nearer (builds,
-        /// research, the next free crate, the contract market, the free boost). A boost that is running is left
+        /// research, the next free crate, the contract market). A boost that is running is left
         /// alone: skipping time must never cost the player anything. Returns what was paid.
         /// </summary>
         public double Warp(double seconds)
@@ -78,7 +78,7 @@ namespace Crosswind.Core
             if (got > 0) Earn(AfterLoan(got), false);
             foreach (var b in State.builds) b.doneAt -= seconds;
             if (State.research != null) State.research.doneAt -= seconds;
-            State.freeCrateAt -= seconds; State.marketAt -= seconds; State.freeBoostAt -= seconds;
+            State.freeCrateAt -= seconds; State.marketAt -= seconds;
             Changed?.Invoke();
             return got;
         }

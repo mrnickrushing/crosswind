@@ -138,33 +138,12 @@ namespace Crosswind.Core
 
         // ------------------------------------------------------------------ the boost
 
-        /// <summary>Adds half an hour of double income (a rewarded ad, or bought with gems). Stacks up to four hours.</summary>
+        /// <summary>Adds half an hour of double income (only ever for a watched advert). Stacks up to four hours.</summary>
         public void AddBoost()
         {
             double from = Math.Max(RealNow(), State.boostUntil);
             State.boostUntil = Math.Min(RealNow() + 4 * 3600, from + Content.BoostMinutes * 60);
             Changed?.Invoke();
-        }
-
-        public const int FreeBoostHours = 4;
-        public bool FreeBoostReady { get { return RealNow() >= State.freeBoostAt; } }
-        public double FreeBoostIn { get { return Math.Max(0, State.freeBoostAt - RealNow()); } }
-
-        /// <summary>A boost on the house every four hours: a reason to look in.</summary>
-        public bool TakeFreeBoost()
-        {
-            if (!FreeBoostReady) return false;
-            State.freeBoostAt = RealNow() + FreeBoostHours * 3600;
-            AddBoost();
-            return true;
-        }
-
-        public bool BuyBoost()
-        {
-            if (State.gems < Content.BoostGems) return false;
-            State.gems -= Content.BoostGems;
-            AddBoost();
-            return true;
         }
 
         // ------------------------------------------------------------------ selling up

@@ -74,6 +74,7 @@ namespace Crosswind.Core
             if (f.contract != 0) ContractFlew(f, onTime, dry);
             State.flightsHandled++;
             Count("flights", 1);
+            CountCoop(Content.Aircraft[r.Class].Seats * 2);      // passengers off and on, as FlightValue counts them
             if (onTime) Count("ontime", 1);
             if (onTime) State.onTime++; else State.late++;
             AddRating((onTime ? 2 : 0.5) * Math.Pow(3.2, (int)r.Class));       // bigger aircraft make the airport's name

@@ -204,6 +204,13 @@ namespace Crosswind.Core
         public List<LegacyRecord> legacy = new List<LegacyRecord>(); // airports sold, oldest first
         public int trophies;                                         // one for every airport sold
 
+        // Co-op week with friends (Sim.Coop): this week's passengers, what the friends service last said of the group.
+        public int coopWeek = -1;                                    // the week these belong to
+        public long coopPassengers;                                  // passengers handled this week, both ways, at any airport
+        public long coopFriends;                                     // the friends' part of the group total, as last reported
+        public int coopMembers = 1;                                  // players the group goal is set for (you and friends who flew)
+        public int coopClaimed;                                      // tiers claimed this week
+
         public static GameState New()
         {
             var s = new GameState { money = Content.StartMoney, time = 60 };      // a new airport opens at eight in the morning
@@ -306,6 +313,8 @@ namespace Crosswind.Core
             legacy.RemoveAll(l => l == null || string.IsNullOrEmpty(l.map));
             foreach (var l in legacy) { if (l.photo == null) l.photo = ""; if (l.bestAirline == null) l.bestAirline = ""; }
             Sim.BackfillJournal(this);
+            if (coopMembers < 1) coopMembers = 1;
+            if (coopPassengers < 0 || coopFriends < 0 || coopClaimed < 0) { coopPassengers = 0; coopFriends = 0; coopClaimed = 0; }
         }
     }
 }

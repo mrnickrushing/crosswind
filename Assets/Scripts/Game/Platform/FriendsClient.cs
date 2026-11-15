@@ -10,8 +10,9 @@ namespace Crosswind.Game
 {
     /// <summary>
     /// Friends, kept by the Worker in Tools/friends-worker: sign in with the opaque account id from Sign in with
-    /// Apple, get a friend code, add and remove friends by code, list their airports. Every call is a coroutine:
-    /// start it on any MonoBehaviour, or with <see cref="Run"/> on a hidden runner that survives scene loads.
+    /// Apple, get a friend code, add and remove friends by code, list their airports, add up the co-op week. Every
+    /// call is a coroutine: start it on any MonoBehaviour, or with <see cref="Run"/> on a hidden runner that survives
+    /// scene loads.
     /// Nothing here throws; without a connection the callback gets (false, "No connection"). The server keeps only
     /// hashes of the account id and the token; this device keeps the token and code in PlayerPrefs.
     /// </summary>
@@ -148,6 +149,24 @@ namespace Crosswind.Game
             Tell(done);
         }
 
+        /// <summary>What the server said of the co-op week (<see cref="ReportCoop"/>).</summary>
+        public sealed class CoopGroup { public int Week; public long Total, Mine; public int Members; }
+
+        /// <summary>
+        /// Sends this week's passenger count for the co-op goal and gets back the group's total over this player and
+        /// their friends. Quiet: signed out, offline or refused, nothing happens and done is not called (the game keeps
+        /// its last total and tries again later).
+        /// </summary>
+        public static IEnumerator ReportCoop(int week, long passengers, Action<CoopGroup> done)
+        {
+            if (!SignedIn) yield break;
+            Reply reply = null; string error = null;
+            yield return Send("POST", "/v1/coop/report", JsonUtility.ToJson(new CoopBody { week = week, passengers = Math.Max(0, passengers) }), true, (r, e) => { reply = r; error = e; });
+            if (error != null || reply == null || !reply.ok || done == null) yield break;
+            var g = new CoopGroup { Week = reply.week, Total = Math.Max(0, reply.total), Mine = Math.Max(0, reply.mine), Members = Math.Max(1, reply.members) };
+            try { done(g); } catch (Exception e) { Debug.LogException(e); }
+        }
+
         /// <summary>Erases the player and every friendship on the server, then forgets the token and code here.
         /// done(false) when nothing was erased: the server couldn't be reached, or this device holds no working token
         /// (never registered, or replaced by a sign-in elsewhere). The caller registers again and retries then, so
@@ -267,6 +286,7 @@ namespace Crosswind.Game
         [Serializable] sealed class RegisterBody { public string account; public string name; public string map; public int stars; public int flights; }
         [Serializable] sealed class ProfileBody { public string name; public string map; public int stars; public int flights; }
         [Serializable] sealed class CodeBody { public string code; }
+        [Serializable] sealed class CoopBody { public int week; public long passengers; }
 
         [Serializable]
         sealed class FriendDto
@@ -288,6 +308,7 @@ namespace Crosswind.Game
             public string token;
             public FriendDto friend;
             public FriendDto[] friends;
+            public int week; public long total; public long mine; public int members;   // co-op week (the tiers are worked out by Sim.CoopTargets)
         }
 #pragma warning restore 0649
     }

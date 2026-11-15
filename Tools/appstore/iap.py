@@ -34,7 +34,7 @@ PRODUCTS = [
     ("crosswind.starter", "NON_CONSUMABLE", "4.99", "Founder's Pack", "300 gems and a third building crew for good"),
     ("crosswind.double", "NON_CONSUMABLE", "9.99", "Golden Runway", "All income doubled for good, at every airport"),
     ("crosswind.warp", "CONSUMABLE", "0.99", "Time Warp", "Two hours of income and progress, right now"),
-    ("crosswind.adpass", "NON_CONSUMABLE", "4.99", "Express Lane", "Every advert reward without the advert, for good"),
+    ("crosswind.adpass", "NON_CONSUMABLE", "4.99", "Express Lane", "Advert rewards without the advert, for good"),
 ]
 
 

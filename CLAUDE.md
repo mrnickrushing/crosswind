@@ -261,3 +261,21 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
 - UNDO on the floor (`Core/Sim.Undo.cs`, `UndoTests`): the last `UndoDepth` placements, moves, upgrades and sales,
   for `UndoSeconds` of real time, exactly reversed (money, rating never below the current star, the event's and
   tasks' counts); not saved. Button bottom-left in the terminal (`Hud.Coverage.BuildUndo`).
+- Specialisations (`Core/Sim.Specialism.cs`, `SpecialismTests`; from 4 stars, `SpecStars`): Cargo Hub (needs the cargo
+  terminal), Premium Terminal, Low-cost Base, Regional Connector in `State.specialism` ("" none). The first choice is
+  free, then `SpecialismCost` (max of 50K x `Map.CostScale` and 30 minutes of income) and a 24 h real-time cooldown;
+  selling up clears it. Effects are small multipliers (`SpecLanding`, `SpecPax`, `SpecLounge`, `SpecRetail`,
+  `SpecCargoPay`, `SpecClassPay`, `SpecFlights`, `SpecMood`, `SpecOnTime`, `SpecialOdds`, `SpecContractPay`), each read
+  on one line in `FlightValue`, `OnTimeTarget`, `Pay`, `IdleRate`, `ListedRate`, `RollMarket`, and exactly neutral when
+  unset (keep it so: the pacing timeline must not move). Low-fare airlines: `Sim.LowFare`. UI: BUILD (`Hud.Specialism.cs`).
+- Recruit board (`Core/Sim.Recruit.cs`, `RecruitTests`, UI `Hud.Recruit.cs` under the crates): each crate gives a token
+  (`State.recruitTokens`), a spare copy at the top level gives `SpareTokens` by rarity besides its gems; odds, the Epic
+  guarantee and the dice are untouched (`OpenCrate` and `Recruit` share `Join`). `RecruitBoard`: three people a week from
+  `Week` alone (own dice; at most one Legendary; someone not met while any are left), `Recruit(id)` at `RecruitPrice`
+  (5/12/30/80) once per person a week. A `wanted` pick costs a quarter less and is on the board at least one week in
+  `WantedEvery` (4). Tokens only come from crates: no money buys a person.
+- Journal and hall of fame (`Core/Sim.Journal.cs`, `JournalTests`, UI `Hud.Journal.cs` in EMPIRE before SETTINGS):
+  firsts kept across airports in `State.journal` (`JournalFlight` in `Pay`, `JournalGradeA` in `TurnDay`); full pages
+  (visiting airlines, classes A-E, contract kinds) pay `PageGems` once (`ClaimPage`). Old saves are back-filled with what
+  is certain, on day 0 (`BackfillJournal`, end of `Repair`). `SellAndMove(toMap, photo)` keeps a `LegacyRecord` first
+  (stars, flights, earned, grade-A days, items, best contract, `Hud.LastPhoto`) and a trophy (a record, no bonus).

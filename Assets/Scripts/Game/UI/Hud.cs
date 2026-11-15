@@ -127,11 +127,11 @@ namespace Crosswind.Game
             // INSIDE / OUTSIDE at the foot of the rail: look into the terminal, or back over the airfield.
             var inside = Ui.Button("Inside", rail, "TERMINAL", Ui.Blue, null, 22);
             ((RectTransform)inside.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 10), new Vector2(112, 104));
-            var insideText = inside.GetComponentInChildren<Text>();
-            var il = insideText.rectTransform; il.anchorMin = new Vector2(0, 0); il.anchorMax = new Vector2(1, 0.36f); il.offsetMin = new Vector2(2, 8); il.offsetMax = new Vector2(-2, 0);
-            var insidePic = Ui.Img("Icon", inside.transform, Color.white); insidePic.sprite = IconArt.Of("rail_terminal"); insidePic.preserveAspect = true;
-            insidePic.rectTransform.Place(new Vector2(0.5f, 0.63f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(70, 70));
-            inside.onClick.AddListener(() => { Sfx.Play("open", 0.5f); CameraRig.Instance.SetInside(!CameraRig.Inside); insideText.text = CameraRig.Inside ? "AIRFIELD" : "TERMINAL"; insidePic.sprite = IconArt.Of(CameraRig.Inside ? "rail_airfield" : "rail_terminal"); OnInsideChanged(); });
+            _insideText = inside.GetComponentInChildren<Text>();
+            var il = _insideText.rectTransform; il.anchorMin = new Vector2(0, 0); il.anchorMax = new Vector2(1, 0.36f); il.offsetMin = new Vector2(2, 8); il.offsetMax = new Vector2(-2, 0);
+            _insidePic = Ui.Img("Icon", inside.transform, Color.white); _insidePic.sprite = IconArt.Of("rail_terminal"); _insidePic.preserveAspect = true;
+            _insidePic.rectTransform.Place(new Vector2(0.5f, 0.63f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(70, 70));
+            inside.onClick.AddListener(() => GoInside(!CameraRig.Inside));
 
             // Top left: the airport's vital signs in one compact block (cash, income, gems, rating).
             var top = Ui.ArtImg("Status", _safe, "panel", Color.white).rectTransform;
@@ -162,12 +162,18 @@ namespace Crosswind.Game
             // The guide card under it.
             _goal = Ui.ArtImg("Goal", _safe, "panel", Color.white).rectTransform;
             _goal.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(152, -152), new Vector2(660, 132));
+            // The whole card folds to one line and back (a tap anywhere but CLAIM), so the airfield has the room.
+            var fold = Ui.Button("Fold", _goal, null, new Color(0, 0, 0, 0), () => { GoalFolded = !GoalFolded; Telemetry.Feature("goal_fold", GoalFolded ? "folded" : "open"); }, 20);
+            ((RectTransform)fold.transform).Fill();
             var accent = Ui.Img("Accent", _goal, Ui.Green, true).rectTransform; accent.anchorMin = new Vector2(0, 0); accent.anchorMax = new Vector2(0, 1); accent.offsetMin = new Vector2(8, 14); accent.offsetMax = new Vector2(14, -14);
-            Ui.Label("Cap", _goal, "NEXT", 20, Ui.Green, TextAnchor.UpperLeft).rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(26, -10), new Vector2(200, 26));
+            _goalCap = Ui.Label("Cap", _goal, "NEXT", 20, Ui.Green, TextAnchor.UpperLeft);
+            _goalCap.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(26, -10), new Vector2(200, 26));
+            _goalChev = Ui.Img("Chevron", _goal, new Color(1, 1, 1, 0.55f)); _goalChev.sprite = Ui.Ic("chevronup"); _goalChev.preserveAspect = true;
+            _goalChev.rectTransform.Place(new Vector2(0, 1), new Vector2(0, 1), new Vector2(84, -12), new Vector2(22, 22));
             _goalText = Ui.Label("Text", _goal, "", 30, Color.white, TextAnchor.UpperLeft, false);
             _goalText.rectTransform.Fill(); _goalText.rectTransform.offsetMin = new Vector2(26, 30); _goalText.rectTransform.offsetMax = new Vector2(-200, -34);
             _goalText.resizeTextForBestFit = true; _goalText.resizeTextMinSize = 20; _goalText.resizeTextMaxSize = 28; _goalText.verticalOverflow = VerticalWrapMode.Truncate;
-            var gbar = Ui.Img("Bar", _goal, new Color(0, 0, 0, 0.45f), true).rectTransform;
+            var gbar = _goalBar = Ui.Img("Bar", _goal, new Color(0, 0, 0, 0.45f), true).rectTransform;
             gbar.anchorMin = new Vector2(0, 0); gbar.anchorMax = new Vector2(1, 0); gbar.pivot = new Vector2(0, 0); gbar.offsetMin = new Vector2(26, 12); gbar.offsetMax = new Vector2(-200, 24);
             _goalFill = Ui.Img("Fill", gbar, Ui.Green, true);
             _goalFill.rectTransform.anchorMin = Vector2.zero; _goalFill.rectTransform.anchorMax = new Vector2(0, 1); _goalFill.rectTransform.offsetMin = _goalFill.rectTransform.offsetMax = Vector2.zero;
@@ -189,6 +195,12 @@ namespace Crosswind.Game
             _vitals.rectTransform.anchorMin = new Vector2(0, 0); _vitals.rectTransform.anchorMax = new Vector2(1, 0.46f); _vitals.rectTransform.offsetMin = new Vector2(10, 8); _vitals.rectTransform.offsetMax = new Vector2(-10, 0);
             // One line always: best fit would rather wrap ("REPUTATION" over "124") than shrink, so the size is set by hand.
             _vitals.horizontalOverflow = HorizontalWrapMode.Overflow;
+            // Photo mode: a camera at the clock's right-hand end; the clock's lines keep clear of it.
+            _weather.rectTransform.offsetMax = new Vector2(-74, -6); _vitals.rectTransform.offsetMax = new Vector2(-74, 0);
+            var cam = Ui.Button("Photo", clock, null, Ui.Blue, () => { if (_sim.State.tutorialDone) SetPhotoMode(true); else Toast("Photo mode opens after the tutorial"); }, 20);
+            ((RectTransform)cam.transform).Place(new Vector2(1, 0.5f), new Vector2(1, 0.5f), new Vector2(-10, 0), new Vector2(64, 76));
+            var camIcon = Ui.Img("Icon", cam.transform, Color.white); camIcon.sprite = Ui.Ic("camera"); camIcon.preserveAspect = true;
+            camIcon.rectTransform.Place(new Vector2(0.5f, 0.55f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(38, 38));
             _chips = Ui.Label("Chips", _safe, "", 30, Ui.Gold);
             _chips.rectTransform.Place(new Vector2(0, 1), new Vector2(0.5f, 1), new Vector2(1084, -118), new Vector2(620, 44));
             Outline(_chips);
@@ -230,9 +242,48 @@ namespace Crosswind.Game
             BuildTutorial();
             // Toast and the star banner.
             BuildFeedback();
+            BuildPhoto();
         }
 
         RectTransform _safe;
+        Text _insideText; Image _insidePic;
+
+        // ------------------------------------------------------------------ the goal card, folded or open
+
+        Text _goalCap; Image _goalChev; RectTransform _goalBar;
+        int _goalShown = -1;
+        /// <summary>The player folded the guide card to one line (kept on this device).</summary>
+        static bool GoalFolded { get { return PlayerPrefs.GetInt("cw_goal_folded", 0) == 1; } set { PlayerPrefs.SetInt("cw_goal_folded", value ? 1 : 0); PlayerPrefs.Save(); } }
+
+        /// <summary>Lays the goal card out folded (one line: the goal and its count) or open (caption, two lines, bar).</summary>
+        void FoldGoal(bool folded)
+        {
+            if (_goalShown == (folded ? 1 : 0)) return;
+            _goalShown = folded ? 1 : 0;
+            _goal.sizeDelta = new Vector2(660, folded ? 64 : 132);
+            _goalCap.gameObject.SetActive(!folded);
+            _goalBar.gameObject.SetActive(!folded);
+            _goalChev.sprite = Ui.Ic(folded ? "chevrondown" : "chevronup");
+            _goalChev.rectTransform.Place(new Vector2(0, folded ? 0.5f : 1), new Vector2(0, folded ? 0.5f : 1), folded ? new Vector2(26, 0) : new Vector2(84, -12), new Vector2(22, 22));
+            var t = _goalText.rectTransform;
+            t.offsetMin = folded ? new Vector2(58, 6) : new Vector2(26, 30); t.offsetMax = folded ? new Vector2(-200, -6) : new Vector2(-200, -34);
+            _goalText.alignment = folded ? TextAnchor.MiddleLeft : TextAnchor.UpperLeft;
+            _goalText.resizeTextMaxSize = folded ? 24 : 28; _goalText.resizeTextMinSize = folded ? 16 : 20;
+            ((RectTransform)_goalCount.transform).sizeDelta = new Vector2(176, folded ? 52 : 84);
+            ((RectTransform)_goalClaim.transform).sizeDelta = new Vector2(176, folded ? 52 : 84);
+            _goalClaim.GetComponentInChildren<Text>().fontSize = folded ? 28 : 36;
+        }
+
+        /// <summary>Into the terminal or back out over the airfield (the rail's button, and anything that points inside).</summary>
+        void GoInside(bool inside)
+        {
+            if (inside == CameraRig.Inside) return;
+            Sfx.Play("open", 0.5f);
+            CameraRig.Instance.SetInside(inside);
+            _insideText.text = CameraRig.Inside ? "AIRFIELD" : "TERMINAL";
+            _insidePic.sprite = IconArt.Of(CameraRig.Inside ? "rail_airfield" : "rail_terminal");
+            OnInsideChanged();
+        }
 
         /// <summary>The middle of a control, as a position on the canvas (for pointers and chips that fly from it).</summary>
         Vector2 CanvasPos(RectTransform rt) { var p = _root.InverseTransformPoint(rt.TransformPoint(rt.rect.center)); return new Vector2(p.x, p.y); }
@@ -252,6 +303,7 @@ namespace Crosswind.Game
 
             var g = _sim.CurrentGoal;
             _goal.gameObject.SetActive(g != null);
+            FoldGoal(GoalFolded && _sim.State.tutorialDone);
             if (g != null)
             {
                 bool done = _sim.GoalDone;
@@ -283,17 +335,20 @@ namespace Crosswind.Game
             }
             _staffDot.gameObject.SetActive(_sim.State.crates > 0 || _sim.FreeCrateReady);
             _opsDot.gameObject.SetActive(_tab != OpsTab && OpsWaiting);
-            _empireDot.gameObject.SetActive(_sim.ReportWaiting || _sim.SignInReady || _sim.EventWaiting > 0 || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
+            _empireDot.gameObject.SetActive(_sim.ReportWaiting || _sim.AmbitionsWaiting > 0 || _sim.PagesWaiting > 0 || _sim.SignInReady || _sim.EventWaiting > 0 || _sim.AchievementsWaiting > 0 || _sim.State.tasks.Exists(x => !x.claimed && x.progress >= x.target));
             UpdateIncidentUi();
             UpdateBoard();
             UpdateTerminalUi();
             UpdateServiceButtons();
             UpdatePops();
             UpdateGuide();
+            UpdateAmbition();
+            UpdateStarShots();
             UpdateTutorial();
             if ((_refreshIn -= Time.unscaledDeltaTime) <= 0 || _dirty) { _refreshIn = 0.5f; if (_tab >= 0) RefreshSheet(); _dirty = false; }
             UpdateFeedback();
             UpdateRate();
+            UpdateCoop();
         }
 
         static void Outline(Text t) { var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.75f); o.effectDistance = new Vector2(2, -2); }

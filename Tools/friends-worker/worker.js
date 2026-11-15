@@ -2,10 +2,14 @@
 // airports (Game/Platform/FriendsClient.cs; rules shared with Core/Friends.cs). Stored in D1 (schema.sql). The account
 // id and the bearer token are kept only as SHA-256 hashes; no IPs, emails or other request details are stored or
 // logged. The only free text is the display name, cleaned and screened by cleanName; players can block and report
-// one another (blocks, reports). See README.md.
+// one another (blocks, reports). The co-op week (coop): each player's passengers this week, summed over them and their
+// mutual friends (Core/Sim.Coop.cs claims the tiers). See README.md.
 
 const MAX_BODY = 4 * 1024, MAX_FRIENDS = 50, NAME_MAX = 20, MAP_MAX = 24;
-const MAX_STARS = 99, MAX_FLIGHTS = 2_000_000_000;
+const MAX_STARS = 99, MAX_FLIGHTS = 2_000_000_000, MAX_PASSENGERS = 2_000_000_000;
+// The co-op week's tiers for one player; each other member adds four fifths. Keep in step with Sim.CoopBase and
+// Sim.CoopTarget (Core/Sim.Coop.cs): the game claims by its own copy, these are reported for anyone reading the reply.
+const COOP_BASE = [2500, 10000, 30000, 80000], COOP_MAX_MEMBERS = MAX_FRIENDS + 1;
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // no 0/O/1/I; 32 symbols, so a byte maps onto it evenly
 const CODE_LEN = 6;
 const DEFAULT_NAME = "Airport Manager";
@@ -23,7 +27,7 @@ const SWAPS = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "8":
 
 // Per-IP limits, per isolate, in memory only: the key is a hash of the address salted with a value that dies with
 // the isolate, so nothing about an address is ever written anywhere.
-const LIMITS = { register: [10, 600], add: [30, 600] };   // [requests, seconds]
+const LIMITS = { register: [10, 600], add: [30, 600], coop: [30, 600] };   // [requests, seconds]
 let salt = null;   // drawn at the first request (no random values at global scope)
 const hits = new Map();
 
@@ -49,7 +53,7 @@ async function route(req, env) {
   }
 
   const handler = { "/v1/register": register, "/v1/profile": profile, "/v1/friends/add": add,
-    "/v1/friends/remove": remove, "/v1/friends/block": block, "/v1/friends/report": report, "/v1/delete": del }[path];
+    "/v1/friends/remove": remove, "/v1/friends/block": block, "/v1/friends/report": report, "/v1/coop/report": coopReport, "/v1/delete": del }[path];
   if (!handler) return fail(404, "Not found");
   if (req.method !== "POST") return fail(405, "POST only");
 
@@ -166,8 +170,41 @@ async function listFriends(env, me) {
   return json({ friends: rows.results.map(publicRow) });
 }
 
+// The co-op week: stores this player's passengers for the week (never lowered within it: a second device or an older
+// save reporting less leaves the best count) and answers with the group's total over them and their mutual friends
+// who flew this week. Only totals and a head count go back, nothing about any one friend. The week is the game's
+// (Sim.Week: days since 1970, turning on Monday), which may be one either side of the server's own.
+async function coopReport(req, env, body, me) {
+  if (await limited(req, "coop")) return fail(429, "Too many tries, wait a few minutes");
+  const current = weekOf(now()), week = body.week;
+  if (!Number.isInteger(week) || Math.abs(week - current) > 1) return fail(422, "Check the date on your device");
+  const passengers = clamp(body.passengers, MAX_PASSENGERS);
+  const [, , sums] = await env.DB.batch([
+    env.DB.prepare("INSERT INTO coop (player, week, passengers, updated) VALUES (?, ?, ?, ?) " +
+      "ON CONFLICT(player, week) DO UPDATE SET passengers = MAX(passengers, excluded.passengers), updated = excluded.updated")
+      .bind(me.id, week, passengers, now()),
+    env.DB.prepare("DELETE FROM coop WHERE player = ? AND week < ?").bind(me.id, current - 2),   // old weeks: nothing reads them
+    env.DB.prepare(
+      "SELECT (SELECT passengers FROM coop WHERE player = ?1 AND week = ?2) AS mine, COALESCE(SUM(c.passengers), 0) AS friends, " +
+      "COUNT(c.player) AS active FROM friends f JOIN friends b ON b.player = f.friend AND b.friend = f.player " +
+      "JOIN coop c ON c.player = f.friend AND c.week = ?2 AND c.passengers > 0 WHERE f.player = ?1").bind(me.id, week),
+  ]);
+  const row = sums.results[0] || {};
+  const mine = row.mine || 0, members = Math.min(COOP_MAX_MEMBERS, 1 + (row.active || 0));
+  return json({ ok: true, week, mine, total: mine + (row.friends || 0), members, tiers: coopTiers(members) });
+}
+
+function coopTiers(members) {
+  const m = Math.max(1, Math.min(COOP_MAX_MEMBERS, members));
+  return COOP_BASE.map(b => b * (5 + 4 * (m - 1)) / 5);
+}
+
+// Sim.Week: whole days since 1970 (UTC), weeks turning over on Monday (day 0 was a Thursday).
+function weekOf(unix) { return Math.floor((Math.floor(unix / 86400) + 3) / 7); }
+
 async function del(_req, env, _body, me) {
   await env.DB.batch([
+    env.DB.prepare("DELETE FROM coop WHERE player = ?").bind(me.id),
     env.DB.prepare("DELETE FROM friends WHERE player = ?1 OR friend = ?1").bind(me.id),
     env.DB.prepare("DELETE FROM blocks WHERE player = ?1 OR blocked = ?1").bind(me.id),
     env.DB.prepare("DELETE FROM reports WHERE reporter = ?1 OR reported = ?1").bind(me.id),

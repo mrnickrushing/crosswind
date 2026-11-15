@@ -15,6 +15,7 @@ Products are `Sim.Products` (`Assets/Scripts/Core/Sim.Store.cs`); `Tools/appstor
 | crosswind.starter | Non-consumable | $4.99 | Founder's Pack: 300 gems (paid with the purchase only; a restore brings back the crew, not the gems) and a third building crew |
 | crosswind.double | Non-consumable | $9.99 | Golden Runway: all income doubled |
 | crosswind.warp | Consumable | $0.99 | Time Warp: two hours of income now, and every running timer (builds, research, free crate, market) two hours nearer |
+| crosswind.adpass | Non-consumable | $4.99 | Express Lane: every rewarded-advert reward (boost, doubled time away) without watching, same six a day. Added 2026-11-15: not in App Store Connect until `iap.py` runs (the shop hides it until the store offers it) |
 
 Purchases go through `Assets/Scripts/Game/App/Store.cs`: RevenueCat on device (`RevenueCatStore`, compiled when the
 package defines `CROSSWIND_REVENUECAT`), a test store with instant pretend purchases in the Editor only
@@ -57,8 +58,9 @@ Screenshots: Play mode, then `Tools/store-shot.sh <iphone|ipad> out.png` (2868x1
 App Privacy (published 2026-11-12 on the website): linked to the player and used for app functionality: Name (the
 manager's name friends see), Gameplay Content (airport name, stars, flights shown to friends), User ID (RevenueCat app
 user id, the friends account), Purchase History (RevenueCat); not linked, for analytics: Device ID (the hashed
-statistics id), Product Interaction and Performance Data (frame rate). No tracking. Keep it in step with
-`docs/privacy.html` and with anything new the game sends.
+statistics id), Product Interaction (tutorial steps, goals, features tried, layout edits, offers opened, rewarded adverts
+finished) and Performance Data (frame rate). No tracking. Purchases are never sent as statistics (that would make Purchase
+History an analytics type too). Keep it in step with `docs/privacy.html` and with anything new the game sends.
 
 The age rating answers `userGeneratedContent` no: Apple asks about broad distribution, and a name is only seen by
 friends who swapped codes (still screened by `FriendRules.Rude` / the Worker's `rude`, with REMOVE / BLOCK / REPORT on

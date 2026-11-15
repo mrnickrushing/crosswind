@@ -229,3 +229,80 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   achievements must also go in `docs/appstore/gamecenter.json` (a test checks it) with a badge
   (`Tools/art/gc_badges.py` draws the missing ones), and App Store Connect only learns of them when the
   `crosswind-setup` job runs with `CROSSWIND_STEPS=gamecenter` (ask first).
+- Advice names the constraint (`Core/Sim.Advice.cs`, `AdviceTests`): `FlowLimiters` (the lowest of check-in, security,
+  gates; several when level), `LimiterSentence` (which part, its level against the others, what one more level does to
+  the queues), `QueueAdvice` (the queue `Need.Advice`, cached), `FlowFix` (the cheapest limiter not being built; also
+  `Need.Fix`). UI: a tap on a rating in the terminal strip opens the need card (`UI/Hud.Needs.cs`: INSPECT swings the
+  camera to `Interior.PartPoint`, UPGRADE; for wants SHOW ON THE FLOOR and SHOP), BUILD's need rows have the same buttons.
+- Day report coaching (`Sim.Report.cs`): flights count the seconds a job waited for a crew (`FlightState.waited`, by
+  service in `State.dayWait`) and whether the terminal slowed boarding (`slowBoard`); late ones go to `dayLateCrew` /
+  `dayLateQueue`; `Built` notes what was bought during the day. `Coaching(report)` turns a `DayReport` into
+  `ReportLine`s (each part's lost points, the cause, a facility to fix it) and a comparison with the day before
+  (`prev*` fields). EMPIRE shows them under the report, with an UPGRADE button where there is a fix.
+- HUD room: the goal card folds to one line (tap it; PlayerPrefs `cw_goal_folded`, always open during the tutorial) and
+  the flight board folds to its two most urgent rows (tap its heading; `cw_board_compact`).
+- Photo mode (`UI/Hud.Photo.cs`, the camera on the clock): hides the HUD, ANGLE sets `CameraRig.Angle` (pitch, yaw;
+  eased), TAKE PHOTO captures at full resolution (`FrameBudget.Sharp`) with a plate (airport, stars), saves to
+  `persistentDataPath/Photos` (`Hud.LastPhoto`), SHARE opens the share sheet (`Plugins/iOS/CrosswindShare.mm`;
+  `NSPhotoLibraryAddUsageDescription` from `IosCapabilities`).
+- Shop rows say what is spent and what is kept and open a card first (`UI/Hud.Offer.cs`, `Sim.ProductContents`); the
+  Time Warp card shows `Sim.PreviewWarp` (money after the bank's share, what it would finish).
+- Telemetry events (`Telemetry.Track/Feature/LayoutEdit/OfferViewed`; list in `Tools/stats-worker/README.md` with the
+  retention queries): never purchases (the privacy label and `docs/privacy.html` promise it). Glyphs added to
+  `Tools/art/icons.py` (render only new names: `icons.py camera eye`).
+- Placement has reach (`Core/Sim.Coverage.cs`, `CoverageTests`): an item serves the floor cells within `Reach(want)`
+  of its footprint (+1 a level; food and shops 7, fun and info 6, toilets 5, seating and cleanliness 4; the lounge has
+  none). `Coverage(want)` is the share of open floor in reach; `ReachedSupply = Supply x CoverFactor` (from
+  `CoverFloor` 0.5 at none to 1 at all) feeds the needs and `RetailLevel`. Cached by a fingerprint of the floor.
+  Saves from before the rule (`reachSet` false with items placed) get `ReachGraceHours` (48 h real time, fading).
+  `BestSpot` (summed-area table of uncovered open cells) is where `PlaceAnywhere` and the SHOP put things;
+  `CoverageGain` is the placing bar's hint. View: `World/FloorMap.cs` (green in reach, red missing, gold what the
+  ghost adds), shown while placing and by a rating's SHOW ON THE FLOOR (`UI/Hud.Coverage.cs`).
+- UNDO on the floor (`Core/Sim.Undo.cs`, `UndoTests`): the last `UndoDepth` placements, moves, upgrades and sales,
+  for `UndoSeconds` of real time, exactly reversed (money, rating never below the current star, the event's and
+  tasks' counts); not saved. Button bottom-left in the terminal (`Hud.Coverage.BuildUndo`).
+- Specialisations (`Core/Sim.Specialism.cs`, `SpecialismTests`; from 4 stars, `SpecStars`): Cargo Hub (needs the cargo
+  terminal), Premium Terminal, Low-cost Base, Regional Connector in `State.specialism` ("" none). The first choice is
+  free, then `SpecialismCost` (max of 50K x `Map.CostScale` and 30 minutes of income) and a 24 h real-time cooldown;
+  selling up clears it. Effects are small multipliers (`SpecLanding`, `SpecPax`, `SpecLounge`, `SpecRetail`,
+  `SpecCargoPay`, `SpecClassPay`, `SpecFlights`, `SpecMood`, `SpecOnTime`, `SpecialOdds`, `SpecContractPay`), each read
+  on one line in `FlightValue`, `OnTimeTarget`, `Pay`, `IdleRate`, `ListedRate`, `RollMarket`, and exactly neutral when
+  unset (keep it so: the pacing timeline must not move). Low-fare airlines: `Sim.LowFare`. UI: BUILD (`Hud.Specialism.cs`).
+- Recruit board (`Core/Sim.Recruit.cs`, `RecruitTests`, UI `Hud.Recruit.cs` under the crates): each crate gives a token
+  (`State.recruitTokens`), a spare copy at the top level gives `SpareTokens` by rarity besides its gems; odds, the Epic
+  guarantee and the dice are untouched (`OpenCrate` and `Recruit` share `Join`). `RecruitBoard`: three people a week from
+  `Week` alone (own dice; at most one Legendary; someone not met while any are left), `Recruit(id)` at `RecruitPrice`
+  (5/12/30/80) once per person a week. A `wanted` pick costs a quarter less and is on the board at least one week in
+  `WantedEvery` (4). Tokens only come from crates: no money buys a person.
+- Journal and hall of fame (`Core/Sim.Journal.cs`, `JournalTests`, UI `Hud.Journal.cs` in EMPIRE before SETTINGS):
+  firsts kept across airports in `State.journal` (`JournalFlight` in `Pay`, `JournalGradeA` in `TurnDay`); full pages
+  (visiting airlines, classes A-E, contract kinds) pay `PageGems` once (`ClaimPage`). Old saves are back-filled with what
+  is certain, on day 0 (`BackfillJournal`, end of `Repair`). `SellAndMove(toMap, photo)` keeps a `LegacyRecord` first
+  (stars, flights, earned, grade-A days, items, best contract, `Hud.LastPhoto`) and a trophy (a record, no bonus).
+- Weekly events (`Core/Sim.Events.cs`, `EventTests`): six in rotation; Storm Season (`EventDef.Storm/Fog/SnowScale`
+  roughen `NextWeather`; counts `rough`: flights away on time in bad weather) and Cargo Surge (`CargoLevel` + `CargoPay`
+  in `FlightValue`'s cargo part, `FreightOdds` in `RollMarket`; counts `cargoMinutes`) change the week. `EventPrep` is the
+  "be ready" list on the EMPIRE card. The week's event is kept in `State.eventId` (older saves mid-week keep their
+  `LegacyRotation` event), so lengthening the rotation never swaps an event mid-week.
+- Your airline's look (`Core/Sim.Livery.cs`, `LiveryTests`): `liveryPattern` (Classic, Plain, Cheatline, Two-Tone,
+  Swoosh, Full Colour), `liveryTrim` (0 = Matched), `emblem` (none, star, chevron, ring, wing, leaf), `airlineName`
+  (screened by `FriendRules`). They open by stars (`LiveryStars`, a sale counts as 5) or the most aircraft owned at once
+  (`State.fleetBest`); nothing is sold. Zeros are the Classic look old saves had. Only `"own"` takes the livery path in
+  `World/Aircraft.cs` (`OwnSkin`, `OwnBands`, `Emblem`; at most about 210 extra triangles). UI: `UI/Hud.Livery.cs` in AIRLINES.
+- Co-op week (`Core/Sim.Coop.cs`, `CoopTests`, UI `UI/Hud.Coop.cs` in FRIENDS): `Pay` adds seats x 2 to
+  `State.coopPassengers` for the `Week`; `FriendsClient.ReportCoop` -> `POST /v1/coop/report` (every 3 min signed in, 1 min
+  with FRIENDS open) keeps the higher count per player and week and returns the total over you and your mutual friends
+  and `members`. Tiers `CoopBase` (2.5K/10K/30K/80K) x (5 + 4 x (members - 1)) / 5 pay `CoopGems` once each a week, in
+  order; `COOP_BASE` in worker.js must match. Worker tests: `node --test` in `Tools/friends-worker`; the table is
+  `migrations/0001_coop.sql` (run it with wrangler before deploying the worker; ask the owner first).
+- Ambitions (`Core/Sim.Ambitions.cs`, `AmbitionTests`; not the journal's "milestones"): first jet, full apron, first
+  wide-body, whole terminal open, first jumbo, per airport (kept as "map:id" in `ambitionsDone/Claimed`), each with
+  `AmbitionSteps` (what it needs, ticked; a facility to build) and gems. Class ones complete at the first landing here
+  (`NoteLanding` in `Advance`, `State.classesHere`, reset by `SellAndMove`); `AmbitionReached` fires once. One can be
+  pinned (`State.pinnedAmbition`). UI `UI/Hud.Ambition.cs`: the card under the goal card (the pinned one, or the next once
+  the guide is done), EMPIRE's AMBITIONS, the moment (the camera follows the first of a class in, the banner's kicker
+  `_bannerKicker`, the fanfare), and the star before/after (`ShootAirfield`: an offscreen camera from a fixed spot,
+  pictures in `persistentDataPath/Stars/<map>_<stars>.png`; a baseline is kept for the current rating).
+- Express Lane (`Sim.AdPass` = `crosswind.adpass`, non-consumable, `Sim.AdFree`): the rewarded adverts' rewards (boost,
+  doubled time away) without the advert, within the same `AdsPerDay`. The shop hides it on device until the App Store
+  offers it (`iap.py` creates it; ask before running the setup job).

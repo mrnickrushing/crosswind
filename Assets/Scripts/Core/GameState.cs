@@ -33,6 +33,8 @@ namespace Crosswind.Core
         public float held;              // seconds not counted against it: waiting at the gate by choice, and de-icing
         public int contract;            // the contract this flight belongs to (0: a route's ordinary flight)
         public int number;              // its flight number (after the airline's two letters)
+        public float waited;            // seconds a job of its stood waiting for a crew to be sent (the day report's "why late")
+        public bool slowBoard;          // the terminal could not move its passengers as fast as the aircraft could take them
         public List<ServiceJob> jobs = new List<ServiceJob>();
     }
 
@@ -132,6 +134,7 @@ namespace Crosswind.Core
         public List<BuildJob> builds = new List<BuildJob>();
         public int signInDay = -1, signInStreak;
         public int eventWeek = -1, eventClaimed;                    // the week the progress belongs to, and milestones claimed
+        public string eventId = "";                                 // the event that week started with (Sim.Events)
         public double eventProgress;                    // the last day claimed, and days in a row
         public double sessionEarned;
         public List<LevelEntry> crew = new List<LevelEntry>();       // the team: id and copies held
@@ -152,6 +155,15 @@ namespace Crosswind.Core
         public int resurfaced;
         public int dayIndex = -1, dayFlights, dayOnTime, dayDry;     // the airport day being counted, and its tallies
         public double dayIncome;
+        public double[] dayWait = new double[6];                     // today: seconds jobs waited for a crew, by Service
+        public int dayLateCrew, dayLateQueue;                        // today: late flights that waited for a crew, or boarded slowly
+        public List<string> dayBuilt = new List<string>();           // today: what was built or upgraded (facility ids, "terminal")
+        public bool reachSet;                                        // the save knows that placement has reach (Sim.Coverage)
+        public double reachGraceUntil;                               // an older layout's grace: real time it ends (-1: from the first tick, 0: none)
+        public List<string> ambitionsDone = new List<string>(), ambitionsClaimed = new List<string>();   // "map:id" (Sim.Ambitions)
+        public string pinnedAmbition = "";                           // the ambition pinned to the HUD ("": none)
+        public List<string> classesHere = new List<string>();        // aircraft classes ("a".."e") that have landed at this airport
+        public bool ambitionsSet;                                    // what an older airport had already done has been counted
         public DayReport report;                                     // the last day closed (null before the first: see Repair)
         public int gradeStreak, daysAtA;
         public int cheapFills;                                       // tankers bought well below par
@@ -176,6 +188,37 @@ namespace Crosswind.Core
         public DayLedger today = new DayLedger();                    // the day being counted
         public double dayOpenMoney = -1;                             // cash when the day opened (-1: not yet counted)
         public int contractsSigned, contractsDone, fullMarks;         // contracts signed, flown to the end, and of those with all three marks
+        // Specialisation (Sim.Specialism): what the airport is known for ("": nothing yet), when it was last chosen (real time), how often.
+        public string specialism = "";
+        public double specialismAt;
+        public int specialismChanges;
+
+        // Recruit board (Sim.Recruit): tokens from crates, three people on offer each week, one wanted pick.
+        public int recruitTokens;                                    // tokens held (one a crate, more for a spare at the top level)
+        public string wanted = "";                                   // the one team member the player is working toward ("" for none)
+        public int wantedMissed;                                     // boards since the wanted pick was last on one
+        public int boardWeek;                                        // the week the board below was drawn for
+        public List<string> board = new List<string>();              // this week's three on offer
+        public List<string> boardHired = new List<string>();         // of those, the ones already hired this week
+
+        // The journal and the hall of fame (Sim.Journal): kept for good, across airports.
+        public List<JournalEntry> journal = new List<JournalEntry>();     // firsts, in the order they happened
+        public List<string> journalPaid = new List<string>();        // pages whose gems have been collected
+        public bool journalSet;                                      // an older save has been back-filled (once)
+        public List<LegacyRecord> legacy = new List<LegacyRecord>(); // airports sold, oldest first
+        public int trophies;                                         // one for every airport sold
+
+        // Co-op week with friends (Sim.Coop): this week's passengers, what the friends service last said of the group.
+        public int coopWeek = -1;                                    // the week these belong to
+        public long coopPassengers;                                  // passengers handled this week, both ways, at any airport
+        public long coopFriends;                                     // the friends' part of the group total, as last reported
+        public int coopMembers = 1;                                  // players the group goal is set for (you and friends who flew)
+        public int coopClaimed;                                      // tiers claimed this week
+
+        // Your airline's look and name (Sim.Livery): zero is the Classic look with matched trim and no emblem.
+        public int liveryPattern, liveryTrim, emblem;                // indexes into Sim.LiveryPatterns, Sim.Trims, Sim.Emblems
+        public int fleetBest;                                        // the most aircraft owned at once, at any airport (opens livery items)
+        public string airlineName = "";                              // empty: "Your airline"
 
         public static GameState New()
         {
@@ -263,6 +306,34 @@ namespace Crosswind.Core
             if (ledger == null) ledger = new List<DayLedger>();
             ledger.RemoveAll(l => l == null);
             if (today == null) today = new DayLedger();
+            if (dayWait == null || dayWait.Length != 6) dayWait = new double[6];
+            if (dayBuilt == null) dayBuilt = new List<string>();
+            if (report != null) report.Repair();
+            if (eventId == null) eventId = "";
+            if (ambitionsDone == null) ambitionsDone = new List<string>();
+            if (ambitionsClaimed == null) ambitionsClaimed = new List<string>();
+            if (classesHere == null) classesHere = new List<string>();
+            if (pinnedAmbition == null || (pinnedAmbition != "" && Sim.AmbitionById(pinnedAmbition) == null)) pinnedAmbition = "";
+            if (specialism == null || (specialism != "" && Sim.SpecialismById(specialism) == null)) specialism = "";
+            if (recruitTokens < 0) recruitTokens = 0;
+            if (wanted == null || (wanted != "" && Sim.CrewById(wanted) == null)) wanted = "";
+            if (boardHired == null) boardHired = new List<string>();
+            if (board == null || board.Exists(b => Sim.CrewById(b) == null)) { board = new List<string>(); boardHired.Clear(); }
+            if (journal == null) journal = new List<JournalEntry>();
+            journal.RemoveAll(e => e == null || string.IsNullOrEmpty(e.kind) || string.IsNullOrEmpty(e.id));
+            if (journalPaid == null) journalPaid = new List<string>();
+            if (legacy == null) legacy = new List<LegacyRecord>();
+            legacy.RemoveAll(l => l == null || string.IsNullOrEmpty(l.map));
+            foreach (var l in legacy) { if (l.photo == null) l.photo = ""; if (l.bestAirline == null) l.bestAirline = ""; }
+            Sim.BackfillJournal(this);
+            if (coopMembers < 1) coopMembers = 1;
+            if (coopPassengers < 0 || coopFriends < 0 || coopClaimed < 0) { coopPassengers = 0; coopFriends = 0; coopClaimed = 0; }
+            if (airlineName == null) airlineName = "";
+            if (liveryPattern < 0 || liveryPattern >= Sim.LiveryPatterns.Length) liveryPattern = 0;
+            if (liveryTrim < 0 || liveryTrim >= Sim.Trims.Length) liveryTrim = 0;
+            if (emblem < 0 || emblem >= Sim.Emblems.Length) emblem = 0;
+            int aircraft = 0; foreach (var f in fleet) if (f != null) aircraft += f.level;
+            if (fleetBest < aircraft) fleetBest = aircraft;
         }
     }
 }

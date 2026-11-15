@@ -11,7 +11,9 @@ namespace Crosswind.Game
     {
         void OpenTab(int tab)
         {
+            CloseOffer();
             _tab = tab;
+            if (tab >= 0 && tab < TabNames.Length) Telemetry.Feature("tab_" + TabNames[tab].ToLower());
             _sheet.gameObject.SetActive(tab >= 0 && tab != OpsTab);
             _ops.gameObject.SetActive(tab == OpsTab);
             if (tab != OpsTab) _opsPick = 0;
@@ -211,8 +213,26 @@ namespace Crosswind.Game
                 foreach (var need in s.Needs)
                 {
                     // Something nobody asks for yet at this size is said so, not shown as a need met in full.
-                    if (need.Unasked) Ico(WantIcon(need.Want, need.Queue), Ui.Off).Bar(1f, Ui.Off).Entry(need.Name, "NOT NEEDED YET", "An airport this size gets by without. Passengers will look for it as their numbers grow.", null, null, null);
-                    else Ico(WantIcon(need.Want, need.Queue), ScoreTint(need.Value)).Bar(need.Value, ScoreTint(need.Value)).Entry(need.Name, Mathf.RoundToInt(need.Value * 100) + "%", need.Value >= 0.999f ? "Passengers have no complaints here." : need.Advice + ".", null, null, null);
+                    if (need.Unasked) { Ico(WantIcon(need.Want, need.Queue), Ui.Off).Bar(1f, Ui.Off).Entry(need.Name, "NOT NEEDED YET", "An airport this size gets by without. Passengers will look for it as their numbers grow.", null, null, null); continue; }
+                    bool met = need.Value >= 0.999f;
+                    string body = met ? "Passengers have no complaints here." : need.Advice + ".";
+                    Ico(WantIcon(need.Want, need.Queue), ScoreTint(need.Value)).Bar(need.Value, ScoreTint(need.Value));
+                    if (met) { Entry(need.Name, "100%", body, null, null, null); continue; }
+                    if (need.Queue)
+                    {
+                        // The part holding the queues up, upgraded from here (the price of the cheapest of them, when several are level).
+                        string fix = s.FlowFix;
+                        if (fix == null) Entry(need.Name, Mathf.RoundToInt(need.Value * 100) + "%", body + " Being built.", null, null, null);
+                        else
+                        {
+                            var fd = Content.Facilities[fix]; float fsecs = s.BuildSeconds(fix);
+                            Entry(need.Name, Mathf.RoundToInt(need.Value * 100) + "%", body, "UPGRADE " + PartLabel(fix) + "\n<size=34>" + Format.Money(s.Cost(fix)) + "</size>", s.UpgradeBlocked(fix),
+                                () => { if (s.Upgrade(fix)) { if (fsecs > 60) Reminders.AskOnce(); Toast(fsecs > 0 ? fd.Name + ": the crew has started" : fd.Name + " upgraded to level " + s.Level(fix)); } }, Ui.Green);
+                        }
+                        continue;
+                    }
+                    var want = need.Want;
+                    Entry(need.Name, Mathf.RoundToInt(need.Value * 100) + "%", body + NeedCoverageLine(need).Replace("\n", " "), "PLACE\n<size=30>" + ShopGroupFor(want).ToUpper() + "</size>", null, () => OpenShopGroup(ShopGroupFor(want)), Ui.Blue);
                 }
                 if (s.Level("fuel") > 0)
                 {
@@ -241,6 +261,7 @@ namespace Crosswind.Game
                         shut ? "CLOSED" : rb == "The surface is good" ? "GOOD" : "RESURFACE\n<size=34>" + Format.Money(s.ResurfaceCost) + "</size>", shut || rb == "The surface is good" ? null : rb == "An aircraft is on the runway" ? null : rb,
                         () => { if (s.Resurface()) { Sfx.Play("build"); Toast("Runway closed for resurfacing"); } }, cond < Sim.WornAt ? Ui.Gold : (Color?)null);
                 }
+                SpecialismSection();
                 foreach (var group in new[] { "Airside", "Services", "Terminal" })
                 {
                     Header(group.ToUpper());
@@ -286,9 +307,7 @@ namespace Crosswind.Game
                         Sim.PartnerName[partner].ToUpper() + "  ·  " + Sim.Mood(mood).ToUpper() + " " + Mathf.RoundToInt(mood),
                         "Pays " + Mathf.RoundToInt((float)(s.RelationPay(line) * s.PartnerPay(line)) * 100) + "% of its fees." + (mood < 20 ? "  One more bad day and they cancel a route." : "") + "  " + dealLine, null, null, null);
                 }
-                Header("YOUR AIRLINE  ·  " + s.FleetSize + " AIRCRAFT  ·  EACH FLIGHT PAYS " + Mathf.RoundToInt((float)Sim.OwnPay * 100) + "%");
-                Ico("paint", Palette.Hex(Sim.LiveryHex[Mathf.Clamp(s.State.livery, 0, Sim.LiveryHex.Length - 1)])).Entry("Livery: " + Sim.Liveries[s.State.livery], null, "Your aircraft fly in your colours. New aircraft and the next arrivals wear the new paint.", "CHANGE", null,
-                    () => { s.SetLivery(s.State.livery + 1); Toast("Livery: " + Sim.Liveries[s.State.livery]); }, Palette.Hex(Sim.LiveryHex[s.State.livery]));
+                LiverySection();
                 foreach (AircraftClass ac in System.Enum.GetValues(typeof(AircraftClass)))
                 {
                     var pl = Content.Aircraft[ac]; var own = Content.Routes["own_" + ac.ToString().ToLower()];
@@ -382,11 +401,28 @@ namespace Crosswind.Game
                     var gt = gi <= 0 ? TintGold : gi == 1 ? TintGreen : gi == 2 ? TintAir : TintRed;
                     string body = rep.flights + " flights, " + Mathf.RoundToInt(100f * rep.onTime / Mathf.Max(1, rep.flights)) + "% on time  ·  took " + Format.Money(rep.income) + "  ·  passengers " + Format.Satisfied(rep.satisfaction)
                         + (rep.dry > 0 ? "  ·  " + rep.dry + " fuelled by a supplier" : "") + (rep.runway < Sim.WornAt ? "  ·  runway worn" : "");
-                    Ico("medal", gt).Bar(rep.score, gi <= 1 ? Ui.Green : gi == 2 ? Ui.Gold : Ui.Red).Entry("Day " + rep.day + " report", "GRADE " + rep.grade + (rep.streak > 1 ? "  ·  " + rep.streak + " GOOD DAYS RUNNING" : ""), body,
+                    int short_ = Sim.PointsToNextGrade(rep.score);
+                    Ico("medal", gt).Bar(rep.score, gi <= 1 ? Ui.Green : gi == 2 ? Ui.Gold : Ui.Red).Entry("Day " + rep.day + " report", "GRADE " + rep.grade + "  ·  " + Mathf.RoundToInt(rep.score * 100) + " POINTS" + (short_ > 0 ? ", " + short_ + " SHORT OF " + Sim.Grades[gi - 1] : "") + (rep.streak > 1 ? "  ·  " + rep.streak + " GOOD DAYS RUNNING" : ""), body,
                         rep.claimed ? null : rep.bonus > 0 || rg > 0 ? "COLLECT\n<size=34>" + (rep.bonus > 0 ? Format.Money(rep.bonus) : "") + (rg > 0 ? (rep.bonus > 0 ? " + " : "") + rg + " gems" : "") + "</size>" : "OK", null,
                         () => { double got = s.ClaimReport(); Sfx.Play("confirm"); if (got > 0 || rg > 0) Toast("Day bonus: " + (got > 0 ? "+" + Format.Money(got) : "") + (rg > 0 ? "  +" + rg + " gems" : "")); }, gi <= 1 ? Ui.Gold : Ui.Blue);
+                    // What cost the marks, biggest first, with the fix beside it; then how it compares with the day before.
+                    foreach (var line in s.Coaching(rep))
+                    {
+                        string icon = line.Part == "ontime" ? "clock" : line.Part == "passengers" ? "users" : line.Part == "fuel" ? "fuel" : line.Part == "runway" ? "runway" : "chartbar";
+                        var tint = line.Part == "change" ? TintLab : line.Lost >= 0.05f ? TintRed : TintGold;
+                        string tag = line.Part == "change" ? null : "-" + Mathf.Max(1, Mathf.RoundToInt(line.Lost * 100)) + " POINTS";
+                        string fix = line.Fix;
+                        if (fix != null && Content.Facilities.ContainsKey(fix) && s.Level(fix) < Content.Facilities[fix].MaxLevel && s.Building(fix) == null)
+                        {
+                            var fd = Content.Facilities[fix];
+                            Ico(icon, tint).Entry(line.Title, tag, line.Text, (s.Level(fix) > 0 ? "UPGRADE\n" : "BUILD\n") + "<size=34>" + Format.Money(s.Cost(fix)) + "</size>", s.UpgradeBlocked(fix),
+                                () => { if (s.Upgrade(fix)) Toast(fd.Name + (s.Building(fix) != null ? ": the crew has started" : " upgraded to level " + s.Level(fix))); }, Ui.Green);
+                        }
+                        else Ico(icon, tint).Entry(line.Title, tag, line.Text, null, null, null);
+                    }
                 }
             }
+            AmbitionSection();
             FinanceSection();
             Header("TODAY");
             for (int i = 0; i < s.State.tasks.Count; i++)
@@ -400,19 +436,26 @@ namespace Crosswind.Game
             Header("THIS WEEK'S EVENT  ·  ENDS IN " + Format.Time(s.EventLeft).ToUpper());
             int evClaimed = s.State.eventClaimed;
             string marks = string.Join("   ", ev.Targets.Select((tg, i) => (i < evClaimed ? "<color=#7BD88F>" : s.State.eventProgress >= tg ? "<color=#FFC83D>" : "<color=#FFFFFF80>") + Format.Money(tg) + " → " + ev.Gems[i] + " gems</color>"));
-            Ico("star", TintGold).Entry(ev.Name, Format.Money(s.State.eventProgress) + (evClaimed < ev.Targets.Length ? " / " + Format.Money(ev.Targets[evClaimed]) : " · ALL DONE"), ev.Blurb + "\n" + marks,
+            // A week that changes the airport says how, and what to have ready (ticked or not).
+            string prep = string.Join("   ", s.EventPrep.Select(p => (p.ready ? "<color=#7BD88F>" : "<color=#FF8070>") + p.what + (p.ready ? " (ready)" : " (not yet)") + "</color>"));
+            string evBody = ev.Blurb + (ev.Effect != null ? "\n<color=#FFD24A>" + ev.Effect + "</color>" : "") + (prep.Length > 0 ? "\nBe ready: " + prep : "") + "\n" + marks
+                + "\n<color=#FFFFFF80>Next week: " + s.NextEvent.Name + "</color>";
+            Ico(ev.Id == "storm" ? "storm" : ev.Id == "cargo" ? "cargo" : "star", TintGold).Entry(ev.Name, Format.Money(s.State.eventProgress) + (evClaimed < ev.Targets.Length ? " / " + Format.Money(ev.Targets[evClaimed]) : " · ALL DONE"), evBody,
                 evClaimed < ev.Targets.Length ? "CLAIM\n<size=34>" + ev.Gems[evClaimed] + " gems</size>" : null, s.EventWaiting > 0 ? null : "Not reached yet", () => { int g = s.ClaimEvent(); if (g > 0) Toast(ev.Name + ": +" + g + " gems"); }, Ui.Gold);
             Header("DAILY GIFT");
             Ico("calendar", TintSocial).Entry("Day " + (s.SignInIndex + 1) + " of 7", s.SignInReady ? null : "COME BACK TOMORROW", "A gift every day you play: " + string.Join(", ", Sim.SignInGems) + " gems. Miss a day and it starts again.",
                 s.SignInReady ? "CLAIM\n<size=34>" + Sim.SignInGems[s.SignInIndex] + " gems</size>" : null, null, () => { int g = s.ClaimSignIn(); if (g > 0) Toast("Daily gift: +" + g + " gems"); }, Ui.Gold);
             Header("BOOST");
-            if (s.AdOffered(AdReward.Boost) && Ads.Ready)
+            if (s.AdOffered(AdReward.Boost) && s.AdFree)
+                Ico("bolt", TintGreen).Entry("Boost", s.AdsLeft + " LEFT TODAY", "Express Lane: " + Content.BoostMinutes + " minutes of double income, no advert.", "BOOST", null,
+                    () => { if (s.BoostByAd()) { Toast("Income doubled for " + Content.BoostMinutes + " minutes"); Telemetry.Feature("adpass_reward", "boost"); GameRoot.Instance.Save(); } }, Ui.Green);
+            else if (s.AdOffered(AdReward.Boost) && Ads.Ready)
                 Ico("bolt", TintGreen).Entry("Boost for an advert", s.AdsLeft + " LEFT TODAY", "Watch a short advert for " + Content.BoostMinutes + " minutes of double income. Only if you want to: nothing here needs it.",
                     "WATCH", null, () => Ads.Show(watched =>
                     {
                         if (watched && s.BoostByAd()) { Toast("Income doubled for " + Content.BoostMinutes + " minutes"); GameRoot.Instance.Save(); }
                         else if (!watched) Toast("The advert wasn't finished, so there's no boost.");
-                    }), Ui.Green);
+                    }, "boost"), Ui.Green);
             else
                 Ico("bolt", TintGreen).Entry("Boost for an advert", s.Boosted ? Format.Time(s.BoostLeft) + " LEFT" : null,
                     s.AdsLeft <= 0 ? "That's all the adverts for today: boosts are back tomorrow." : !s.AdOffered(AdReward.Boost) ? "The boost is full: it stacks up to 4 hours." : "No advert is ready just now. Look in again in a moment.",
@@ -433,17 +476,26 @@ namespace Crosswind.Game
             Header("SHOP" + (Store.Testing ? Store.Available ? " (TEST PURCHASES)" : " (NOT OPEN YET)" : Store.Available ? "" : " (CONNECTING TO THE APP STORE)"));
             foreach (var prod in Sim.Products)
             {
+                // A product the App Store doesn't offer yet (the Express Lane until it is set up there) isn't shown.
+                if (prod.Id == Sim.AdPass && !Store.Testing && !s.Owns(prod.Id) && Store.Price(prod) == "...") continue;
                 bool owned = prod.Once && s.Owns(prod.Id);
-                Ico("cart", TintGold).Entry(prod.Name, owned ? "OWNED" : null, prod.Blurb, owned ? null : "BUY\n<size=34>" + Store.Price(prod) + "</size>", null,
-                    () => Store.Buy(prod, (ok, msg) => { Toast(msg); if (ok) Sfx.Play("confirm"); _dirty = true; }), Ui.Gold);
+                var p = prod;
+                // Every row says whether it is spent or kept, and opens the card that shows exactly what comes with it.
+                string kind = owned ? "OWNED" : prod.Once ? "KEPT FOR GOOD" : prod.WarpHours > 0 ? "ONE USE" : "GEMS TO SPEND";
+                string blurb = prod.Blurb;
+                if (prod.WarpHours > 0) { var w = s.PreviewWarp(prod.WarpHours * 3600); blurb += " Right now: +" + Format.Money(w.Money) + (w.Finishes.Count > 0 ? " and " + w.Finishes.Count + (w.Finishes.Count == 1 ? " thing" : " things") + " finished" : "") + "."; }
+                Ico(prod.Once ? "crown" : prod.WarpHours > 0 ? "clock" : "cart", TintGold).Entry(prod.Name, kind, blurb, owned ? null : "SEE\n<size=34>" + Store.Price(prod) + "</size>", null,
+                    () => OpenOffer(p), Ui.Gold);
             }
             Ico("cart").Entry("Restore purchases", null, "Brings back the Founder's Pack and Golden Runway on a new iPhone or iPad. Gems you bought travel with your iCloud save.", "RESTORE", null,
                 () => Store.Restore(msg => { Toast(msg); _dirty = true; }), Ui.Card);
+            JournalSection();
+            HallOfFameSection();
             Header("SETTINGS");
             Ico("sound").Entry("Sound", Sfx.Muted ? "OFF" : "ON", "Interface sounds and the airfield.", Sfx.Muted ? "TURN ON" : "TURN OFF", null, () => { Sfx.Muted = !Sfx.Muted; }, Ui.Card);
             Ico("sound", TintSocial).Entry("Music", Sfx.Music ? "ON" : "OFF", "A calm loop by day and a quieter one after dark.", Sfx.Music ? "TURN OFF" : "TURN ON", null, () => { Sfx.Music = !Sfx.Music; }, Ui.Blue);
             Ico("bolt", TintSocial).Entry("Battery saver", FrameBudget.BatterySaver ? "ON" : "OFF", "30 frames a second instead of 60: a cooler phone and a longer charge.", FrameBudget.BatterySaver ? "TURN OFF" : "TURN ON", null, () => { FrameBudget.BatterySaver = !FrameBudget.BatterySaver; }, Ui.Blue);
-            Ico("chartbar").Entry("Share anonymous play statistics", Telemetry.Sharing ? "ON" : "OFF", "Tells us where players get stuck: goals reached, stars, frame rate. Nothing about you, no tracking.", Telemetry.Sharing ? "TURN OFF" : "TURN ON", null, () => { Telemetry.Sharing = !Telemetry.Sharing; }, Ui.Card);
+            Ico("chartbar").Entry("Share anonymous play statistics", Telemetry.Sharing ? "ON" : "OFF", "Tells us where players get stuck and what they use: the tutorial, goals and stars reached, features tried, frame rate. Nothing about you, never your purchases, no tracking.", Telemetry.Sharing ? "TURN OFF" : "TURN ON", null, () => { Telemetry.Sharing = !Telemetry.Sharing; }, Ui.Card);
             Ico("bell").Entry("Reminders", Reminders.On ? "ON" : "OFF", "A notification when the builders or research finish, a free crate is ready, or the airport has earned all it can.", Reminders.On ? "TURN OFF" : "TURN ON", null, () => { Reminders.On = !Reminders.On; }, Ui.Card);
             Ico("cloud", TintAir).Entry("iCloud save", CloudSave.Available ? "ON" : "OFF", CloudSave.Available ? "Your airport is kept in your own iCloud and follows you to a new phone." + (CloudSave.LastPushed > 0 ? " Last saved " + Format.Time(System.Math.Max(0, SaveSystem.Now - CloudSave.LastPushed)) + " ago." : "")
                 : "Sign in to iCloud in the iPhone's Settings to keep your airport safe and move it to a new phone.", null, null, null);
@@ -481,7 +533,7 @@ namespace Crosswind.Game
                 .rectTransform.Place(new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -140), new Vector2(820, 380));
             var yes = Ui.Button("Yes", box, "SELL AND MOVE", Ui.Gold, () =>
             {
-                if (_sim.SellAndMove(m.Id)) { Toast("Welcome to " + m.Name); GameRoot.Instance.Save(); OpenTab(-1); }
+                if (_sim.SellAndMove(m.Id, LastPhotoPath())) { Toast("Welcome to " + m.Name); GameRoot.Instance.Save(); OpenTab(-1); }
                 Destroy(_confirm.gameObject); _confirm = null;
             }, 46);
             ((RectTransform)yes.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(210, 50), new Vector2(400, 120));
@@ -580,7 +632,23 @@ namespace Crosswind.Game
             }, 56);
             ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(520, 124));
             // Twice over for a short advert, if the player wants one: the two buttons side by side.
-            if (_sim.AdOffered(AdReward.Double) && Ads.Ready)
+            if (_sim.AdOffered(AdReward.Double) && _sim.AdFree)
+            {
+                // The Express Lane: the same doubling, no advert.
+                ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-218, 46), new Vector2(410, 124));
+                var twice = Ui.Button("Double", box, "DOUBLE IT\n<size=30>EXPRESS LANE</size>", Ui.Gold, () =>
+                {
+                    double got = _sim.CollectOfflineByAd(GameRoot.Instance.AwaySeconds);
+                    if (got <= 0) return;
+                    Telemetry.Feature("adpass_reward", "double_away");
+                    GameRoot.Instance.ClearAway();
+                    GameRoot.Instance.Save();
+                    Destroy(_away.gameObject); _away = null;
+                    Reward(got, 0); Sfx.Play("claim");
+                }, 44);
+                ((RectTransform)twice.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(218, 46), new Vector2(410, 124));
+            }
+            else if (_sim.AdOffered(AdReward.Double) && Ads.Ready)
             {
                 ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-218, 46), new Vector2(410, 124));
                 var twice = Ui.Button("Double", box, "DOUBLE IT\n<size=30>WATCH AN ADVERT</size>", Ui.Gold, () =>
@@ -593,7 +661,7 @@ namespace Crosswind.Game
                         GameRoot.Instance.Save();
                         Destroy(_away.gameObject); _away = null;
                         Reward(got, 0); Sfx.Play("claim");
-                    }), 44);
+                    }, "double_away"), 44);
                 ((RectTransform)twice.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(218, 46), new Vector2(410, 124));
             }
         }

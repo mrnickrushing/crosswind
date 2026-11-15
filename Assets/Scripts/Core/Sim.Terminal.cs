@@ -25,6 +25,8 @@ namespace Crosswind.Core
     public sealed class Need
     {
         public string Name, Advice; public float Value; public bool Queue; public Want Want;
+        /// <summary>The facility that fixes it, for a button beside the advice (null: something to place).</summary>
+        public string Fix;
         /// <summary>Met without anything placed for it: at this size of airport nobody asks for it yet.</summary>
         public bool Unasked;
     }
@@ -177,8 +179,10 @@ namespace Crosswind.Core
             State.money -= BayCost;
             State.bays.Add(bay);
             State.baysBought++;
+            CheckAmbitions();
             AddRating(10);
             Count("upgrade", 1);
+            Built("terminal");
             Changed?.Invoke();
             return true;
         }
@@ -294,10 +298,14 @@ namespace Crosswind.Core
         public bool Place(string id, int x, int z, int rot)
         {
             if (PlaceBlocked(id, x, z, rot) != null) return false;
-            State.money -= AmenityCost(id);
-            State.terminal.Add(new PlacedAmenity { id = id, x = x, z = z, rot = rot & 3 });
+            double cost = AmenityCost(id), xp = State.ratingXp;
+            State.money -= cost;
+            var item = new PlacedAmenity { id = id, x = x, z = z, rot = rot & 3 };
+            State.terminal.Add(item);
             AddRating(6);
             Count("upgrade", 1);
+            Built("terminal");
+            Remember("placed", item, x, z, rot & 3, cost, State.ratingXp - xp);
             Changed?.Invoke();
             return true;
         }
@@ -338,16 +346,17 @@ namespace Crosswind.Core
             return moved;
         }
 
-        /// <summary>Places one wherever it fits (the play bot, and "place for me").</summary>
+        /// <summary>Places one where it reaches the most floor still without one (the play bots, and "place for me").</summary>
         public bool PlaceAnywhere(string id)
         {
-            var spot = FindSpot(id);
+            var spot = BestSpot(id);
             return spot != null && Place(id, spot.x, spot.z, spot.rot);
         }
 
         public bool MoveAmenity(PlacedAmenity p, int x, int z, int rot)
         {
             if (!State.terminal.Contains(p) || !FloorFree(AmenityById(p.id), x, z, rot, p)) return false;
+            if (p.x != x || p.z != z || p.rot != (rot & 3)) Remember("moved", p, p.x, p.z, p.rot, 0, 0);
             p.x = x; p.z = z; p.rot = rot & 3;
             Changed?.Invoke();
             return true;
@@ -363,10 +372,13 @@ namespace Crosswind.Core
         public bool UpgradeAmenity(PlacedAmenity p)
         {
             if (!State.terminal.Contains(p) || AmenityUpgradeBlocked(p) != null) return false;
-            State.money -= AmenityUpgradeCost(p);
+            double cost = AmenityUpgradeCost(p), xp = State.ratingXp;
+            State.money -= cost;
             p.level++;
             AddRating(6);
             Count("upgrade", 1);
+            Built("terminal");
+            Remember("upgraded", p, p.x, p.z, p.rot, cost, State.ratingXp - xp);
             Changed?.Invoke();
             return true;
         }
@@ -380,6 +392,7 @@ namespace Crosswind.Core
             double back = SellValue(p);
             State.terminal.Remove(p);
             State.money += back;
+            Remember("sold", p, p.x, p.z, p.rot, back, 0);
             Changed?.Invoke();
             return true;
         }
@@ -399,7 +412,7 @@ namespace Crosswind.Core
         }
 
         /// <summary>The shops' pull on every passenger's wallet (what "shop level" used to be).</summary>
-        public float RetailLevel { get { return (Supply(Want.Food) + Supply(Want.Shopping)) / 10f; } }
+        public float RetailLevel { get { return (ReachedSupply(Want.Food) + ReachedSupply(Want.Shopping)) / 10f; } }
         public float LoungeLevel { get { return Supply(Want.Lounge) / 10f; } }
         /// <summary>How much the shops actually pull from a wallet: the first few count in full, more of the same less and less.</summary>
         public float RetailPull { get { float l = RetailLevel; return l <= 6 ? l : 6 + (l - 6) * 0.25f; } }
@@ -422,10 +435,10 @@ namespace Crosswind.Core
             {
                 double demand = Math.Max(1, PassengerDemand);
                 float Fit(double supply) { return (float)Math.Max(0, Math.Min(1, supply / demand)); }
-                var list = new List<Need> { new Need { Name = "Short queues", Queue = true, Value = Fit(TerminalFlow), Advice = "Upgrade the slowest of check-in, security and gates" } };
+                var list = new List<Need> { new Need { Name = "Short queues", Queue = true, Value = Fit(TerminalFlow), Advice = QueueAdvice ?? "Check-in, security and the gates keep up", Fix = FlowFix } };
                 foreach (var r in WantRules)
                 {
-                    float placed = Supply(r.want);
+                    float placed = ReachedSupply(r.want);
                     list.Add(new Need { Name = r.name, Want = r.want, Value = Fit(r.free + placed * r.per), Advice = r.advice, Unasked = placed <= 0 && r.free >= demand });
                 }
                 return list;

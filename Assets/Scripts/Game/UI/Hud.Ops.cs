@@ -532,7 +532,7 @@ namespace Crosswind.Game
                     float target = s.OnTimeTarget(r), used = (float)(s.State.time - f.parkedAt - f.held);
                     Meter(row, 0.8f, 0.92f, used / target, used > target ? Ui.Red : used > target * 0.8f ? Ui.Gold : Ui.Green, 16);
                 }
-                var view = Ui.Button("View", row, "VIEW", Ui.Blue, () => { OpenTab(-1); if (CameraRig.Inside) { CameraRig.Instance.SetInside(false); OnInsideChanged(); } LookAtFlight(id); }, 28);
+                var view = Ui.Button("View", row, "VIEW", Ui.Blue, () => { OpenTab(-1); GoInside(false); LookAtFlight(id); }, 28);
                 var vr = (RectTransform)view.transform; vr.anchorMin = new Vector2(0.92f, 0); vr.anchorMax = new Vector2(1, 1); vr.offsetMin = new Vector2(4, 12); vr.offsetMax = new Vector2(-12, -12);
             }
             var due = s.State.bookings.Where(b => b.hour >= 0 && !b.airborne && b.lastDay != s.FuelDay && b.flown < b.flights).OrderBy(b => Col(b.hour)).ToList();

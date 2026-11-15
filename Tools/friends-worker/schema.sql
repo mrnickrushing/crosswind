@@ -38,3 +38,12 @@ CREATE TABLE IF NOT EXISTS reports (
   added    INTEGER NOT NULL,            -- unix seconds
   PRIMARY KEY (reporter, reported)
 ) WITHOUT ROWID;
+
+-- The co-op week: a player's passengers in one week (POST /v1/coop/report; added by migrations/0001_coop.sql).
+CREATE TABLE IF NOT EXISTS coop (
+  player     INTEGER NOT NULL,          -- players.id
+  week       INTEGER NOT NULL,          -- the game's week (Sim.Week: (days since 1970 + 3) / 7, rounded down)
+  passengers INTEGER NOT NULL,          -- passengers handled that week, as the game counts them
+  updated    INTEGER NOT NULL,          -- unix seconds
+  PRIMARY KEY (player, week)
+) WITHOUT ROWID;

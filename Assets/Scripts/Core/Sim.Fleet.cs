@@ -48,6 +48,7 @@ namespace Crosswind.Core
             string id = c.ToString().ToLower();
             var e = State.fleet.Find(f => f.id == id);
             if (e == null) State.fleet.Add(new LevelEntry { id = id, level = 1 }); else e.level++;
+            State.fleetBest = Math.Max(State.fleetBest, FleetSize);
             if (!Signed("own_" + id)) State.contracts.Add(new ContractState { route = "own_" + id, nextArrival = State.time + 4 });
             AddRating(25 * (1 + (int)c));
             Changed?.Invoke();

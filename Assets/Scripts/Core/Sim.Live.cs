@@ -78,7 +78,10 @@ namespace Crosswind.Core
         {
             var m = Map;
             double roll = Rand();
-            Weather w = roll < m.Storm ? Weather.Storm : roll < m.Storm + m.Fog ? Weather.Fog : roll < m.Storm + m.Fog + m.Snow ? Weather.Snow : roll < m.Storm + m.Fog + m.Snow + 0.15 ? Weather.Rain : Weather.Clear;
+            // Storm Season roughens the map's own weather (Sim.Events); any other week it is the map's.
+            var e = Week_;
+            double storm = m.Storm + e.Storm, fog = m.Fog + e.Fog, snow = m.Snow * e.SnowScale;
+            Weather w = roll < storm ? Weather.Storm : roll < storm + fog ? Weather.Fog : roll < storm + fog + snow ? Weather.Snow : roll < storm + fog + snow + 0.15 ? Weather.Rain : Weather.Clear;
             // The first few minutes of a new airport are always fair.
             if (State.time < 300) w = Weather.Clear;
             bool changed = (int)w != State.weather;

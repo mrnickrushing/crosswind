@@ -13,8 +13,11 @@ namespace Crosswind.Game
         public float Distance = 230f;
         const float MinDistance = 90f, MaxDistance = 700f, InsideMin = 40f, InsideMax = 320f;
         /// <summary>Over the airfield the view is three-quarter; inside it faces the hall square on from the doors, a little steeper, so the hall fills the screen.</summary>
-        static float Pitch { get { return Inside ? 55f : 40f; } }
-        static float Yaw { get { return Inside ? 90f : 128f; } }
+        static float Pitch { get { return Angle.HasValue ? Angle.Value.x : Inside ? 55f : 40f; } }
+        static float Yaw { get { return Angle.HasValue ? Angle.Value.y : Inside ? 90f : 128f; } }
+        /// <summary>Photo mode's angle (pitch, yaw), eased into; null: the game's own view.</summary>
+        public static Vector2? Angle;
+        float _pitchShown = 40f, _yawShown = 128f;
         Vector3 _focusV;
         float _shown;
 
@@ -76,7 +79,7 @@ namespace Crosswind.Game
             rig.Cam.backgroundColor = new Color(0.72f, 0.82f, 0.9f);
             go.tag = "MainCamera";
             go.AddComponent<AudioListener>();
-            rig._shown = rig.Distance;
+            rig._shown = rig.Distance; rig._pitchShown = Pitch; rig._yawShown = Yaw;
             rig.Place();
             Instance = rig;
             return rig;
@@ -103,15 +106,22 @@ namespace Crosswind.Game
         /// <summary>Zoom by a factor (over 1 = closer).</summary>
         public void Zoom(float factor) { Distance = Mathf.Clamp(Distance / Mathf.Max(0.01f, factor), Inside ? InsideMin : MinDistance, Inside ? InsideMax : MaxDistance); }
 
+        /// <summary>Swings the camera to a point with a little ceremony (a milestone): it glides there and closes in.</summary>
+        public void Showcase(Vector3 at, float distance) { Focus = new Vector3(at.x, 0, at.z); Distance = Mathf.Clamp(distance, Inside ? InsideMin : MinDistance, Inside ? InsideMax : MaxDistance); }
+
         void LateUpdate()
         {
-            _shown = Mathf.Lerp(_shown, Distance, 1 - Mathf.Exp(-12 * Time.unscaledDeltaTime));
+            float k = 1 - Mathf.Exp(-12 * Time.unscaledDeltaTime);
+            _shown = Mathf.Lerp(_shown, Distance, k);
+            // A change of angle (photo mode) swings round rather than cutting; going in or out of the hall cuts.
+            _pitchShown = Mathf.Lerp(_pitchShown, Pitch, Angle.HasValue ? k * 0.5f : 1);
+            _yawShown = Mathf.LerpAngle(_yawShown, Yaw, Angle.HasValue ? k * 0.5f : 1);
             Place();
         }
 
         void Place()
         {
-            var rot = Quaternion.Euler(Pitch, Yaw, 0);
+            var rot = Quaternion.Euler(_pitchShown, _yawShown, 0);
             transform.rotation = rot;
             transform.position = Focus - rot * Vector3.forward * _shown;
         }

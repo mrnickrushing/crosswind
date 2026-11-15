@@ -3,6 +3,7 @@
 Assets/Resources/UI/Ic/<name>.png. The game tints them and sets them on a coloured tile.
 
     python3 Tools/art/icons.py            # write every icon
+    python3 Tools/art/icons.py camera eye # write just these
     python3 Tools/art/icons.py sheet out.png   # one picture of all of them, to check
 """
 import os, sys
@@ -24,6 +25,10 @@ ICONS = {
     "signout": 0xf2f5, "pen": 0xf304, "hammer": 0xf6e3, "cart": 0xf07a, "money": 0xf53a, "sack": 0xf81d,
     "tasks": 0xf0ae, "target": 0xf140, "box": 0xf466, "id": 0xf2c2, "arrival": 0xf5af, "tag": 0xf02b, "queue": 0xf0c0,
     "broom": 0xf51a, "sign": 0xf277, "burger": 0xf805, "tv": 0xf26c, "userplus": 0xf234, "wings": 0xf4ba, "chartbar": 0xf080,
+    # 2026-11-15: the compact HUD, photo mode, the floor map, undo, the journal, events
+    "chevronup": 0xf077, "chevrondown": 0xf078, "camera": 0xf030, "eye": 0xf06e, "undo": 0xf2ea, "layers": 0xf5fd,
+    "image": 0xf03e, "book": 0xf02d, "share": 0xf14d, "storm": 0xf76c, "award": 0xf559, "palette": 0xf53f,
+    "plane": 0xf072, "flag": 0xf024, "pin": 0xf08d, "ticket": 0xf3ff,
 }
 
 def render(code, n=128, pad=0.14):
@@ -54,7 +59,9 @@ if len(sys.argv) > 2 and sys.argv[1] == "sheet":
     sheet.save(sys.argv[2]); print("sheet", sys.argv[2]); sys.exit()
 
 os.makedirs(ROOT, exist_ok=True)
+only = set(sys.argv[1:])          # names given: render just those (the font's rasteriser drifts a pixel between builds)
 for name, code in ICONS.items():
+    if only and name not in only: continue
     im = render(code)
     if im is None: print("MISSING", name); continue
     im.save(os.path.join(ROOT, name + ".png"))

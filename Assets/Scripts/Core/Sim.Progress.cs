@@ -167,11 +167,12 @@ namespace Crosswind.Core
 
         /// <summary>
         /// Sells the stake in this airport for Wings and opens another: buildings, routes, money and rating start
-        /// again there; Wings, gems, research and achievements stay.
+        /// again there; Wings, gems, research, achievements, the journal and the hall of fame stay (<paramref name="photo"/>: the last photo taken here, for its line).
         /// </summary>
-        public bool SellAndMove(string toMap)
+        public bool SellAndMove(string toMap, string photo = null)
         {
             if (SellBlocked(toMap) != null) return false;
+            KeepLegacy(photo);
             int gained = WingsOnSale;
             var old = State;
             if (!old.mapsRun.Contains(old.map)) old.mapsRun.Add(old.map);
@@ -185,6 +186,8 @@ namespace Crosswind.Core
             old.fleet = new List<LevelEntry>(); old.relations = new List<LevelEntry>(); old.builds = new List<BuildJob>();
             old.goalIndex = Math.Min(Goals.All.Count, 7);    // the guide runs again at each airport, without the first-minute steps
             old.incomeRate = 0; old.weather = 0; old.weatherUntil = 0; old.opportunity = null; old.nextOpportunityAt = 210; old.rushUntil = 0; old.incident = null; old.nextIncidentAt = 600; old.moodShift = 0; old.moodUntil = 0;
+            old.specialism = ""; old.specialismChanges = 0; old.specialismAt = 0;    // a new airport chooses again, the first time free
+            old.classesHere = new List<string>(); old.pinnedAmbition = "";        // a new airport has its own ambitions (kept as "map:id")
             EnsureBays();
             Count("sell", 1);
             Changed?.Invoke();

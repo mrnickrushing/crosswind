@@ -16,7 +16,7 @@ namespace Crosswind.Game
         CanvasGroup _toastGroup, _bannerGroup;
         Image _toastRim;
         readonly List<RectTransform> _bannerStars = new List<RectTransform>();
-        Text _bannerTitle, _bannerSub;
+        Text _bannerTitle, _bannerSub, _bannerKicker;
         RectTransform _bannerRays;
         float _toastAge, _bannerAge, _ratingShown = -1, _ratingOwed, _ratingWait, _starPulse;
 
@@ -140,7 +140,7 @@ namespace Crosswind.Game
             plate.gameObject.AddComponent<RectMask2D>();
             var band = Ui.Img("Band", plate, Ui.Gold, true).rectTransform;
             band.Band(true, 6, 58, 6);
-            Ui.Label("Kicker", band, "NEW RATING", 34, Ui.Ink).rectTransform.Fill();
+            _bannerKicker = Ui.Label("Kicker", band, "NEW RATING", 34, Ui.Ink); _bannerKicker.rectTransform.Fill();
             _bannerTitle = Ui.Label("Title", plate, "", 70, Color.white);
             _bannerTitle.rectTransform.Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 78), new Vector2(880, 84));
             Outline(_bannerTitle);
@@ -151,7 +151,7 @@ namespace Crosswind.Game
 
         public void Toast(string text)
         {
-            if (string.IsNullOrEmpty(text)) return;
+            if (string.IsNullOrEmpty(text) || _shooting) return;      // nothing walks into a photo
             _toastText.text = text;
             float w = Mathf.Clamp(_toastText.preferredWidth + 90, 320, 960);
             _toast.sizeDelta = new Vector2(w, 84);
@@ -162,6 +162,7 @@ namespace Crosswind.Game
 
         void OnStar(int stars)
         {
+            if (_shooting) { _starAfterShot = stars; return; }     // not into a photo: it comes up once the picture is taken
             foreach (var st in _bannerStars) Destroy(st.gameObject);
             _bannerStars.Clear();
             var plate = _banner.GetChild(0);
@@ -173,6 +174,7 @@ namespace Crosswind.Game
                 img.rectTransform.localScale = Vector3.zero;
                 _bannerStars.Add(img.rectTransform);
             }
+            _bannerKicker.text = "NEW RATING";
             _bannerTitle.text = stars + "-STAR AIRPORT!";
             _bannerSub.text = "New airlines and buildings unlocked  ·  +1 team crate";
             _banner.gameObject.SetActive(true);
@@ -181,6 +183,7 @@ namespace Crosswind.Game
             _bannerT = 4f; _bannerAge = 0;
             _dirty = true;
             RateSoon(stars);
+            StarShotsOnStar(stars);
         }
 
         void UpdateFeedback()

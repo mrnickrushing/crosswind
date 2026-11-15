@@ -303,3 +303,6 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   the guide is done), EMPIRE's AMBITIONS, the moment (the camera follows the first of a class in, the banner's kicker
   `_bannerKicker`, the fanfare), and the star before/after (`ShootAirfield`: an offscreen camera from a fixed spot,
   pictures in `persistentDataPath/Stars/<map>_<stars>.png`; a baseline is kept for the current rating).
+- Express Lane (`Sim.AdPass` = `crosswind.adpass`, non-consumable, `Sim.AdFree`): the rewarded adverts' rewards (boost,
+  doubled time away) without the advert, within the same `AdsPerDay`. The shop hides it on device until the App Store
+  offers it (`iap.py` creates it; ask before running the setup job).

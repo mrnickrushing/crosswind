@@ -52,6 +52,23 @@ namespace Crosswind.Tests
         }
 
         [Test]
+        public void TheExpressLaneGivesAdvertRewardsWithinTheSameDailyLimit()
+        {
+            var s = Airport();
+            Assert.IsFalse(s.AdFree);
+            Assert.IsTrue(s.Grant(Sim.AdPass, "tx-pass"));
+            Assert.IsTrue(s.AdFree);
+            int boosts = 0;
+            while (s.AdOffered(AdReward.Boost) && s.BoostByAd()) { boosts++; s.State.boostUntil = 0; }
+            Assert.AreEqual(Sim.AdsPerDay, boosts, "no more than the adverts would have given");
+            Assert.AreEqual(0, s.AdsLeft);
+            // Kept for good: a restore brings it back.
+            var again = Airport();
+            Assert.AreEqual(1, again.RestoreOwned(new[] { Sim.AdPass }));
+            Assert.IsTrue(again.AdFree);
+        }
+
+        [Test]
         public void ATransactionPaysOnce()
         {
             var s = Airport(); int gems = s.State.gems;

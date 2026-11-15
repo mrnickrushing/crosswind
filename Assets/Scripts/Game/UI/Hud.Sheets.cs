@@ -446,7 +446,10 @@ namespace Crosswind.Game
             Ico("calendar", TintSocial).Entry("Day " + (s.SignInIndex + 1) + " of 7", s.SignInReady ? null : "COME BACK TOMORROW", "A gift every day you play: " + string.Join(", ", Sim.SignInGems) + " gems. Miss a day and it starts again.",
                 s.SignInReady ? "CLAIM\n<size=34>" + Sim.SignInGems[s.SignInIndex] + " gems</size>" : null, null, () => { int g = s.ClaimSignIn(); if (g > 0) Toast("Daily gift: +" + g + " gems"); }, Ui.Gold);
             Header("BOOST");
-            if (s.AdOffered(AdReward.Boost) && Ads.Ready)
+            if (s.AdOffered(AdReward.Boost) && s.AdFree)
+                Ico("bolt", TintGreen).Entry("Boost", s.AdsLeft + " LEFT TODAY", "Express Lane: " + Content.BoostMinutes + " minutes of double income, no advert.", "BOOST", null,
+                    () => { if (s.BoostByAd()) { Toast("Income doubled for " + Content.BoostMinutes + " minutes"); Telemetry.Feature("adpass_reward", "boost"); GameRoot.Instance.Save(); } }, Ui.Green);
+            else if (s.AdOffered(AdReward.Boost) && Ads.Ready)
                 Ico("bolt", TintGreen).Entry("Boost for an advert", s.AdsLeft + " LEFT TODAY", "Watch a short advert for " + Content.BoostMinutes + " minutes of double income. Only if you want to: nothing here needs it.",
                     "WATCH", null, () => Ads.Show(watched =>
                     {
@@ -473,6 +476,8 @@ namespace Crosswind.Game
             Header("SHOP" + (Store.Testing ? Store.Available ? " (TEST PURCHASES)" : " (NOT OPEN YET)" : Store.Available ? "" : " (CONNECTING TO THE APP STORE)"));
             foreach (var prod in Sim.Products)
             {
+                // A product the App Store doesn't offer yet (the Express Lane until it is set up there) isn't shown.
+                if (prod.Id == Sim.AdPass && !Store.Testing && !s.Owns(prod.Id) && Store.Price(prod) == "...") continue;
                 bool owned = prod.Once && s.Owns(prod.Id);
                 var p = prod;
                 // Every row says whether it is spent or kept, and opens the card that shows exactly what comes with it.
@@ -627,7 +632,23 @@ namespace Crosswind.Game
             }, 56);
             ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(520, 124));
             // Twice over for a short advert, if the player wants one: the two buttons side by side.
-            if (_sim.AdOffered(AdReward.Double) && Ads.Ready)
+            if (_sim.AdOffered(AdReward.Double) && _sim.AdFree)
+            {
+                // The Express Lane: the same doubling, no advert.
+                ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-218, 46), new Vector2(410, 124));
+                var twice = Ui.Button("Double", box, "DOUBLE IT\n<size=30>EXPRESS LANE</size>", Ui.Gold, () =>
+                {
+                    double got = _sim.CollectOfflineByAd(GameRoot.Instance.AwaySeconds);
+                    if (got <= 0) return;
+                    Telemetry.Feature("adpass_reward", "double_away");
+                    GameRoot.Instance.ClearAway();
+                    GameRoot.Instance.Save();
+                    Destroy(_away.gameObject); _away = null;
+                    Reward(got, 0); Sfx.Play("claim");
+                }, 44);
+                ((RectTransform)twice.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(218, 46), new Vector2(410, 124));
+            }
+            else if (_sim.AdOffered(AdReward.Double) && Ads.Ready)
             {
                 ((RectTransform)ok.transform).Place(new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-218, 46), new Vector2(410, 124));
                 var twice = Ui.Button("Double", box, "DOUBLE IT\n<size=30>WATCH AN ADVERT</size>", Ui.Gold, () =>

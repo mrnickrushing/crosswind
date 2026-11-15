@@ -43,9 +43,14 @@ namespace Crosswind.Core
             new ProductDef { Id = "crosswind.starter", Name = "Founder's Pack", Blurb = "300 gems now and a third building crew for good. One time only.", Gems = 300, Once = true, FallbackPrice = "$4.99" },
             new ProductDef { Id = "crosswind.warp", Name = "Time Warp", Blurb = "Two hours in a moment: two hours of income now, and every build, study and timer two hours further on.", WarpHours = 2, FallbackPrice = "$0.99" },
             new ProductDef { Id = "crosswind.double", Name = "Golden Runway", Blurb = "All income doubled, for good, at every airport.", Once = true, FallbackPrice = "$9.99" },
+            new ProductDef { Id = AdPass, Name = "Express Lane", Blurb = "Every advert reward without the advert: boosts and doubled earnings in one tap, for good. The same few a day.", Once = true, FallbackPrice = "$4.99" },
         };
 
         public bool Owns(string product) { return State.owned.Contains(product); }
+
+        /// <summary>The Express Lane: rewarded adverts' rewards without the advert (same daily limits).</summary>
+        public const string AdPass = "crosswind.adpass";
+        public bool AdFree { get { return Owns(AdPass); } }
 
         /// <summary>Grants a purchase (idempotent per transaction). Returns false if this transaction was already granted.
         /// A restore (<paramref name="restored"/>) brings back what is kept for good (the crew, the doubled income) but not a
@@ -93,6 +98,7 @@ namespace Crosswind.Core
             if (p.WarpHours > 0) once.Add(p.WarpHours + " hours of the airport in a moment");
             if (p.Id == "crosswind.starter") forGood.Add("a third building crew: three builds at once, at every airport");
             if (p.Id == "crosswind.double") forGood.Add("all income doubled, at every airport");
+            if (p.Id == AdPass) forGood.Add("every advert reward without watching one (" + AdsPerDay + " a day, as now)");
         }
 
         /// <summary>What a warp of this long would pay right now: the airport's income for that time, managers or not.</summary>

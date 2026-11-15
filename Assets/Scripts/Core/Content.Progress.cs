@@ -44,7 +44,6 @@ namespace Crosswind.Core
 
         public const int BoostMinutes = 30;             // one income boost (a rewarded ad, or gems)
         public const float BoostScale = 2f;
-        public const int BoostGems = 10;
         public const float WingBonus = 0.08f;           // income per Wing, for good
         public const int SellStars = 5;                 // the rating at which a stake can be sold
 

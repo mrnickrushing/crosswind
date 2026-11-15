@@ -406,8 +406,6 @@ namespace Crosswind.Game
             Ico("calendar", TintSocial).Entry("Day " + (s.SignInIndex + 1) + " of 7", s.SignInReady ? null : "COME BACK TOMORROW", "A gift every day you play: " + string.Join(", ", Sim.SignInGems) + " gems. Miss a day and it starts again.",
                 s.SignInReady ? "CLAIM\n<size=34>" + Sim.SignInGems[s.SignInIndex] + " gems</size>" : null, null, () => { int g = s.ClaimSignIn(); if (g > 0) Toast("Daily gift: +" + g + " gems"); }, Ui.Gold);
             Header("BOOST");
-            Ico("bolt", TintGreen).Entry("Free boost", s.FreeBoostReady ? "READY" : "IN " + Format.Time(s.FreeBoostIn), "Double income for " + Content.BoostMinutes + " minutes, on the house, every " + Sim.FreeBoostHours + " hours.",
-                "TAKE IT", s.FreeBoostReady ? null : "Not ready yet", () => { if (s.TakeFreeBoost()) Toast("Income doubled for " + Content.BoostMinutes + " minutes"); }, Ui.Green);
             if (s.AdOffered(AdReward.Boost) && Ads.Ready)
                 Ico("bolt", TintGreen).Entry("Boost for an advert", s.AdsLeft + " LEFT TODAY", "Watch a short advert for " + Content.BoostMinutes + " minutes of double income. Only if you want to: nothing here needs it.",
                     "WATCH", null, () => Ads.Show(watched =>
@@ -415,8 +413,10 @@ namespace Crosswind.Game
                         if (watched && s.BoostByAd()) { Toast("Income doubled for " + Content.BoostMinutes + " minutes"); GameRoot.Instance.Save(); }
                         else if (!watched) Toast("The advert wasn't finished, so there's no boost.");
                     }), Ui.Green);
-            Ico("bolt", TintGold).Entry("Double income", s.Boosted ? Format.Time(s.BoostLeft) + " LEFT" : null, "Everything the airport earns is doubled for " + Content.BoostMinutes + " minutes. Stacks up to 4 hours.",
-                "BOOST\n<size=34>" + Content.BoostGems + " gems</size>", s.State.gems < Content.BoostGems ? "Not enough gems" : null, () => { if (s.BuyBoost()) Toast("Income doubled for " + Content.BoostMinutes + " minutes"); }, Ui.Gold);
+            else
+                Ico("bolt", TintGreen).Entry("Boost for an advert", s.Boosted ? Format.Time(s.BoostLeft) + " LEFT" : null,
+                    s.AdsLeft <= 0 ? "That's all the adverts for today: boosts are back tomorrow." : !s.AdOffered(AdReward.Boost) ? "The boost is full: it stacks up to 4 hours." : "No advert is ready just now. Look in again in a moment.",
+                    null, null, null);
 
             Header(s.Map.Name.ToUpper() + "  ·  " + s.State.wings + " WINGS (+" + Mathf.RoundToInt(s.State.wings * Content.WingBonus * 100) + "% income)");
             Ico("wings", TintGold).Entry("Sell your stake", s.Stars >= Content.SellStars ? "WORTH " + s.WingsOnSale + " WINGS" : null,

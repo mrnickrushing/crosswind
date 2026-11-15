@@ -28,12 +28,11 @@ namespace Crosswind.Tests
             var s = Fresh();
             s.State.incomeRate = 10;
             s.State.builds.Add(new BuildJob { facility = "parking", doneAt = _now + 3 * 3600, total = 3 * 3600 });
-            s.State.freeBoostAt = _now + 3 * 3600; s.State.freeCrateAt = _now + 3600;
+            s.State.freeCrateAt = _now + 3600;
             double pays = s.WarpEarnings(7200);
             Assert.GreaterOrEqual(pays, 10 * 7200);
             Assert.IsTrue(s.Grant("crosswind.warp", "t1"));
             Assert.AreEqual(_now + 3600, s.State.builds[0].doneAt, 1e-6);
-            Assert.AreEqual(_now + 3600, s.State.freeBoostAt, 1e-6);
             Assert.IsTrue(s.FreeCrateReady);
             Assert.IsFalse(s.Grant("crosswind.warp", "t1"), "the same transaction never pays twice");
             Assert.IsTrue(s.Grant("crosswind.warp", "t2"), "a second purchase does");

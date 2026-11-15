@@ -183,6 +183,10 @@ namespace Crosswind.Core
         public DayLedger today = new DayLedger();                    // the day being counted
         public double dayOpenMoney = -1;                             // cash when the day opened (-1: not yet counted)
         public int contractsSigned, contractsDone, fullMarks;         // contracts signed, flown to the end, and of those with all three marks
+        // Specialisation (Sim.Specialism): what the airport is known for ("": nothing yet), when it was last chosen (real time), how often.
+        public string specialism = "";
+        public double specialismAt;
+        public int specialismChanges;
 
         public static GameState New()
         {
@@ -273,6 +277,7 @@ namespace Crosswind.Core
             if (dayWait == null || dayWait.Length != 6) dayWait = new double[6];
             if (dayBuilt == null) dayBuilt = new List<string>();
             if (report != null) report.Repair();
+            if (specialism == null || (specialism != "" && Sim.SpecialismById(specialism) == null)) specialism = "";
         }
     }
 }

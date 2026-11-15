@@ -261,6 +261,7 @@ namespace Crosswind.Game
                         shut ? "CLOSED" : rb == "The surface is good" ? "GOOD" : "RESURFACE\n<size=34>" + Format.Money(s.ResurfaceCost) + "</size>", shut || rb == "The surface is good" ? null : rb == "An aircraft is on the runway" ? null : rb,
                         () => { if (s.Resurface()) { Sfx.Play("build"); Toast("Runway closed for resurfacing"); } }, cond < Sim.WornAt ? Ui.Gold : (Color?)null);
                 }
+                SpecialismSection();
                 foreach (var group in new[] { "Airside", "Services", "Terminal" })
                 {
                     Header(group.ToUpper());

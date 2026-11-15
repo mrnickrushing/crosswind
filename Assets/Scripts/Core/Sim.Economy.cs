@@ -19,7 +19,7 @@ namespace Crosswind.Core
         {
             var plane = Content.Aircraft[r.Class];
             float ideal = plane.BoardSeconds * 2 + plane.ServiceSeconds * (1 + r.Needs.Where(Content.OnDeparture).Sum(Content.ServiceShare)) + plane.TaxiSeconds + plane.RunwaySeconds;
-            return ideal * Content.OnTimeSlack * Content.Airlines[r.Airline].Patience * (1 + Fx(Effect.OnTimeSlack));
+            return ideal * Content.OnTimeSlack * Content.Airlines[r.Airline].Patience * (1 + Fx(Effect.OnTimeSlack)) * SpecOnTime;
         }
 
         /// <summary>What a flight on this route pays when it leaves on time, at today's satisfaction.</summary>
@@ -28,13 +28,13 @@ namespace Crosswind.Core
             var plane = Content.Aircraft[r.Class];
             var line = Content.Airlines[r.Airline];
             float sat = Satisfaction;
-            double landing = plane.LandingFee * line.FeeScale * (onTime ? 1 + Content.OnTimeBonus : Content.LateShare) * (1 + Fx(Effect.LandingFee)) * (1 + 0.05 * Level("hangar"));
-            double pax = plane.Seats * 2 * Content.PassengerFee * sat * (1 + Fx(Effect.PassengerFee)) * (1 + 0.06 * LoungeLevel);
+            double landing = plane.LandingFee * line.FeeScale * (onTime ? 1 + Content.OnTimeBonus : Content.LateShare) * (1 + Fx(Effect.LandingFee)) * (1 + 0.05 * Level("hangar")) * SpecLanding;
+            double pax = plane.Seats * 2 * Content.PassengerFee * sat * (1 + Fx(Effect.PassengerFee)) * (1 + 0.06 * LoungeLevel * SpecLounge) * SpecPax;
             double fuel = r.Needs.Contains(Service.Fuel) ? plane.FuelMargin * (1 + 0.05 * (Level("fuel") - 1)) * (1 + Fx(Effect.FuelMargin)) : 0;
-            double retail = plane.Seats * 2 * Content.RetailSpend * RetailPull * sat * (1 + Fx(Effect.Retail));
-            double cargo = plane.Seats * 0.8 * Level("cargo") * line.FeeScale;
+            double retail = plane.Seats * 2 * Content.RetailSpend * RetailPull * sat * (1 + Fx(Effect.Retail)) * SpecRetail;
+            double cargo = plane.Seats * 0.8 * Level("cargo") * line.FeeScale * SpecCargoPay;
             if (parts != null) { parts[0] = landing; parts[1] = pax; parts[2] = fuel; parts[3] = retail; parts[4] = cargo; }
-            return (landing + pax + fuel + retail + cargo) * IncomeScale;
+            return (landing + pax + fuel + retail + cargo) * IncomeScale * SpecClassPay(r.Class);
         }
 
         /// <summary>The least a flight on this route spends at its stand with every crew to hand: off, serviced, on, pushed back, taxiing.</summary>
@@ -60,7 +60,7 @@ namespace Crosswind.Core
             if (dry) { value -= parts[2] * (1 - DryMargin) * IncomeScale; parts[2] *= DryMargin; }
             double paid = value * (State.time < State.rushUntil ? 2 : 1) * TermsPay(terms) * SlotPay(r, f.slot) * (r.Airline == "own" ? OwnPay * MaintenancePay(r.Class) : RelationPay(r.Airline) * FeePay * PartnerPay(r.Airline) * RepPay(r.Airline));
             if (r.Airline == "own") FleetFlew(r.Class);
-            if (r.Airline != "own") Relate(r.Airline, (onTime ? 0.4f : -2.5f) + FeeMoodPerFlight);
+            if (r.Airline != "own") Relate(r.Airline, (onTime ? 0.4f : -2.5f) + FeeMoodPerFlight + SpecMood(r.Airline));
             if (r.Airline != "own") CountDeal(r, onTime, paid);
             double sum = parts[0] + parts[1] + parts[2] + parts[3] + parts[4];
             if (sum > 0) for (int i = 0; i < 5; i++) State.incomeBy[i] += paid * parts[i] / sum;
@@ -129,7 +129,7 @@ namespace Crosswind.Core
                 if (!r.Needs.All(Automated) || !Active(r.Airline)) continue;
                 var plane = Content.Aircraft[r.Class];
                 // A slotted route flies three quarters of the day's flights.
-                double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) * FleetFlights(r) / 3600.0 * (c.slot > 0 ? SlotRate * 6 / 24 : 1) * (r.Airline == "own" ? 1 : FeeFlights);
+                double perSec = r.FlightsPerHour * (1 + Fx(Effect.Demand)) * FleetFlights(r) / 3600.0 * (c.slot > 0 ? SlotRate * 6 / 24 : 1) * (r.Airline == "own" ? 1 : FeeFlights) * SpecFlights(r);
                 double ground = GroundSeconds(r);
                 runwayLoad += perSec * 2 * plane.RunwaySeconds / RunwaySpeed;
                 standLoad += perSec * ground;

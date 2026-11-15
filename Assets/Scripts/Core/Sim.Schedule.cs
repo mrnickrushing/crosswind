@@ -80,7 +80,7 @@ namespace Crosswind.Core
         {
             var r = Content.Routes[c.route];
             if (!Active(r.Airline)) return 0;
-            return r.FlightsPerHour * (1 + Fx(Effect.Demand)) * TermsFlights(c.terms) * FleetFlights(r) * (r.Airline == "own" ? 1 : FeeFlights) * WeekFactor(r.Airline, Weekday);
+            return r.FlightsPerHour * (1 + Fx(Effect.Demand)) * TermsFlights(c.terms) * FleetFlights(r) * (r.Airline == "own" ? 1 : FeeFlights) * WeekFactor(r.Airline, Weekday) * SpecFlights(r);
         }
 
         /// <summary>Flights an hour planned for each hour of the day, 00 to 23.</summary>

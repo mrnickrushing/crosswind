@@ -185,6 +185,7 @@ namespace Crosswind.Core
             old.fleet = new List<LevelEntry>(); old.relations = new List<LevelEntry>(); old.builds = new List<BuildJob>();
             old.goalIndex = Math.Min(Goals.All.Count, 7);    // the guide runs again at each airport, without the first-minute steps
             old.incomeRate = 0; old.weather = 0; old.weatherUntil = 0; old.opportunity = null; old.nextOpportunityAt = 210; old.rushUntil = 0; old.incident = null; old.nextIncidentAt = 600; old.moodShift = 0; old.moodUntil = 0;
+            old.specialism = ""; old.specialismChanges = 0; old.specialismAt = 0;    // a new airport chooses again, the first time free
             EnsureBays();
             Count("sell", 1);
             Changed?.Invoke();

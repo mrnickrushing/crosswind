@@ -224,14 +224,14 @@ namespace Crosswind.Core
                 };
                 // One in five is a special: freight for the freight and mail airlines, a VIP flight for the ones that ask for the best.
                 double roll = MarketRand();
-                b.kind = roll < 0.3 ? Charter : roll < 0.8 ? Series : line.Kind == 3 || airline == "puffin" ? Freight : line.Grade <= 1 ? Vip : Series;
+                b.kind = roll < 0.3 ? Charter : roll < 0.8 - SpecialOdds(airline) ? Series : line.Kind == 3 || airline == "puffin" ? Freight : line.Grade <= 1 ? Vip : Series;
                 b.flights = b.kind == Charter || b.kind == Vip ? 1 : b.kind == Freight ? 2 + (int)(MarketRand() * 3) : 3 + (int)(MarketRand() * 4) + tier;
                 if (b.kind == Vip) b.grade = 0;
                 b.part = line.Likes[(int)(MarketRand() * line.Likes.Length) % line.Likes.Length];
                 if (b.part == 4 && !NightOps) b.part = line.Likes.FirstOrDefault(p => p != 4);
                 if (b.part <= 0) b.part = 1;
                 if (b.kind == Freight && NightOps) b.part = 4;          // freight flies by night where it can
-                double special = b.kind == Vip ? 2.2 : b.kind == Freight ? 1.5 : 1;
+                double special = (b.kind == Vip ? 2.2 : b.kind == Freight ? 1.5 : 1) * SpecContractPay(b.kind);
                 b.reward = Math.Floor(ContractMinute * (b.flights == 1 ? CharterMinutes : SeriesMinutes * b.flights) * (1 + 0.1 * tier) * (0.7 + 0.3 * (b.plane + 1) / ((int)top + 1)) * special);
                 b.rep = (int)Math.Round((b.flights == 1 ? 12 + 6 * b.plane : b.flights * (4 + 2 * b.plane)) * (b.kind == Vip ? 2 : b.kind == Freight ? 1.3 : 1));
                 State.market.Add(b);

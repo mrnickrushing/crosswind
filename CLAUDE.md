@@ -284,3 +284,14 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   in `FlightValue`'s cargo part, `FreightOdds` in `RollMarket`; counts `cargoMinutes`) change the week. `EventPrep` is the
   "be ready" list on the EMPIRE card. The week's event is kept in `State.eventId` (older saves mid-week keep their
   `LegacyRotation` event), so lengthening the rotation never swaps an event mid-week.
+- Your airline's look (`Core/Sim.Livery.cs`, `LiveryTests`): `liveryPattern` (Classic, Plain, Cheatline, Two-Tone,
+  Swoosh, Full Colour), `liveryTrim` (0 = Matched), `emblem` (none, star, chevron, ring, wing, leaf), `airlineName`
+  (screened by `FriendRules`). They open by stars (`LiveryStars`, a sale counts as 5) or the most aircraft owned at once
+  (`State.fleetBest`); nothing is sold. Zeros are the Classic look old saves had. Only `"own"` takes the livery path in
+  `World/Aircraft.cs` (`OwnSkin`, `OwnBands`, `Emblem`; at most about 210 extra triangles). UI: `UI/Hud.Livery.cs` in AIRLINES.
+- Co-op week (`Core/Sim.Coop.cs`, `CoopTests`, UI `UI/Hud.Coop.cs` in FRIENDS): `Pay` adds seats x 2 to
+  `State.coopPassengers` for the `Week`; `FriendsClient.ReportCoop` -> `POST /v1/coop/report` (every 3 min signed in, 1 min
+  with FRIENDS open) keeps the higher count per player and week and returns the total over you and your mutual friends
+  and `members`. Tiers `CoopBase` (2.5K/10K/30K/80K) x (5 + 4 x (members - 1)) / 5 pay `CoopGems` once each a week, in
+  order; `COOP_BASE` in worker.js must match. Worker tests: `node --test` in `Tools/friends-worker`; the table is
+  `migrations/0001_coop.sql` (run it with wrangler before deploying the worker; ask the owner first).

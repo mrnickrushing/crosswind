@@ -192,13 +192,13 @@ namespace Crosswind.Game
             GameRoot.Instance.Save();
             if (_moving != null) { StopPlacing(); return; }
             // Keep going with the same thing while there's room and money: the next free spot beside it.
-            var next = _sim.FindSpot(_placing.Id);
+            var next = _sim.BestSpot(_placing.Id);
             if (next == null || _sim.State.money < _sim.AmenityCost(_placing.Id)) StopPlacing(); else { _placeX = next.x; _placeZ = next.z; _placeRot = next.rot; }
         }
 
         void StartPlacing(AmenityDef d)
         {
-            var spot = _sim.FindSpot(d.Id);
+            var spot = _sim.BestSpot(d.Id);
             if (spot == null) { Toast(_sim.NextBay >= 0 ? "The open floor is full: tap a fenced bay to open more" : "The floor is full: sell something, or grow the terminal"); return; }
             _placing = d; _moving = null; _placeX = spot.x; _placeZ = spot.z; _placeRot = spot.rot;
             ClosePick(); OpenTab(-1);
@@ -284,6 +284,7 @@ namespace Crosswind.Game
             }
             _placeBar.gameObject.SetActive(inside && _placing != null);
             UpdateNeedCard();
+            UpdateCoverage(inside);
             if (!inside) return;
 
             var needs = _sim.Needs;
@@ -323,7 +324,7 @@ namespace Crosswind.Game
                 _ghostItem.transform.position = at + Vector3.up * (0.12f + Mathf.Sin(Time.unscaledTime * 4) * 0.05f);
                 _ghostItem.transform.rotation = Quaternion.Euler(0, _placeRot * 90, 0);
                 _ghostItemMat.color = can ? new Color(0.8f, 1f, 0.85f, 0.8f) : new Color(1f, 0.55f, 0.5f, 0.7f);
-                _placeText.text = "<b>" + _placing.Name + "</b>  " + _placing.W + " x " + _placing.D + "\n<color=#FFFFFFA0>Tap the floor to choose the spot." + (free ? "" : _placeZ >= 0 && _placeX >= 0 && _placeZ + d <= _sim.FloorRows && _placeX < _sim.FloorCols && !_sim.CellOpen(_placeX, _placeZ) ? "  <color=#FF8070>That floor is not open yet.</color>" : "  <color=#FF8070>No room there.</color>") + "</color>";
+                _placeText.text = "<b>" + _placing.Name + "</b>  " + _placing.W + " x " + _placing.D + PlaceReachHint() + "\n<color=#FFFFFFA0>Tap the floor to choose the spot." + (free ? "" : _placeZ >= 0 && _placeX >= 0 && _placeZ + d <= _sim.FloorRows && _placeX < _sim.FloorCols && !_sim.CellOpen(_placeX, _placeZ) ? "  <color=#FF8070>That floor is not open yet.</color>" : "  <color=#FF8070>No room there.</color>") + "</color>";
                 _placeOk.GetComponent<Image>().color = can ? Ui.Green : Ui.Off;
                 _placeOk.GetComponentInChildren<Text>().text = _moving != null ? "PUT HERE" : "PLACE\n<size=24>" + Format.Money(cost) + "</size>";
             }

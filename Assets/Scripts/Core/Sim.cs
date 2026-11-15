@@ -42,6 +42,8 @@ namespace Crosswind.Core
             // And one from when the terminal was a long strip has its furniture moved onto the hall's floor.
             EnsureBays();
             RefitTerminal();
+            // And one from before placement had reach gets a grace period for its layout.
+            EnsureReach();
         }
 
         // ------------------------------------------------------------------ levels and what they mean
@@ -266,6 +268,7 @@ namespace Crosswind.Core
             bool shut = RunwayClosed;
             State.time += dt;
             if (shut && !RunwayClosed) RunwayReopened?.Invoke();
+            TickReach();
             Live(dt);
             Arrivals();
             int runwayBusy = State.flights.Count(f => f.phase == Phase.Landing || f.phase == Phase.Takeoff);

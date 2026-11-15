@@ -157,6 +157,8 @@ namespace Crosswind.Core
         public double[] dayWait = new double[6];                     // today: seconds jobs waited for a crew, by Service
         public int dayLateCrew, dayLateQueue;                        // today: late flights that waited for a crew, or boarded slowly
         public List<string> dayBuilt = new List<string>();           // today: what was built or upgraded (facility ids, "terminal")
+        public bool reachSet;                                        // the save knows that placement has reach (Sim.Coverage)
+        public double reachGraceUntil;                               // an older layout's grace: real time it ends (-1: from the first tick, 0: none)
         public DayReport report;                                     // the last day closed (null before the first: see Repair)
         public int gradeStreak, daysAtA;
         public int cheapFills;                                       // tankers bought well below par

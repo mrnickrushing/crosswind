@@ -250,3 +250,14 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
 - Telemetry events (`Telemetry.Track/Feature/LayoutEdit/OfferViewed`; list in `Tools/stats-worker/README.md` with the
   retention queries): never purchases (the privacy label and `docs/privacy.html` promise it). Glyphs added to
   `Tools/art/icons.py` (render only new names: `icons.py camera eye`).
+- Placement has reach (`Core/Sim.Coverage.cs`, `CoverageTests`): an item serves the floor cells within `Reach(want)`
+  of its footprint (+1 a level; food and shops 7, fun and info 6, toilets 5, seating and cleanliness 4; the lounge has
+  none). `Coverage(want)` is the share of open floor in reach; `ReachedSupply = Supply x CoverFactor` (from
+  `CoverFloor` 0.5 at none to 1 at all) feeds the needs and `RetailLevel`. Cached by a fingerprint of the floor.
+  Saves from before the rule (`reachSet` false with items placed) get `ReachGraceHours` (48 h real time, fading).
+  `BestSpot` (summed-area table of uncovered open cells) is where `PlaceAnywhere` and the SHOP put things;
+  `CoverageGain` is the placing bar's hint. View: `World/FloorMap.cs` (green in reach, red missing, gold what the
+  ghost adds), shown while placing and by a rating's SHOW ON THE FLOOR (`UI/Hud.Coverage.cs`).
+- UNDO on the floor (`Core/Sim.Undo.cs`, `UndoTests`): the last `UndoDepth` placements, moves, upgrades and sales,
+  for `UndoSeconds` of real time, exactly reversed (money, rating never below the current star, the event's and
+  tasks' counts); not saved. Button bottom-left in the terminal (`Hud.Coverage.BuildUndo`).

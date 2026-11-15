@@ -44,6 +44,8 @@ namespace Crosswind.Core
             RefitTerminal();
             // And one from before placement had reach gets a grace period for its layout.
             EnsureReach();
+            // And one in the middle of a week from before the longer rotation keeps that week's event.
+            EnsureEventId();
         }
 
         // ------------------------------------------------------------------ levels and what they mean

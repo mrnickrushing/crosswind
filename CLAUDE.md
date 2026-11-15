@@ -279,3 +279,8 @@ Tools/unity-test.sh                          # EditMode tests in the Editor, or 
   (visiting airlines, classes A-E, contract kinds) pay `PageGems` once (`ClaimPage`). Old saves are back-filled with what
   is certain, on day 0 (`BackfillJournal`, end of `Repair`). `SellAndMove(toMap, photo)` keeps a `LegacyRecord` first
   (stars, flights, earned, grade-A days, items, best contract, `Hud.LastPhoto`) and a trophy (a record, no bonus).
+- Weekly events (`Core/Sim.Events.cs`, `EventTests`): six in rotation; Storm Season (`EventDef.Storm/Fog/SnowScale`
+  roughen `NextWeather`; counts `rough`: flights away on time in bad weather) and Cargo Surge (`CargoLevel` + `CargoPay`
+  in `FlightValue`'s cargo part, `FreightOdds` in `RollMarket`; counts `cargoMinutes`) change the week. `EventPrep` is the
+  "be ready" list on the EMPIRE card. The week's event is kept in `State.eventId` (older saves mid-week keep their
+  `LegacyRotation` event), so lengthening the rotation never swaps an event mid-week.

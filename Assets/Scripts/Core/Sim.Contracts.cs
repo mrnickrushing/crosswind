@@ -224,7 +224,7 @@ namespace Crosswind.Core
                 };
                 // One in five is a special: freight for the freight and mail airlines, a VIP flight for the ones that ask for the best.
                 double roll = MarketRand();
-                b.kind = roll < 0.3 ? Charter : roll < 0.8 - SpecialOdds(airline) ? Series : line.Kind == 3 || airline == "puffin" ? Freight : line.Grade <= 1 ? Vip : Series;
+                b.kind = roll < 0.3 ? Charter : roll < 0.8 - SpecialOdds(airline) - (line.Kind == 3 || airline == "puffin" ? EventFreightOdds : 0) ? Series : line.Kind == 3 || airline == "puffin" ? Freight : line.Grade <= 1 ? Vip : Series;
                 b.flights = b.kind == Charter || b.kind == Vip ? 1 : b.kind == Freight ? 2 + (int)(MarketRand() * 3) : 3 + (int)(MarketRand() * 4) + tier;
                 if (b.kind == Vip) b.grade = 0;
                 b.part = line.Likes[(int)(MarketRand() * line.Likes.Length) % line.Likes.Length];

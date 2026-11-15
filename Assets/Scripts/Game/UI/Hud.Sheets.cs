@@ -437,7 +437,11 @@ namespace Crosswind.Game
             Header("THIS WEEK'S EVENT  ·  ENDS IN " + Format.Time(s.EventLeft).ToUpper());
             int evClaimed = s.State.eventClaimed;
             string marks = string.Join("   ", ev.Targets.Select((tg, i) => (i < evClaimed ? "<color=#7BD88F>" : s.State.eventProgress >= tg ? "<color=#FFC83D>" : "<color=#FFFFFF80>") + Format.Money(tg) + " → " + ev.Gems[i] + " gems</color>"));
-            Ico("star", TintGold).Entry(ev.Name, Format.Money(s.State.eventProgress) + (evClaimed < ev.Targets.Length ? " / " + Format.Money(ev.Targets[evClaimed]) : " · ALL DONE"), ev.Blurb + "\n" + marks,
+            // A week that changes the airport says how, and what to have ready (ticked or not).
+            string prep = string.Join("   ", s.EventPrep.Select(p => (p.ready ? "<color=#7BD88F>" : "<color=#FF8070>") + p.what + (p.ready ? " (ready)" : " (not yet)") + "</color>"));
+            string evBody = ev.Blurb + (ev.Effect != null ? "\n<color=#FFD24A>" + ev.Effect + "</color>" : "") + (prep.Length > 0 ? "\nBe ready: " + prep : "") + "\n" + marks
+                + "\n<color=#FFFFFF80>Next week: " + s.NextEvent.Name + "</color>";
+            Ico(ev.Id == "storm" ? "storm" : ev.Id == "cargo" ? "cargo" : "star", TintGold).Entry(ev.Name, Format.Money(s.State.eventProgress) + (evClaimed < ev.Targets.Length ? " / " + Format.Money(ev.Targets[evClaimed]) : " · ALL DONE"), evBody,
                 evClaimed < ev.Targets.Length ? "CLAIM\n<size=34>" + ev.Gems[evClaimed] + " gems</size>" : null, s.EventWaiting > 0 ? null : "Not reached yet", () => { int g = s.ClaimEvent(); if (g > 0) Toast(ev.Name + ": +" + g + " gems"); }, Ui.Gold);
             Header("DAILY GIFT");
             Ico("calendar", TintSocial).Entry("Day " + (s.SignInIndex + 1) + " of 7", s.SignInReady ? null : "COME BACK TOMORROW", "A gift every day you play: " + string.Join(", ", Sim.SignInGems) + " gems. Miss a day and it starts again.",

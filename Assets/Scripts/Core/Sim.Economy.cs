@@ -32,7 +32,7 @@ namespace Crosswind.Core
             double pax = plane.Seats * 2 * Content.PassengerFee * sat * (1 + Fx(Effect.PassengerFee)) * (1 + 0.06 * LoungeLevel * SpecLounge) * SpecPax;
             double fuel = r.Needs.Contains(Service.Fuel) ? plane.FuelMargin * (1 + 0.05 * (Level("fuel") - 1)) * (1 + Fx(Effect.FuelMargin)) : 0;
             double retail = plane.Seats * 2 * Content.RetailSpend * RetailPull * sat * (1 + Fx(Effect.Retail)) * SpecRetail;
-            double cargo = plane.Seats * 0.8 * Level("cargo") * line.FeeScale * SpecCargoPay;
+            double cargo = plane.Seats * 0.8 * (Level("cargo") + EventCargoLevel) * line.FeeScale * SpecCargoPay * EventCargoPay;
             if (parts != null) { parts[0] = landing; parts[1] = pax; parts[2] = fuel; parts[3] = retail; parts[4] = cargo; }
             return (landing + pax + fuel + retail + cargo) * IncomeScale * SpecClassPay(r.Class);
         }
@@ -67,6 +67,8 @@ namespace Crosswind.Core
             if (sum > 0) { var t = State.today; t.landing += paid * parts[0] / sum; t.pax += paid * parts[1] / sum; t.fuel += paid * parts[2] / sum; t.retail += paid * parts[3] / sum; t.cargo += paid * parts[4] / sum; }
             Earn(AfterLoan(paid), true);
             CountDay(onTime, dry, paid);
+            if (onTime && Weather != Weather.Clear) Count("rough", 1);
+            if (sum > 0 && parts[4] > 0) Count("cargo", paid * parts[4] / sum);
             if (!onTime) { if (f.waited >= LateWait) State.dayLateCrew++; else if (f.slowBoard) State.dayLateQueue++; }
             JournalFlight(f, r);
             if (f.contract != 0) ContractFlew(f, onTime, dry);

@@ -134,6 +134,7 @@ namespace Crosswind.Core
         public List<BuildJob> builds = new List<BuildJob>();
         public int signInDay = -1, signInStreak;
         public int eventWeek = -1, eventClaimed;                    // the week the progress belongs to, and milestones claimed
+        public string eventId = "";                                 // the event that week started with (Sim.Events)
         public double eventProgress;                    // the last day claimed, and days in a row
         public double sessionEarned;
         public List<LevelEntry> crew = new List<LevelEntry>();       // the team: id and copies held
@@ -292,6 +293,7 @@ namespace Crosswind.Core
             if (dayWait == null || dayWait.Length != 6) dayWait = new double[6];
             if (dayBuilt == null) dayBuilt = new List<string>();
             if (report != null) report.Repair();
+            if (eventId == null) eventId = "";
             if (specialism == null || (specialism != "" && Sim.SpecialismById(specialism) == null)) specialism = "";
             if (recruitTokens < 0) recruitTokens = 0;
             if (wanted == null || (wanted != "" && Sim.CrewById(wanted) == null)) wanted = "";
